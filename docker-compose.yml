@@ -1,0 +1,90 @@
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  Antigravity — hạ tầng phát triển cục bộ (Postgres + Redis)               ║
+# ║                                                                           ║
+# ║  Chỉ chứa DEPENDENCY, không chứa app. API vẫn chạy trên host bằng         ║
+# ║  `pnpm --filter api start:dev` để giữ hot-reload và debugger.             ║
+# ║                                                                           ║
+# ║    docker compose up -d          # bật                                    ║
+# ║    docker compose ps             # xem trạng thái + healthcheck           ║
+# ║    docker compose logs -f redis  # xem log                                ║
+# ║    docker compose down           # tắt (GIỮ dữ liệu)                      ║
+# ║    docker compose down -v        # tắt và XÓA SẠCH dữ liệu                ║
+# ║                                                                           ║
+# ║  Sau khi `up`, đặt trong apps/api/.env:                                   ║
+# ║    DATABASE_URL="postgresql://antigravity:antigravity@localhost:5434/antigravity_dev"
+# ║    REDIS_URL="redis://127.0.0.1:6379"                                     ║
+# ║  Rồi:                                                                     ║
+# ║    pnpm --filter @antigravity/database exec prisma migrate deploy         ║
+# ║    pnpm --filter @antigravity/database db:seed                            ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: antigravity-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: antigravity
+      POSTGRES_PASSWORD: antigravity
+      POSTGRES_DB: antigravity_dev
+      # Dựng sẵn collation/encoding chuẩn để tìm kiếm tiếng Việt không lệch
+      # giữa máy dev (Windows) và container Linux.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      # ⚠️ MẶC ĐỊNH LÀ 5434, KHÔNG PHẢI 5432/5433 — đây là chủ đích.
+      #
+      # Máy dev này đang chạy sẵn HAI service Postgres native của Windows
+      # (postgresql-x64-17 và -18) chiếm sẵn CẢ 5432 LẪN 5433. Khi đó Docker vẫn
+      # báo "Started" bình thường nhưng mọi kết nối từ host tới cổng đó lại đi
+      # vào Postgres của Windows chứ không phải container — biểu hiện đúng như
+      # "P1000: Authentication failed", vì user `antigravity` chỉ tồn tại trong
+      # container. Đây là kiểu lỗi tốn hàng giờ để mò ra vì không có gì báo sai.
+      #
+      # 5433 từng được chọn làm mặc định rồi phát hiện cũng bị chiếm (Postgres
+      # 17). Đã chốt 5434 — xem PROJECT_UNDERSTANDING_REPORT.md §7.3 phương án A.
+      #
+      # ⚠️ "healthy" KHÔNG chứng minh host vào được container: healthcheck chạy
+      # BÊN TRONG container, không đi qua port publishing. Cách kiểm chứng đúng
+      # là nối từ host rồi xem server trả về gì — container là PostgreSQL 16 /
+      # linux-musl và inet_server_addr() là IP bridge 172.x, còn Postgres native
+      # là 17/18 trên Windows:
+      #   psql -U antigravity -h localhost -p 5434 -d antigravity_dev \
+      #     -c "select version(), inet_server_addr();"
+      #
+      # Muốn quay lại 5432 (sau khi đã tắt service Windows kia):
+      #   POSTGRES_PORT=5432 docker compose up -d
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` chỉ báo "đã nhận kết nối". Postgres khởi động lần đầu sẽ
+      # start → chạy initdb → restart, nên có một khoảng ngắn nó "ready" rồi
+      # tắt đi. `start_period` che đúng khoảng đó, tránh báo unhealthy oan.
+      test: ["CMD-SHELL", "pg_isready -U antigravity -d antigravity_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: antigravity-redis
+    restart: unless-stopped
+    # `appendonly yes` để pub/sub backlog và dữ liệu không mất khi restart
+    # container. Redis ở đây dùng cho GraphQL Subscriptions (RedisPubSub) và
+    # sau này là brute-force counter (P1 #15).
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  redis-data:

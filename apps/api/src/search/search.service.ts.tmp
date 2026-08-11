@@ -1,0 +1,164 @@
+// ╔═══════════════════════════════════════════════════════════════════════════╗
+// ║  Search Service                                                           ║
+// ║                                                                           ║
+// ║  HƯỚNG DẪN CODE LẠI:                                                      ║
+// ║  1. searchPins:                                                           ║
+// ║     - Yêu cầu full-text search PostgreSQL.                                ║
+// ║     - (TODO) Dùng prisma.$queryRaw cho tsvector hoặc Prisma Preview       ║
+// ║       fullTextSearch. Ở đây tạm dùng contains để đơn giản.                ║
+// ║     - Filter blocked users (chỉ lấy pin của creator không bị block).      ║
+// ║  2. searchUsers:                                                          ║
+// ║     - OR [ { username: { contains } }, { name: { contains } } ].          ║
+// ║     - Lọc bỏ blockedUsers.                                                ║
+// ║  3. searchBoards:                                                         ║
+// ║     - OR [ { name: { contains } }, { description: { contains } } ].       ║
+// ║     - Filter blocked users.                                               ║
+// ╚═══════════════════════════════════════════════════════════════════════════╝
+
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class SearchService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async getBlockedUserIds(userId?: string): Promise<string[]> {
+    if (!userId) return [];
+    const blocks = await this.prisma.blockedUser.findMany({
+      where: {
+        OR: [
+          { blockerId: userId },
+          { blockedId: userId }
+        ]
+      }
+    });
+    return blocks.map(b => b.blockerId === userId ? b.blockedId : b.blockerId);
+  }
+
+  async searchPins(userId: string | undefined, query: string, limit: number, cursor?: string) {
+    const blockedIds = await this.getBlockedUserIds(userId);
+    
+    const args: any = {
+      where: {
+        AND: [
+          {
+            OR: [
+              { title: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } }
+            ]
+          },
+          { deletedAt: null },
+          { creatorId: { notIn: blockedIds } }
+        ]
+      },
+      take: limit + 1,
+      orderBy: { createdAt: 'desc' }
+    };
+
+    if (cursor) {
+      args.cursor = { id: cursor };
+    }
+
+    const pins = await this.prisma.pin.findMany(args);
+
+    let hasNextPage = false;
+    if (pins.length > limit) {
+      hasNextPage = true;
+      pins.pop();
+    }
+
+    
+    return {
+      items: users,
+      pageInfo: {
+        hasNextPage,
+        endCursor: users.length > 0 ? users[users.length - 1].id : null
+      }
+    };
+  }
+
+  async searchUsers(userId: string | undefined, query: string, limit: number, cursor?: string) {
+    const blockedIds = await this.getBlockedUserIds(userId);
+
+    const args: any = {
+      where: {
+        AND: [
+          {
+            OR: [
+              { username: { contains: query, mode: 'insensitive' } },
+              { name: { contains: query, mode: 'insensitive' } }
+            ]
+          },
+          { deletedAt: null },
+          { id: { notIn: blockedIds } }
+        ]
+      },
+      take: limit + 1,
+      orderBy: { createdAt: 'desc' }
+    };
+
+    if (cursor) {
+      args.cursor = { id: cursor };
+    }
+
+    const users = await this.prisma.user.findMany(args);
+
+    let hasNextPage = false;
+    if (users.length > limit) {
+      hasNextPage = true;
+      users.pop();
+    }
+
+    
+    return {
+      items: users,
+      pageInfo: {
+        hasNextPage,
+        endCursor: users.length > 0 ? users[users.length - 1].id : null
+      }
+    };
+  }
+
+  async searchBoards(userId: string | undefined, query: string, limit: number, cursor?: string) {
+    const blockedIds = await this.getBlockedUserIds(userId);
+
+    const args: any = {
+      where: {
+        AND: [
+          {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { description: { contains: query, mode: 'insensitive' } }
+            ]
+          },
+          { deletedAt: null },
+          { userId: { notIn: blockedIds } },
+          { isSecret: false } // Only search public boards
+        ]
+      },
+      take: limit + 1,
+      orderBy: { createdAt: 'desc' }
+    };
+
+    if (cursor) {
+      args.cursor = { id: cursor };
+    }
+
+    const boards = await this.prisma.board.findMany(args);
+
+    let hasNextPage = false;
+    if (boards.length > limit) {
+      hasNextPage = true;
+      boards.pop();
+    }
+
+    
+    return {
+      items: users,
+      pageInfo: {
+        hasNextPage,
+        endCursor: users.length > 0 ? users[users.length - 1].id : null
+      }
+    };
+  }
+}

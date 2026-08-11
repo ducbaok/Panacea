@@ -1,0 +1,13 @@
+{
+  "extends": "../config/tsconfig.base.json",
+  "compilerOptions": {
+    // Package chỉ-có-type: `main`/`types`/`exports` trỏ thẳng vào ./src/generated/index.ts,
+    // không build ra dist ⇒ tắt mọi thứ liên quan tới emit mà base bật sẵn.
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": ["src/**/*.ts", "codegen.ts"],
+  "exclude": ["node_modules"]
+}

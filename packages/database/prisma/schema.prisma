@@ -1,0 +1,428 @@
+// This is your Prisma schema file
+// Based on Antigravity PLAN.md — production-grade Pinterest clone
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum ReactionType {
+  HEART
+  IDEA
+  THANKS
+  WOW
+  FUNNY
+}
+
+enum NotificationType {
+  FOLLOW
+  COMMENT
+  REPLY
+  SAVE
+  MENTION
+  REACTION
+}
+
+enum CollaboratorRole {
+  VIEWER
+  EDITOR
+}
+
+// ==================== CORE MODELS ====================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  name          String?
+  username      String?   @unique
+  bio           String?
+  website       String?
+  avatarUrl     String?
+  isOnboarded   Boolean   @default(false)
+  locale        String    @default("vi")
+  deletedAt     DateTime?
+  usernameChangedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts             Account[]
+  sessions             Session[]
+  verificationTokens   VerificationToken[]
+  refreshTokens        RefreshToken[]
+  deviceTokens         DeviceToken[]
+  pins                 Pin[]
+  savedPins            SavedPin[]
+  boards               Board[]
+  boardCollaborators   BoardCollaborator[]
+  comments             Comment[]
+  commentReactions     CommentReaction[]
+  reactions            Reaction[]
+  sentMessages         Message[]         @relation("SentMessages")
+  conversationMembers  ConversationMember[]
+  notificationsReceived Notification[]   @relation("NotificationRecipient")
+  notificationsActed    Notification[]   @relation("NotificationActor")
+  followedBy           Follows[]         @relation("following")
+  following            Follows[]         @relation("follower")
+  categories           Category[]        @relation("UserCategories")
+  blockedUsers         BlockedUser[]     @relation("Blocker")
+  blockedBy            BlockedUser[]     @relation("Blocked")
+
+  @@map("User")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("Account")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("Session")
+}
+
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  userId     String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([identifier, token])
+  @@map("VerificationToken")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("RefreshToken")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String   @default("android")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("DeviceToken")
+}
+
+// ==================== SOCIAL ====================
+
+model Follows {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("Follows")
+}
+
+model BlockedUser {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("BlockedUser")
+}
+
+// ==================== CONTENT ====================
+
+model Category {
+  id    String  @id @default(cuid())
+  name  String
+  slug  String  @unique
+  icon  String?
+
+  pins  Pin[]   @relation("PinToCategory")
+  users User[]  @relation("UserCategories")
+
+  @@map("Category")
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+
+  pins Pin[] @relation("PinToTag")
+
+  @@map("Tag")
+}
+
+model Pin {
+  id           String    @id @default(cuid())
+  title        String?
+  description  String?
+  imageUrl     String
+  thumbnailUrl String?
+  mediumUrl    String?
+  largeUrl     String?
+  imageWidth   Int       @default(0)
+  imageHeight  Int       @default(0)
+  sourceUrl    String?
+  viewCount    Int       @default(0)
+  clickCount   Int       @default(0)
+  creatorId    String
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  creator      User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  tags         Tag[]      @relation("PinToTag")
+  categories   Category[] @relation("PinToCategory")
+  savedBy      SavedPin[]
+  reactions    Reaction[]
+  comments     Comment[]
+  notifications Notification[]
+  boardCovers  Board[]    @relation("BoardCover")
+  messages     Message[]
+
+  @@index([creatorId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@map("Pin")
+}
+
+model Board {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  isSecret    Boolean   @default(false)
+  coverPinId  String?
+  userId      String
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverPin      Pin?               @relation("BoardCover", fields: [coverPinId], references: [id], onDelete: SetNull)
+  sections      BoardSection[]
+  savedPins     SavedPin[]
+  collaborators BoardCollaborator[]
+
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@map("Board")
+}
+
+model BoardSection {
+  id        String   @id @default(cuid())
+  name      String
+  sortOrder Int      @default(0)
+  boardId   String
+  createdAt DateTime @default(now())
+
+  board     Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  savedPins SavedPin[]
+
+  @@map("BoardSection")
+}
+
+model BoardCollaborator {
+  id        String           @id @default(cuid())
+  boardId   String
+  userId    String
+  role      CollaboratorRole @default(VIEWER)
+  createdAt DateTime         @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@map("BoardCollaborator")
+}
+
+model SavedPin {
+  id        String    @id @default(cuid())
+  userId    String
+  pinId     String
+  boardId   String?
+  sectionId String?
+  note      String?
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pin     Pin           @relation(fields: [pinId], references: [id], onDelete: Cascade)
+  board   Board?        @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  section BoardSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, pinId, boardId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([pinId])
+  @@index([boardId, sortOrder(sort: Asc), createdAt(sort: Desc), id(sort: Desc)])
+  @@map("SavedPin")
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  type      ReactionType
+  userId    String
+  pinId     String
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pin  Pin  @relation(fields: [pinId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pinId])
+  @@index([pinId])
+  @@map("Reaction")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  pinId     String
+  userId    String
+  parentId  String?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  pin       Pin               @relation(fields: [pinId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    Comment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   Comment[]         @relation("CommentReplies")
+  reactions CommentReaction[]
+  notifications Notification[]
+
+  @@index([pinId, createdAt(sort: Asc)])
+  @@index([parentId, createdAt(sort: Asc)])
+  @@map("Comment")
+}
+
+model CommentReaction {
+  id        String       @id @default(cuid())
+  type      ReactionType
+  userId    String
+  commentId String
+  createdAt DateTime     @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([commentId])
+  @@map("CommentReaction")
+}
+
+// ==================== MESSAGING ====================
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@index([updatedAt(sort: Desc), id(sort: Desc)])
+  @@map("Conversation")
+}
+
+model ConversationMember {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("ConversationMember")
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  content        String?
+  attachedPinId  String?
+  conversationId String
+  senderId       String
+  readAt         DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  attachedPin  Pin?         @relation(fields: [attachedPinId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt(sort: Asc)])
+  @@map("Message")
+}
+
+// ==================== NOTIFICATIONS ====================
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  recipientId String
+  actorId     String
+  pinId       String?
+  commentId   String?
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  recipient User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User     @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  pin       Pin?     @relation(fields: [pinId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, isRead])
+  @@map("Notification")
+}

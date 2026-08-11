@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@antigravity/database": ["../../packages/database/src/index.ts"],
+      "@antigravity/graphql-types": ["../../packages/graphql-types/src/generated/index.ts"]
+    }
+  },
+  "exclude": ["node_modules"]
+}

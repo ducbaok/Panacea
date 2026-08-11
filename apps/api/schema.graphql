@@ -1,0 +1,405 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type User {
+  id: ID!
+  name: String
+  username: String
+  avatarUrl: String
+  bio: String
+  email: String
+  website: String
+  isOnboarded: Boolean
+  locale: String
+  followerCount: Float
+  followingCount: Float
+  isFollowedByViewer: Boolean
+  isFollowingViewer: Boolean
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type PaginatedUsers {
+  items: [User!]!
+  pageInfo: PageInfo!
+}
+
+type Tag {
+  id: ID!
+  name: String!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  slug: String!
+  icon: String
+}
+
+type Pin {
+  id: ID!
+  title: String
+  description: String
+  imageUrl: String!
+  thumbnailUrl: String
+  mediumUrl: String
+  largeUrl: String
+  imageWidth: Int!
+  imageHeight: Int!
+  sourceUrl: String
+  viewCount: Int!
+  clickCount: Int!
+  creatorId: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  creator: User!
+  savedCount: Int!
+  reactionCount: Int!
+  commentCount: Int!
+  tags: [Tag!]!
+  categories: [Category!]!
+  isSavedByViewer: Boolean
+  viewerReaction: ReactionType
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+"""Các loại reaction cho comment hoặc pin"""
+enum ReactionType {
+  HEART
+  IDEA
+  THANKS
+  WOW
+  FUNNY
+}
+
+type PaginatedPins {
+  items: [Pin!]!
+  pageInfo: PageInfo!
+}
+
+type HomeFeed {
+  items: [Pin!]!
+  pageInfo: PageInfo!
+  source: FeedSource!
+}
+
+"""Nguồn dữ liệu đã dùng để dựng trang homeFeed hiện tại."""
+enum FeedSource {
+  FOLLOWING
+  EXPLORE
+}
+
+type Comment {
+  id: ID!
+  content: String!
+  pinId: String!
+  userId: String!
+  parentId: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  user: User
+  replyCount: Int
+  reactionCount: Int
+  isReactedByViewer: Boolean
+}
+
+type PaginatedComments {
+  items: [Comment!]!
+  pageInfo: PageInfo!
+}
+
+type Notification {
+  id: ID!
+  type: NotificationType!
+  recipientId: String!
+  actorId: String!
+  pinId: String
+  commentId: String
+  isRead: Boolean!
+  createdAt: DateTime!
+  actor: User
+  pin: Pin
+  comment: Comment
+}
+
+enum NotificationType {
+  FOLLOW
+  COMMENT
+  REPLY
+  SAVE
+  MENTION
+  REACTION
+}
+
+type PaginatedNotifications {
+  items: [Notification!]!
+  pageInfo: PageInfo!
+}
+
+type Board {
+  id: ID!
+  name: String!
+  description: String
+  isSecret: Boolean!
+  coverPinId: String
+  userId: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  user: User
+  coverPin: Pin
+  pinCount: Int!
+  sections: [BoardSection!]!
+  collaborators: [BoardCollaborator!]!
+}
+
+type PaginatedBoards {
+  items: [Board!]!
+  pageInfo: PageInfo!
+}
+
+type BoardSection {
+  id: ID!
+  name: String!
+  sortOrder: Int!
+  boardId: String!
+  createdAt: DateTime!
+}
+
+type SavedPin {
+  id: ID!
+  userId: String!
+  pinId: String!
+  boardId: String
+  sectionId: String
+  note: String
+  sortOrder: Int!
+  createdAt: DateTime!
+  pin: Pin
+}
+
+type PaginatedSavedPins {
+  items: [SavedPin!]!
+  pageInfo: PageInfo!
+}
+
+type BoardCollaborator {
+  id: ID!
+  boardId: String!
+  userId: String!
+  role: CollaboratorRole!
+  createdAt: DateTime!
+  user: User
+}
+
+"""Role of a collaborator in a board"""
+enum CollaboratorRole {
+  VIEWER
+  EDITOR
+}
+
+type SearchResponse {
+  pins: PaginatedPins
+  users: PaginatedUsers
+  boards: PaginatedBoards
+}
+
+type Message {
+  id: ID!
+  content: String
+  attachedPinId: String
+  conversationId: String!
+  senderId: String!
+  readAt: DateTime
+  deletedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  conversation: Conversation
+  sender: User
+  attachedPin: Pin
+}
+
+type ConversationMember {
+  id: ID!
+  conversationId: String!
+  userId: String!
+  joinedAt: DateTime!
+  user: User
+}
+
+type Conversation {
+  id: ID!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  members: [ConversationMember!]
+  messages: [Message!]
+}
+
+type PaginatedConversations {
+  items: [Conversation!]!
+  pageInfo: PageInfo!
+}
+
+type PaginatedMessages {
+  items: [Message!]!
+  pageInfo: PageInfo!
+}
+
+type Query {
+  me: User!
+  userByUsername(username: String!): User
+  pin(id: ID!): Pin
+  exploreFeed(first: Int! = 20, after: String): PaginatedPins!
+  userPins(first: Int! = 20, after: String, userId: ID!): PaginatedPins!
+  homeFeed(first: Int! = 20, after: String): HomeFeed!
+  categories: [Category!]!
+  tags(query: String, first: Int = 20): [Tag!]!
+  notifications(first: Int! = 20, after: String): PaginatedNotifications!
+  unreadNotificationCount: Float!
+  followers(first: Int! = 20, after: String, userId: String!): PaginatedUsers!
+  following(first: Int! = 20, after: String, userId: String!): PaginatedUsers!
+  board(id: ID!): Board
+  userBoards(first: Int! = 20, after: String, userId: ID!): PaginatedBoards!
+  boardPins(first: Int! = 20, after: String, boardId: ID!, sectionId: ID): PaginatedSavedPins!
+  pinComments(pinId: String!, first: Int! = 20, after: String): PaginatedComments!
+  commentReplies(commentId: String!, first: Int! = 20, after: String): PaginatedComments!
+  conversations(first: Int! = 20, after: String): PaginatedConversations!
+  messages(first: Int! = 20, after: String, conversationId: String!): PaginatedMessages!
+  search(query: String!, type: SearchType!, first: Int! = 20, after: String): SearchResponse!
+}
+
+enum SearchType {
+  PIN
+  USER
+  BOARD
+}
+
+type Mutation {
+  updateProfile(input: UpdateProfileInput!): User!
+  deleteAccount: Boolean!
+  createPin(input: CreatePinInput!): Pin!
+  updatePin(input: UpdatePinInput!): Pin!
+  deletePin(id: ID!): Pin!
+  togglePinReaction(pinId: ID!, type: ReactionType!): Boolean!
+  markNotificationRead(id: String!): Boolean!
+  markAllNotificationsRead: Boolean!
+  follow(userId: String!): Boolean!
+  unfollow(userId: String!): Boolean!
+  blockUser(userId: String!): Boolean!
+  unblockUser(userId: String!): Boolean!
+  createBoard(input: CreateBoardInput!): Board!
+  updateBoard(input: UpdateBoardInput!): Board!
+  deleteBoard(id: ID!): Boolean!
+  createSection(input: CreateSectionInput!): BoardSection!
+  updateSection(input: UpdateSectionInput!): BoardSection!
+  deleteSection(id: ID!): Boolean!
+  savePin(input: SavePinInput!): SavedPin!
+  unsavePin(pinId: ID!, boardId: ID): Boolean!
+  reorderSections(boardId: ID!, sectionIds: [ID!]!): Boolean!
+  reorderPins(boardId: ID!, pinIds: [ID!]!): Boolean!
+  inviteCollaborator(boardId: ID!, userId: ID!, role: CollaboratorRole!): BoardCollaborator!
+  removeCollaborator(boardId: ID!, userId: ID!): Boolean!
+  updateCollaboratorRole(boardId: ID!, userId: ID!, role: CollaboratorRole!): Boolean!
+  setBoardCover(boardId: ID!, pinId: ID!): Boolean!
+  createComment(input: CreateCommentInput!): Comment!
+  updateComment(input: UpdateCommentInput!): Comment!
+  deleteComment(id: String!): Comment!
+  toggleCommentReaction(input: ToggleCommentReactionInput!): Boolean!
+  createConversation(userId: String!): Conversation!
+  sendMessage(input: SendMessageInput!): Message!
+  markMessageRead(messageId: String!): Boolean!
+  deleteMessage(messageId: String!): Boolean!
+}
+
+input UpdateProfileInput {
+  name: String
+  username: String
+  bio: String
+  website: String
+  avatarUrl: String
+  locale: String
+}
+
+input CreatePinInput {
+  imageUrl: String!
+  imageWidth: Int!
+  imageHeight: Int!
+  title: String
+  description: String
+  sourceUrl: String
+  tagNames: [String!]
+  categoryIds: [ID!]
+}
+
+input UpdatePinInput {
+  id: ID!
+  title: String
+  description: String
+  sourceUrl: String
+  tagNames: [String!]
+  categoryIds: [ID!]
+}
+
+input CreateBoardInput {
+  name: String!
+  description: String
+  isSecret: Boolean
+}
+
+input UpdateBoardInput {
+  id: ID!
+  name: String
+  description: String
+  isSecret: Boolean
+}
+
+input CreateSectionInput {
+  boardId: ID!
+  name: String!
+}
+
+input UpdateSectionInput {
+  id: ID!
+  name: String!
+}
+
+input SavePinInput {
+  pinId: ID!
+  boardId: ID
+  sectionId: ID
+  note: String
+}
+
+input CreateCommentInput {
+  pinId: String!
+  content: String!
+  parentId: String
+}
+
+input UpdateCommentInput {
+  id: ID!
+  content: String!
+}
+
+input ToggleCommentReactionInput {
+  commentId: ID!
+  type: ReactionType!
+}
+
+input SendMessageInput {
+  conversationId: ID!
+  content: String
+  attachedPinId: ID
+}
+
+type Subscription {
+  notificationReceived: Notification!
+  messageReceived(conversationId: String!): Message!
+}

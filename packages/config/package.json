@@ -1,0 +1,11 @@
+{
+  "name": "@antigravity/config",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "eslint.js",
+    "tsconfig.base.json",
+    "tsconfig.nestjs.json",
+    "tsconfig.nextjs.json"
+  ]
+}
