@@ -1,0 +1,21 @@
+# File này CHỈ dành cho công cụ tìm kiếm (ripgrep, và mọi thứ dựng trên nó —
+# bao gồm Grep của Claude Code, fzf, một số extension của editor).
+# ⚠️ GIT KHÔNG ĐỌC FILE NÀY. Nó không hoàn tác `.gitignore` chút nào.
+#
+# Vì sao cần: `.gitignore` có dòng `*.md` (11/08/2026) để git bỏ qua toàn bộ
+# tài liệu. Nhưng ripgrep MẶC ĐỊNH cũng tôn trọng `.gitignore` khi đang ở trong
+# một git repo ⇒ sau `git init` (HT-0), mọi lệnh tìm kiếm sẽ ÂM THẦM bỏ sót
+# 29 file `.md`, trong đó có AGENT_HANDOFF.md, docs/debug_history.md và toàn bộ
+# PLAN_*.md. Không có thông báo nào — chỉ là "không tìm thấy kết quả".
+#
+# Thứ tự ưu tiên của ripgrep: .rgignore > .ignore > .gitignore
+# ⇒ dòng phủ định dưới đây thắng dòng `*.md` của .gitignore, CHỈ cho tìm kiếm.
+#
+# Đã kiểm chứng bằng thí nghiệm 11/08/2026 trong một repo git dựng riêng:
+#   - chỉ có .gitignore  ⇒ rg tìm thấy 1/2 file (bỏ sót .md)
+#   - thêm .ignore này   ⇒ rg tìm thấy 2/2, mà `git check-ignore` VẪN loại .md
+#
+# Ghi chú: `Read` (mở thẳng một đường dẫn) chưa bao giờ bị ảnh hưởng bởi
+# .gitignore — chỉ TÌM KIẾM mới bị. Đó là lý do lỗi này rất dễ tưởng là không có.
+
+!*.md
