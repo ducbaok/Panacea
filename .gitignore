@@ -52,3 +52,15 @@ apps/api/uploads/
 # Verify harness outputs (regenerated every run)
 scripts/verify/results.json
 api.log
+
+# Claude Code — local machine permissions (personal, not team)
+.claude/settings.local.json
+
+# Markdown — TẤT CẢ tài liệu, ĐỆ QUY mọi thư mục (thêm 11/08/2026 theo yêu cầu)
+# ⚠️ Phạm vi thật: 29 file, gồm AGENT_HANDOFF.md, toàn bộ PLAN_*.md, cả docs/,
+#    apps/web/CLAUDE.md, apps/web/AGENTS.md, migrations/README.md,
+#    scripts/verify/README.md và mọi README.md của các package.
+#    Sau `git init`, không file nào trong số đó được theo dõi ⇒ không có lịch sử,
+#    không có đường lùi, và máy clone mới sẽ không nhận được tài liệu nào.
+# Muốn hẹp lại: `/*.md` = chỉ root; hoặc giữ `*.md` rồi thêm `!<tên file>`.
+*.md
