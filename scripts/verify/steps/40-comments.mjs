@@ -6,6 +6,15 @@
 
 import { SEED } from '../lib/seedrefs.mjs';
 import { assertBatched } from '../lib/query-count.mjs';
+import { API } from '../lib/client.mjs';
+import { PASSWORD } from '../lib/seedrefs.mjs';
+
+/**
+ * ⚠️ SỐ NÀY PHẢI KHỚP `MAX_MENTIONS_PER_COMMENT` ở comments.service.ts. Nếu
+ * đổi cap ở service mà quên đổi ở đây, phép "trần" trong nhóm GQL/mention xanh
+ * giả — mọi nhánh của assert đều nói về CÙNG một con số.
+ */
+const MENTION_CAP = 10;
 
 /**
  * Selection dùng chung cho mọi phép kiểm của Đợt 4 — cả 3 field trong MỘT
@@ -204,6 +213,188 @@ export default async function (h) {
 
   h.setGroup('GQL/mut');
   await gql('deleteComment', `mutation($id:String!){ deleteComment(id:$id){ id } }`, { id: CMT }, { token: state.T2 });
+
+  // ─── B-8: bóc @mention, gửi notification ────────────────────────────────
+  //
+  // Luồng ĐÃ có nhánh mention từ trước (comments.service.ts:createComment); B-8
+  // vá 5 khiếm khuyết: chuẩn hoá hoa/thường, lọc block hai chiều, trừ chủ pin
+  // / chủ comment cha, cap 10, và sửa comment cũng phải bóc lại chỉ báo người
+  // MỚI. Xem docs/debug_history.md §23 để biết vì sao mỗi phép lại chọn đúng
+  // pin/actor đó chứ không phải một cấu hình khác.
+  h.setGroup('GQL/mention');
+
+  const JOHN_PIN = 'pin_10_id'; // seed.ts:235 · creatorId=user_3_id (john).
+
+  /**
+   * Đếm số notification có `commentId = <chính comment vừa tạo>` — filter theo
+   * commentId là hạt duy nhất phân biệt CHÍNH lần chạy này với mọi notification
+   * cũ còn sót lại. Tuyệt đối KHÔNG dùng `unreadNotificationCount`: nó gộp mọi
+   * loại lẫn mọi comment.
+   */
+  async function notifsFor(commentId, token) {
+    const r = await h.silent(
+      `query{ notifications(first:50){ items{ id type commentId } } }`,
+      {},
+      token,
+    );
+    return (r?.data?.notifications?.items ?? []).filter((n) => n.commentId === commentId);
+  }
+  const countMention = (list) => list.filter((n) => n.type === 'MENTION').length;
+
+  // Test 1 — chuẩn hoá hoa/thường. alice comment lên pin của john ⇒ bao KHÔNG
+  // là chủ pin, không bị chặn, không phải actor ⇒ MENTION đúng nghĩa. Nội dung
+  // chỉ có dạng viết HOA — trước khi vá, `findMany({ username: { in: ['Bao_Developer']}})`
+  // trả về rỗng và bao im lặng không nhận gì (bug 1). Đây cũng là phép mà đối
+  // chứng âm dưới cuối §B-8 sẽ khu trú vào — bỏ `toLowerCase()` là con số này
+  // rớt về 0.
+  const cUpper = await h.silent(
+    `mutation($i:CreateCommentInput!){ createComment(input:$i){ id } }`,
+    { i: { pinId: JOHN_PIN, content: 'probe @Bao_Developer test' } },
+    state.T2,
+  );
+  const cUpperId = cUpper?.data?.createComment?.id;
+  const upperBao = countMention(await notifsFor(cUpperId, state.T1));
+  h.assert(
+    '@Bao_Developer (viết HOA) ⇒ bao nhận đúng 1 MENTION (chuẩn hoá lowercase một phía trước khi tra DB)',
+    upperBao === 1,
+    `bao MENTION cho comment này = ${upperBao} (đúng 1) · commentId=${cUpperId}`,
+  );
+
+  // Test 2 — chặn hai chiều. bao chặn john ⇒ getBlockedUserIds(john) = [bao].
+  // john comment lên pin của CHÍNH mình (excludeSet chỉ có {john}), nhắc CẢ bao
+  // lẫn alice ⇒ bao mất MENTION do bị lọc block, alice vẫn nhận. Hai giá trị
+  // trong CÙNG một bình luận chứng minh lọc đúng chỗ chứ không lọc sạch.
+  await h.silent(`mutation($u:String!){ blockUser(userId:$u) }`, { u: state.ME3 }, state.T1);
+  const cBlk = await h.silent(
+    `mutation($i:CreateCommentInput!){ createComment(input:$i){ id } }`,
+    { i: { pinId: JOHN_PIN, content: 'blocked probe @bao_developer @alice_chef' } },
+    state.T3,
+  );
+  const cBlkId = cBlk?.data?.createComment?.id;
+  const baoBlk = countMention(await notifsFor(cBlkId, state.T1));
+  const aliceBlk = countMention(await notifsFor(cBlkId, state.T2));
+  h.assert(
+    'chặn 2 chiều: bao (bị chặn) mất MENTION, alice (không bị chặn) vẫn nhận — trong CÙNG một bình luận',
+    baoBlk === 0 && aliceBlk === 1,
+    `bao=${baoBlk} (đúng 0) · alice=${aliceBlk} (đúng 1)`,
+  );
+  await h.silent(`mutation($u:String!){ unblockUser(userId:$u) }`, { u: state.ME3 }, state.T1);
+  // `blockUser` xoá follow HAI CHIỀU vĩnh viễn (social.service.ts:104), unblock
+  // KHÔNG khôi phục — dựng lại đây để bước 65 và các bước sau còn nguyên tiền
+  // đề mutual follow bao↔john như seed. Xem cùng khuôn ở 65-blocking.mjs.
+  await h.silent(`mutation($u:String!){ follow(userId:$u) }`, { u: state.ME3 }, state.T1);
+  await h.silent(`mutation($u:String!){ follow(userId:$u) }`, { u: state.ME }, state.T3);
+
+  // Test 3 — trùng chủ pin. alice comment lên state.PIN (chủ = bao) và nhắc
+  // @bao_developer. Nếu KHÔNG trừ pin.creatorId khỏi danh sách mention thì bao
+  // nhận CẢ COMMENT lẫn MENTION cho MỘT hành động. Đo tổng notification cho
+  // commentId ⇒ đúng 1 (COMMENT), MENTION = 0.
+  const cDup = await h.silent(
+    `mutation($i:CreateCommentInput!){ createComment(input:$i){ id } }`,
+    { i: { pinId: state.PIN, content: 'dup probe @bao_developer' } },
+    state.T2,
+  );
+  const cDupId = cDup?.data?.createComment?.id;
+  const dupList = await notifsFor(cDupId, state.T1);
+  h.assert(
+    'nhắc trúng chủ pin ⇒ họ nhận ĐÚNG 1 notification (COMMENT), không cộng thêm MENTION',
+    dupList.length === 1 && countMention(dupList) === 0,
+    `bao tổng cho comment này = ${dupList.length} (đúng 1) · trong đó MENTION = ${countMention(dupList)} (đúng 0)`,
+  );
+
+  // Test 4 — trần MENTION_CAP mention/comment. Seed chỉ có 5 user nên đăng ký
+  // N=MENTION_CAP+2 tài khoản dùng-một-lần ⇒ đủ N unique @s hợp lệ để chứng
+  // minh cap cắt phần thừa. Song song hoá đăng ký và query notifications để
+  // tổng thời gian test này gần bằng một cặp round-trip chứ không phải N cặp.
+  const N = MENTION_CAP + 2;
+  const menteeUsers = await Promise.all(
+    Array.from({ length: N }, async (_, i) => {
+      // `_generateUsername` băm về `[^a-z0-9]` ⇒ trước khi gửi phải chắc rằng
+      // `name` sau khi băm còn ≥ 3 ký tự (regex mention). `state.uniq` là base36
+      // ≥ 6 chữ số, cộng chỉ số i ⇒ luôn ≥ 7 ký tự sạch.
+      const name = `mt${state.uniq}${i}`;
+      const email = `${name}@example.com`;
+      const r = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, password: PASSWORD, name }),
+      });
+      const j = await r.json();
+      return { email, token: j?.accessToken, username: name.toLowerCase() };
+    }),
+  );
+  const capContent = 'cap ' + menteeUsers.map((u) => `@${u.username}`).join(' ');
+  const cCap = await h.silent(
+    `mutation($i:CreateCommentInput!){ createComment(input:$i){ id } }`,
+    { i: { pinId: JOHN_PIN, content: capContent } },
+    state.T2,
+  );
+  const cCapId = cCap?.data?.createComment?.id;
+  const capCounts = await Promise.all(
+    menteeUsers.map((u) => notifsFor(cCapId, u.token).then(countMention)),
+  );
+  const notified = capCounts.filter((c) => c === 1).length;
+  const zero = capCounts.filter((c) => c === 0).length;
+  h.assert(
+    `${N} mention hợp lệ ⇒ đúng ${MENTION_CAP} MENTION notification (cap cắt phần thừa, không ném lỗi)`,
+    notified === MENTION_CAP && zero === N - MENTION_CAP,
+    `${notified} nhận đúng 1 · ${zero} nhận 0 (cap = ${MENTION_CAP}, tổng đăng ký = ${N})`,
+  );
+
+  // Test 5 — sửa bình luận: chỉ báo người MỚI xuất hiện, KHÔNG lặp cho người
+  // đã báo. Ba lần sửa liên tiếp trên CÙNG một comment: (a) thêm bao, (b) giữ
+  // nguyên bao (đổi từ ngoài), (c) thêm bob. Nếu updateComment không bóc lại,
+  // (a) trả bao=0. Nếu bóc lại nhưng KHÔNG hỏi `alreadyNotified`, (b) làm bao
+  // tăng lên 2. Chỉ khi có ĐỦ hai nhánh mới cho ra bộ số dưới đây.
+  const cUpd = await h.silent(
+    `mutation($i:CreateCommentInput!){ createComment(input:$i){ id } }`,
+    { i: { pinId: JOHN_PIN, content: 'no mention here' } },
+    state.T2,
+  );
+  const cUpdId = cUpd?.data?.createComment?.id;
+
+  await h.silent(
+    `mutation($i:UpdateCommentInput!){ updateComment(input:$i){ id } }`,
+    { i: { id: cUpdId, content: 'edited @bao_developer' } },
+    state.T2,
+  );
+  const bao1 = countMention(await notifsFor(cUpdId, state.T1));
+  await h.silent(
+    `mutation($i:UpdateCommentInput!){ updateComment(input:$i){ id } }`,
+    { i: { id: cUpdId, content: 'edited @bao_developer typo fixed' } },
+    state.T2,
+  );
+  const bao2 = countMention(await notifsFor(cUpdId, state.T1));
+  await h.silent(
+    `mutation($i:UpdateCommentInput!){ updateComment(input:$i){ id } }`,
+    { i: { id: cUpdId, content: 'edited @bao_developer @bob_photographer' } },
+    state.T2,
+  );
+  const bao3 = countMention(await notifsFor(cUpdId, state.T1));
+
+  // bob không có T-token, đăng nhập tay để đọc inbox. Password chuẩn seed.
+  const bobLogin = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: 'bob@example.com', password: PASSWORD }),
+  }).then((r) => r.json());
+  const bob3 = countMention(await notifsFor(cUpdId, bobLogin?.accessToken));
+
+  h.assert(
+    'sửa comment: bao nhận đúng 1 (không lặp qua nhiều lần sửa), bob nhận đúng 1 khi mới thêm',
+    bao1 === 1 && bao2 === 1 && bao3 === 1 && bob3 === 1,
+    `sửa#1 thêm bao: bao=${bao1} (đúng 1) · sửa#2 giữ nguyên: bao=${bao2} (đúng 1, không lặp) · sửa#3 thêm bob: bao=${bao3} (đúng 1) bob=${bob3} (đúng 1)`,
+  );
+
+  // Dọn: xoá 4 comment của bước này (mỗi comment do đúng người tạo mới xoá được),
+  // rồi song song deleteAccount cho N mentee ⇒ cascade xoá luôn `mtCap` và mọi
+  // notification/comment của họ. KHÔNG dùng gql (ghi bản ghi) — mọi thao tác dọn
+  // là h.silent để không đẻ ra phép kiểm giả.
+  await h.silent(`mutation($id:String!){ deleteComment(id:$id){ id } }`, { id: cUpperId }, state.T2);
+  await h.silent(`mutation($id:String!){ deleteComment(id:$id){ id } }`, { id: cBlkId }, state.T3);
+  await h.silent(`mutation($id:String!){ deleteComment(id:$id){ id } }`, { id: cDupId }, state.T2);
+  await h.silent(`mutation($id:String!){ deleteComment(id:$id){ id } }`, { id: cUpdId }, state.T2);
+  await Promise.all(menteeUsers.map((u) => h.silent(`mutation{ deleteAccount }`, {}, u.token)));
 
   return Boolean(CMT);
 }

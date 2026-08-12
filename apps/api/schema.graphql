@@ -256,7 +256,7 @@ type Query {
   me: User!
   userByUsername(username: String!): User
   pin(id: ID!): Pin
-  exploreFeed(first: Int! = 20, after: String): PaginatedPins!
+  exploreFeed(first: Int! = 20, after: String, categorySlug: String, tagName: String): PaginatedPins!
   userPins(first: Int! = 20, after: String, userId: ID!): PaginatedPins!
   homeFeed(first: Int! = 20, after: String): HomeFeed!
   categories: [Category!]!

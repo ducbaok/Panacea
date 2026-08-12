@@ -49,6 +49,153 @@ export default async function (h) {
     { token: state.T1, expect: /cursor/i },
   );
 
+  // ─── B-5: lọc exploreFeed theo categorySlug + tagName ─────────────────────
+  //
+  // Thêm HAI tham số TUỲ CHỌN vào `exploreFeed` (giữ nguyên chữ ký cũ). Chi
+  // tiết ở docs/debug_history.md §23. Phép QUAN TRỌNG NHẤT của nhóm này là
+  // hồi quy id-đối-id: nếu tham số tuỳ chọn vô tình đổi hành vi cũ (ví dụ
+  // WHERE bị ép sang OR do thiếu ngoặc quanh EXISTS), tất cả code cũ đi qua
+  // `exploreFeed` KHÔNG tham số sẽ lệch đúng theo kiểu không có gì ném lỗi.
+  h.setGroup('GQL/explore-filter');
+
+  // Sự thật nền: chụp trước khi bất kỳ mutation nào của step 10 chạy — bao
+  // chưa chặn ai, chưa tạo pin mới, chưa lưu thêm. Nếu dời phép này xuống sau
+  // `createPin` thì baseline chứa cả pin mới và mất ý nghĩa "trước ↔ sau".
+  const baseSnap = await h.silent(
+    `query{ exploreFeed(first:20){ items{ id } } }`,
+    {},
+    state.T1,
+  );
+  const baseIds = (baseSnap?.data?.exploreFeed?.items ?? []).map((x) => x.id);
+
+  const paramFeed = await gql(
+    'exploreFeed không tham số ⇒ giữ nguyên tập id + thứ tự (hồi quy id-đối-id)',
+    `query{ exploreFeed(first:20){ items{ id } } }`,
+    {},
+    { token: state.T1 },
+  );
+  const paramIds = (paramFeed?.exploreFeed?.items ?? []).map((x) => x.id);
+  h.assert(
+    'hồi quy exploreFeed không tham số: TỪNG id + thứ tự khớp baseline',
+    baseIds.length === paramIds.length && baseIds.every((id, i) => id === paramIds[i]),
+    `baseline=${baseIds.length} pin · paramFeed=${paramIds.length} pin · trùng khớp theo thứ tự=${baseIds.every((id, i) => id === paramIds[i])}`,
+  );
+
+  // HAI NHÁNH TRONG CÙNG MỘT LẦN CHẠY: `travel` có pin, `nature` không. Đối
+  // chiếu `pin { categories { slug } }` trong cùng response chứng minh lọc đo
+  // đúng ĐẶC ĐIỂM chứ không phải "trả về gì đó cỡ đúng".
+  const travelFeed = await gql(
+    'exploreFeed categorySlug:"travel" ⇒ chỉ pin thuộc category travel',
+    `query{ exploreFeed(first:20, categorySlug:"travel"){ items{ id creator{ id } categories{ slug } } } }`,
+    {},
+    { token: state.T1 },
+  );
+  const travelItems = travelFeed?.exploreFeed?.items ?? [];
+  h.assert(
+    'travel: >0 pin và MỌI pin đều mang slug "travel" (đọc trong cùng response)',
+    travelItems.length > 0 &&
+      travelItems.every((p) => p.categories.some((c) => c.slug === 'travel')),
+    `${travelItems.length} pin · slug quan sát: ${[...new Set(travelItems.flatMap((p) => p.categories.map((c) => c.slug)))].join(',')}`,
+  );
+
+  const emptyCatFeed = await gql(
+    'exploreFeed categorySlug:"nature" (category tồn tại nhưng rỗng) ⇒ 0 pin, KHÔNG ném lỗi',
+    `query{ exploreFeed(first:20, categorySlug:"nature"){ items{ id } } }`,
+    {},
+    { token: state.T1 },
+  );
+  h.assert(
+    'nature rỗng: 0 pin, không lỗi (nhánh empty của filter phải im lặng, không 500)',
+    (emptyCatFeed?.exploreFeed?.items?.length ?? -1) === 0,
+    `${emptyCatFeed?.exploreFeed?.items?.length ?? 'no items key'} pin`,
+  );
+
+  // TAG: 'modern' — seed gắn cho pin_2/3/6/7 (mảng `TAG_RULES` ở seed.ts).
+  const tagFeed = await gql(
+    'exploreFeed tagName:"modern" ⇒ tập pin đúng bằng tập pin mang tag "modern"',
+    `query{ exploreFeed(first:20, tagName:"modern"){ items{ id tags{ name } } } }`,
+    {},
+    { token: state.T1 },
+  );
+  const tagItems = tagFeed?.exploreFeed?.items ?? [];
+  h.assert(
+    'modern: >0 pin và MỌI pin đều mang tag "modern" (đối chiếu nội dung, không chỉ "có kết quả")',
+    tagItems.length > 0 && tagItems.every((p) => p.tags.some((t) => t.name === 'modern')),
+    `${tagItems.length} pin · tag quan sát: ${[...new Set(tagItems.flatMap((p) => p.tags.map((t) => t.name)))].join(',')}`,
+  );
+
+  // SLUG KHÔNG TỒN TẠI: không ném lỗi. Filter không nên validate cứng ở tầng
+  // nghiệp vụ vì slug hợp lệ có thể "biến mất" giữa hai lần deploy tài liệu.
+  await gql(
+    'exploreFeed categorySlug không tồn tại ⇒ 0 pin, không lỗi',
+    `query{ exploreFeed(first:20, categorySlug:"khong-co-that"){ items{ id } } }`,
+    {},
+    { token: state.T1 },
+  );
+
+  // CHẶN VẪN HIỆU LỰC dưới lọc chủ đề. Chọn `tagName:"outdoor"` vì đó là tag
+  // DUY NHẤT trong seed có pin của NHIỀU CHỦ (pin_9/11/12 của john + pin_17/18
+  // của bob) — dùng `travel` không được: 100% pin travel thuộc john nên block
+  // xoá sạch và phép chẳng khẳng định điều gì (0=0 vẫn đúng). Ở đây khối bob
+  // phải CÒN NGUYÊN thì mới phân biệt được "lọc cộng hợp" với "lọc thay thế".
+  const beforeOut = await h.silent(
+    `query{ exploreFeed(first:20, tagName:"outdoor"){ items{ id creator{ id } } } }`,
+    {},
+    state.T1,
+  );
+  const beforeOutItems = beforeOut?.data?.exploreFeed?.items ?? [];
+  const johnBefore = beforeOutItems.filter((p) => p.creator.id === state.ME3).length;
+
+  await h.silent(`mutation($u:String!){ blockUser(userId:$u) }`, { u: state.ME3 }, state.T1);
+  const blockedOut = await gql(
+    'exploreFeed tagName:"outdoor" khi bao chặn john ⇒ pin của john mất, pin của bob còn nguyên',
+    `query{ exploreFeed(first:20, tagName:"outdoor"){ items{ id creator{ id } } } }`,
+    {},
+    { token: state.T1 },
+  );
+  const afterOutItems = blockedOut?.exploreFeed?.items ?? [];
+  h.assert(
+    'chặn 2 chiều + tag filter: pin của john biến mất, pin của người khác còn nguyên (bộ lọc cộng hợp, không thay thế)',
+    johnBefore > 0 &&
+      afterOutItems.length > 0 &&
+      afterOutItems.every((p) => p.creator.id !== state.ME3) &&
+      afterOutItems.length === beforeOutItems.length - johnBefore,
+    `trước block=${beforeOutItems.length} pin outdoor (john ${johnBefore}) · sau block=${afterOutItems.length} · john còn=${afterOutItems.filter((p) => p.creator.id === state.ME3).length}`,
+  );
+  await h.silent(`mutation($u:String!){ unblockUser(userId:$u) }`, { u: state.ME3 }, state.T1);
+  // `blockUser` xoá follow HAI CHIỀU vĩnh viễn; dựng lại theo cùng khuôn ở
+  // 65-blocking / 40-comments (mutual bao↔john nằm trong tiền đề seed).
+  await h.silent(`mutation($u:String!){ follow(userId:$u) }`, { u: state.ME3 }, state.T1);
+  await h.silent(`mutation($u:String!){ follow(userId:$u) }`, { u: state.ME }, state.T3);
+
+  // PHÂN TRANG cùng filter: `first:2` lần lượt qua N trang cho tới hasNextPage=
+  // false, gộp lại phải BẰNG ĐÚNG tập first:20 travel (không trùng, không thiếu,
+  // và cùng thứ tự — cursor lệch mà tổng vẫn bằng thì permutation ⇒ vẫn đỏ).
+  {
+    let cursor = null;
+    let hasNext = true;
+    const gathered = [];
+    for (let page = 0; page < 25 && hasNext; page++) {
+      const r = await h.silent(
+        `query($a:String){ exploreFeed(first:2, after:$a, categorySlug:"travel"){ items{ id } pageInfo{ hasNextPage endCursor } } }`,
+        { a: cursor },
+        state.T1,
+      );
+      const ef = r?.data?.exploreFeed;
+      gathered.push(...(ef?.items ?? []).map((x) => x.id));
+      hasNext = ef?.pageInfo?.hasNextPage ?? false;
+      cursor = ef?.pageInfo?.endCursor ?? null;
+    }
+    const fullTravel = travelItems.map((x) => x.id);
+    h.assert(
+      'phân trang first:2 với cùng categorySlug: id gộp = first:20 travel (không trùng · không thiếu · đúng thứ tự)',
+      gathered.length === new Set(gathered).size &&
+        gathered.length === fullTravel.length &&
+        gathered.every((id, i) => id === fullTravel[i]),
+      `gộp=${gathered.length} pin · full=${fullTravel.length} pin · duy nhất=${new Set(gathered).size} · trùng khớp theo thứ tự=${gathered.length === fullTravel.length && gathered.every((id, i) => id === fullTravel[i])}`,
+    );
+  }
+
   h.setGroup('GQL/query');
   state.seedPin = f1?.exploreFeed?.items?.[0]?.id;
   await gql(

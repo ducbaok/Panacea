@@ -382,6 +382,7 @@ export class PinsService {
   async exploreFeed(
     pagination: CursorPaginationArgs,
     blockedIds: string[],
+    filters?: { categorySlug?: string; tagName?: string },
   ): Promise<PaginatedResult<any>> {
     const { first, after } = pagination;
     const take = first + 1; // lấy thêm 1 để check hasNextPage
@@ -399,6 +400,45 @@ export class PinsService {
 
     const notInBlocked = this._notInBlocked(q, blockedIds);
     if (notInBlocked) where.push(notInBlocked);
+
+    // ─── B-5: lọc theo category slug và tag name ─────────────────────────────
+    //
+    // Dùng `EXISTS` thay vì `JOIN`: một pin có nhiều category/tag, `JOIN` sẽ
+    // nhân bản dòng `Pin` theo số cạnh khớp và làm HỎNG cả `LIMIT + 1` (nền tảng
+    // của keyset) LẪN cursor sinh ra ở trang sau. `EXISTS` chỉ hỏi "có tồn tại
+    // một cạnh không" nên số dòng `Pin` không đổi.
+    //
+    // ⚠️ CỘT `A`/`B` NGƯỢC CHIỀU NHAU giữa hai bảng nối (migration.sql:507-522).
+    // Prisma đặt A/B theo THỨ TỰ CHỮ CÁI CỦA TÊN MODEL, không theo tên relation:
+    //   `_PinToCategory`: A=`Category.id`, B=`Pin.id`    ⇒ pin ở cột B
+    //   `_PinToTag`:      A=`Pin.id`,      B=`Tag.id`     ⇒ pin ở cột A
+    // Đoán nhầm KHÔNG có lỗi cú pháp: câu SQL vẫn chạy và trả sai — không có
+    // exception nào ném ra. Đó là lý do phép "hai nhánh trong CÙNG một response"
+    // và đối chứng âm ở `10-pins.mjs` là bắt buộc.
+    //
+    // Không cần index mới: `_PinToCategory_AB_unique(A,B)` dẫn đầu bằng
+    // `A`=Category đã phục vụ tra theo category; `_PinToTag_B_index(B)` đã phục
+    // vụ tra theo tag.
+    if (filters?.categorySlug) {
+      where.push(
+        `EXISTS (
+           SELECT 1 FROM "_PinToCategory" pc
+                      JOIN "Category" c ON c."id" = pc."A"
+            WHERE pc."B" = "Pin"."id"
+              AND c."slug" = ${q.bind(filters.categorySlug)}
+         )`,
+      );
+    }
+    if (filters?.tagName) {
+      where.push(
+        `EXISTS (
+           SELECT 1 FROM "_PinToTag" pt
+                      JOIN "Tag" t ON t."id" = pt."B"
+            WHERE pt."A" = "Pin"."id"
+              AND t."name" = ${q.bind(filters.tagName)}
+         )`,
+      );
+    }
 
     const rows = await this.prisma.$queryRawUnsafe<any[]>(
       `SELECT * FROM "Pin"

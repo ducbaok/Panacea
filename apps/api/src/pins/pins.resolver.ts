@@ -48,6 +48,7 @@ import { CreatePinInput } from './dto/create-pin.input';
 import { UpdatePinInput } from './dto/update-pin.input';
 import { CursorPaginationArgs } from '../common/pagination';
 import { UserPinsArgs } from './dto/user-pins.args';
+import { ExploreFeedArgs } from './dto/explore-feed.args';
 import { DataloaderService } from '../common/dataloader';
 import { GqlAuthGuard, GqlOptionalAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -91,11 +92,15 @@ export class PinsResolver {
   @Query(() => PaginatedPins, { name: 'exploreFeed' })
   @UseGuards(GqlOptionalAuthGuard)
   async exploreFeed(
-    @Args() pagination: CursorPaginationArgs,
+    // B-5: gộp `categorySlug`/`tagName` vào MỘT ArgsType kế thừa
+    // `CursorPaginationArgs`. Trộn `@Args('categorySlug')` với `@Args()
+    // CursorPaginationArgs` sẽ giết query — xem cảnh báo trong `explore-feed.args.ts`
+    // và `common/pagination/cursor-pagination.ts`.
+    @Args() { categorySlug, tagName, ...pagination }: ExploreFeedArgs,
     @CurrentUser() user?: AuthUser | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.pinsService.exploreFeed(pagination, blockedIds);
+    return this.pinsService.exploreFeed(pagination, blockedIds, { categorySlug, tagName });
   }
 
   /**
