@@ -1,0 +1,67 @@
+query Pin($id: ID!) {
+  pin(id: $id) {
+    id
+    title
+    description
+    imageUrl
+    thumbnailUrl
+    mediumUrl
+    largeUrl
+    imageWidth
+    imageHeight
+    sourceUrl
+    viewCount
+    clickCount
+    savedCount
+    reactionCount
+    commentCount
+    createdAt
+    creator {
+      id
+      name
+      username
+      avatarUrl
+      isFollowedByViewer
+    }
+    tags {
+      id
+      name
+    }
+    categories {
+      id
+      name
+      slug
+      icon
+    }
+    isSavedByViewer
+    viewerReaction
+  }
+}
+
+query UserPins($userId: ID!, $first: Int! = 20, $after: String) {
+  userPins(userId: $userId, first: $first, after: $after) {
+    items {
+      id
+      title
+      imageUrl
+      thumbnailUrl
+      mediumUrl
+      imageWidth
+      imageHeight
+      savedCount
+      commentCount
+      creator {
+        id
+        username
+        name
+        avatarUrl
+      }
+      isSavedByViewer
+      viewerReaction
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

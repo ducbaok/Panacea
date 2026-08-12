@@ -1,0 +1,34 @@
+query Notifications($first: Int! = 20, $after: String) {
+  notifications(first: $first, after: $after) {
+    items {
+      id
+      type
+      isRead
+      createdAt
+      actor {
+        id
+        name
+        username
+        avatarUrl
+      }
+      pin {
+        id
+        imageUrl
+        thumbnailUrl
+        title
+      }
+      comment {
+        id
+        content
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query UnreadNotificationCount {
+  unreadNotificationCount
+}

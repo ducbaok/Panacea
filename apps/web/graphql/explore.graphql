@@ -1,0 +1,40 @@
+query ExploreFeed(
+  $first: Int! = 20
+  $after: String
+  $categorySlug: String
+  $tagName: String
+) {
+  exploreFeed(
+    first: $first
+    after: $after
+    categorySlug: $categorySlug
+    tagName: $tagName
+  ) {
+    items {
+      id
+      title
+      description
+      imageUrl
+      thumbnailUrl
+      mediumUrl
+      imageWidth
+      imageHeight
+      savedCount
+      reactionCount
+      commentCount
+      createdAt
+      creator {
+        id
+        name
+        username
+        avatarUrl
+      }
+      isSavedByViewer
+      viewerReaction
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

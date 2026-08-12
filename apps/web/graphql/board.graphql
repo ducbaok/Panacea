@@ -1,0 +1,97 @@
+query Board($id: ID!) {
+  board(id: $id) {
+    id
+    name
+    description
+    isSecret
+    coverPinId
+    createdAt
+    updatedAt
+    pinCount
+    user {
+      id
+      name
+      username
+      avatarUrl
+    }
+    coverPin {
+      id
+      imageUrl
+      thumbnailUrl
+      imageWidth
+      imageHeight
+    }
+    sections {
+      id
+      name
+      sortOrder
+    }
+    collaborators {
+      id
+      role
+      user {
+        id
+        name
+        username
+        avatarUrl
+      }
+    }
+  }
+}
+
+query UserBoards($userId: ID!, $first: Int! = 20, $after: String) {
+  userBoards(userId: $userId, first: $first, after: $after) {
+    items {
+      id
+      name
+      isSecret
+      pinCount
+      createdAt
+      coverPin {
+        id
+        imageUrl
+        thumbnailUrl
+        imageWidth
+        imageHeight
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query BoardPins($boardId: ID!, $sectionId: ID, $first: Int! = 20, $after: String) {
+  boardPins(boardId: $boardId, sectionId: $sectionId, first: $first, after: $after) {
+    items {
+      id
+      note
+      sortOrder
+      createdAt
+      pin {
+        id
+        title
+        imageUrl
+        thumbnailUrl
+        mediumUrl
+        imageWidth
+        imageHeight
+        savedCount
+        commentCount
+        creator {
+          id
+          username
+          name
+          avatarUrl
+        }
+        isSavedByViewer
+        viewerReaction
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

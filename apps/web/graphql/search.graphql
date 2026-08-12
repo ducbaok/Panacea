@@ -1,0 +1,75 @@
+query SearchPins($query: String!, $first: Int! = 20, $after: String) {
+  search(query: $query, type: PIN, first: $first, after: $after) {
+    pins {
+      items {
+        id
+        title
+        imageUrl
+        thumbnailUrl
+        mediumUrl
+        imageWidth
+        imageHeight
+        savedCount
+        creator {
+          id
+          username
+          name
+          avatarUrl
+        }
+        isSavedByViewer
+        viewerReaction
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+
+query SearchUsers($query: String!, $first: Int! = 20, $after: String) {
+  search(query: $query, type: USER, first: $first, after: $after) {
+    users {
+      items {
+        id
+        name
+        username
+        avatarUrl
+        isFollowedByViewer
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+
+query SearchBoards($query: String!, $first: Int! = 20, $after: String) {
+  search(query: $query, type: BOARD, first: $first, after: $after) {
+    boards {
+      items {
+        id
+        name
+        pinCount
+        user {
+          id
+          username
+          name
+          avatarUrl
+        }
+        coverPin {
+          id
+          imageUrl
+          thumbnailUrl
+          imageWidth
+          imageHeight
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}

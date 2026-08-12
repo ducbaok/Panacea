@@ -1,0 +1,47 @@
+subscription NotificationReceived {
+  notificationReceived {
+    id
+    type
+    isRead
+    createdAt
+    actor {
+      id
+      name
+      username
+      avatarUrl
+    }
+    pin {
+      id
+      imageUrl
+      thumbnailUrl
+    }
+    comment {
+      id
+      content
+    }
+  }
+}
+
+subscription MessageReceived($conversationId: String!) {
+  messageReceived(conversationId: $conversationId) {
+    id
+    content
+    attachedPinId
+    conversationId
+    senderId
+    readAt
+    createdAt
+    sender {
+      id
+      name
+      username
+      avatarUrl
+    }
+    attachedPin {
+      id
+      imageUrl
+      thumbnailUrl
+      title
+    }
+  }
+}

@@ -1,0 +1,55 @@
+query Conversations($first: Int! = 20, $after: String) {
+  conversations(first: $first, after: $after) {
+    items {
+      id
+      createdAt
+      updatedAt
+      members {
+        id
+        joinedAt
+        user {
+          id
+          name
+          username
+          avatarUrl
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query Messages($conversationId: String!, $first: Int! = 20, $after: String) {
+  messages(conversationId: $conversationId, first: $first, after: $after) {
+    items {
+      id
+      content
+      attachedPinId
+      senderId
+      readAt
+      deletedAt
+      createdAt
+      sender {
+        id
+        name
+        username
+        avatarUrl
+      }
+      attachedPin {
+        id
+        imageUrl
+        thumbnailUrl
+        title
+        imageWidth
+        imageHeight
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

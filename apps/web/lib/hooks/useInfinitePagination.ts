@@ -53,7 +53,7 @@ export interface UseInfinitePaginationOptions<TData, TVariables extends Record<s
   skip?: boolean;
 }
 
-export interface UseInfinitePaginationResult<TItem> {
+export interface UseInfinitePaginationResult<TItem, TData = unknown> {
   items: TItem[];
   hasNextPage: boolean;
   endCursor: string | null;
@@ -62,6 +62,12 @@ export interface UseInfinitePaginationResult<TItem> {
   error: unknown;
   loadMore: () => Promise<void>;
   refetch: () => Promise<unknown>;
+  /**
+   * Raw data từ Apollo. Chỉ dùng khi cần đọc field NGOÀI PaginatedShape (ví dụ
+   * `HomeFeed.source`). Đừng dùng để đọc `items` — dùng field `items` của
+   * chính kết quả này thì đã gộp qua các trang.
+   */
+  data: TData | undefined;
 }
 
 export function useInfinitePagination<
@@ -70,7 +76,7 @@ export function useInfinitePagination<
   TItem,
 >(
   options: UseInfinitePaginationOptions<TData, TVariables, TItem>,
-): UseInfinitePaginationResult<TItem> {
+): UseInfinitePaginationResult<TItem, TData> {
   const { query, variables, pickPage, merge, skip } = options;
 
   // Cast: `variables` bên ngoài là Omit<..., 'after'>; ở lời gọi đầu tiên,
@@ -111,5 +117,6 @@ export function useInfinitePagination<
     error,
     loadMore,
     refetch: refetch as unknown as () => Promise<unknown>,
+    data: data as TData | undefined,
   };
 }

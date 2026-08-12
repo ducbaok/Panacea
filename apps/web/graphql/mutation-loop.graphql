@@ -1,0 +1,77 @@
+mutation TogglePinReaction($pinId: ID!, $type: ReactionType!) {
+  togglePinReaction(pinId: $pinId, type: $type)
+}
+
+mutation SavePin($input: SavePinInput!) {
+  savePin(input: $input) {
+    id
+    pinId
+    boardId
+    sectionId
+    note
+    sortOrder
+    createdAt
+    pin {
+      id
+      isSavedByViewer
+    }
+  }
+}
+
+mutation UnsavePin($pinId: ID!, $boardId: ID) {
+  unsavePin(pinId: $pinId, boardId: $boardId)
+}
+
+mutation CreateComment($input: CreateCommentInput!) {
+  createComment(input: $input) {
+    id
+    content
+    parentId
+    createdAt
+    updatedAt
+    replyCount
+    reactionCount
+    isReactedByViewer
+    user {
+      id
+      name
+      username
+      avatarUrl
+    }
+  }
+}
+
+mutation UpdateComment($input: UpdateCommentInput!) {
+  updateComment(input: $input) {
+    id
+    content
+    updatedAt
+  }
+}
+
+mutation DeleteComment($id: String!) {
+  deleteComment(id: $id) {
+    id
+    parentId
+  }
+}
+
+mutation ToggleCommentReaction($input: ToggleCommentReactionInput!) {
+  toggleCommentReaction(input: $input)
+}
+
+mutation Follow($userId: String!) {
+  follow(userId: $userId)
+}
+
+mutation Unfollow($userId: String!) {
+  unfollow(userId: $userId)
+}
+
+mutation BlockUser($userId: String!) {
+  blockUser(userId: $userId)
+}
+
+mutation UnblockUser($userId: String!) {
+  unblockUser(userId: $userId)
+}

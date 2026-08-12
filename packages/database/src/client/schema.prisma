@@ -177,6 +177,7 @@ model BlockedUser {
   blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+  @@index([blockedId])
   @@map("BlockedUser")
 }
 
@@ -253,6 +254,7 @@ model Board {
   savedPins     SavedPin[]
   collaborators BoardCollaborator[]
 
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
   @@map("Board")
 }
 
@@ -300,6 +302,8 @@ model SavedPin {
 
   @@unique([userId, pinId, boardId])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([pinId])
+  @@index([boardId, sortOrder(sort: Asc), createdAt(sort: Desc), id(sort: Desc)])
   @@map("SavedPin")
 }
 
@@ -314,6 +318,7 @@ model Reaction {
   pin  Pin  @relation(fields: [pinId], references: [id], onDelete: Cascade)
 
   @@unique([userId, pinId])
+  @@index([pinId])
   @@map("Reaction")
 }
 
@@ -335,6 +340,7 @@ model Comment {
   notifications Notification[]
 
   @@index([pinId, createdAt(sort: Asc)])
+  @@index([parentId, createdAt(sort: Asc)])
   @@map("Comment")
 }
 
@@ -349,6 +355,7 @@ model CommentReaction {
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, commentId])
+  @@index([commentId])
   @@map("CommentReaction")
 }
 
@@ -362,6 +369,7 @@ model Conversation {
   members  ConversationMember[]
   messages Message[]
 
+  @@index([updatedAt(sort: Desc), id(sort: Desc)])
   @@map("Conversation")
 }
 
@@ -375,6 +383,7 @@ model ConversationMember {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
+  @@index([userId])
   @@map("ConversationMember")
 }
 

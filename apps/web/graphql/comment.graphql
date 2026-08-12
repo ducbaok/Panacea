@@ -1,0 +1,48 @@
+query PinComments($pinId: String!, $first: Int! = 20, $after: String) {
+  pinComments(pinId: $pinId, first: $first, after: $after) {
+    items {
+      id
+      content
+      parentId
+      createdAt
+      updatedAt
+      replyCount
+      reactionCount
+      isReactedByViewer
+      user {
+        id
+        name
+        username
+        avatarUrl
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query CommentReplies($commentId: String!, $first: Int! = 20, $after: String) {
+  commentReplies(commentId: $commentId, first: $first, after: $after) {
+    items {
+      id
+      content
+      parentId
+      createdAt
+      updatedAt
+      reactionCount
+      isReactedByViewer
+      user {
+        id
+        name
+        username
+        avatarUrl
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}

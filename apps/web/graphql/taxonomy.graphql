@@ -1,0 +1,15 @@
+query Categories {
+  categories {
+    id
+    name
+    slug
+    icon
+  }
+}
+
+query Tags($query: String, $first: Int = 20) {
+  tags(query: $query, first: $first) {
+    id
+    name
+  }
+}

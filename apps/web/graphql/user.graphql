@@ -1,0 +1,46 @@
+query UserByUsername($username: String!) {
+  userByUsername(username: $username) {
+    id
+    name
+    username
+    avatarUrl
+    bio
+    website
+    followerCount
+    followingCount
+    isFollowedByViewer
+    isFollowingViewer
+  }
+}
+
+query Followers($userId: String!, $first: Int! = 20, $after: String) {
+  followers(userId: $userId, first: $first, after: $after) {
+    items {
+      id
+      name
+      username
+      avatarUrl
+      isFollowedByViewer
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query Following($userId: String!, $first: Int! = 20, $after: String) {
+  following(userId: $userId, first: $first, after: $after) {
+    items {
+      id
+      name
+      username
+      avatarUrl
+      isFollowedByViewer
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
