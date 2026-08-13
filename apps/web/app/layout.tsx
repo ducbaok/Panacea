@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+/*
+ * FE-1b — Font Be Vietnam Pro (thay Geist/Geist_Mono).
+ *
+ * subsets: BẮT BUỘC có 'vietnamese', nếu thiếu, chữ có dấu sẽ rơi về font hệ
+ *   thống (fallback) và chỉ lộ ra ở chữ Việt — build vẫn xanh.
+ * weight: 400/600/700/800 (mockup dùng 4 độ đậm này; kiểm bằng grep).
+ * variable: khớp `--font-be-vietnam-pro` mà globals.css @theme ánh xạ vào
+ *   `--font-sans`. Đổi tên biến ở đây thì phải đổi cả globals.css.
+ */
+const beVietnamPro = Be_Vietnam_Pro({
+  variable: "--font-be-vietnam-pro",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -46,7 +52,7 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${beVietnamPro.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
