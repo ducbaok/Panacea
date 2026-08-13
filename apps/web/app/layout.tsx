@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
+import { Be_Vietnam_Pro, Varela_Round } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -16,6 +16,23 @@ const beVietnamPro = Be_Vietnam_Pro({
   variable: "--font-be-vietnam-pro",
   subsets: ["latin", "vietnamese"],
   weight: ["400", "600", "700", "800"],
+  display: "swap",
+});
+
+/*
+ * FE-2 — Font tiêu đề Varela Round (mockup Panacea dùng cho chữ thương hiệu
+ * và mọi <h1>; xuất hiện 21 lần trong Panacea.html).
+ *
+ * weight: chỉ 400 — Google Fonts KHÔNG có bản in đậm cho font này; đừng khai
+ *   "700" như phản xạ, next/font sẽ throw ở build. Muốn đậm hơn ở chữ thương
+ *   hiệu, dùng letter-spacing hoặc size lớn — không phải font-weight.
+ * subsets: có 'vietnamese' cho tiêu đề tiếng Việt (Antigravity chạy vi trước).
+ * variable: khớp --font-varela-round mà @theme ánh xạ vào --font-display.
+ */
+const varelaRound = Varela_Round({
+  variable: "--font-varela-round",
+  subsets: ["latin", "vietnamese"],
+  weight: "400",
   display: "swap",
 });
 
@@ -52,7 +69,7 @@ export default function RootLayout({
     <html
       lang="vi"
       suppressHydrationWarning
-      className={`${beVietnamPro.variable} h-full antialiased`}
+      className={`${beVietnamPro.variable} ${varelaRound.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />

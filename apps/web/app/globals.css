@@ -153,8 +153,17 @@
   --sidebar-expanded: 240px;
   --sidebar-collapsed: 72px;
 
-  /* Tầng z — dropdown < sheet < modal < toast */
+  /*
+   * Tầng z — dropdown < header < sheet < modal < toast.
+   *
+   * FE-2 chèn --z-header giữa dropdown và sheet: TopBar sticky phải nằm TRÊN
+   * mọi dropdown/tooltip trong nội dung nhưng DƯỚI mọi sheet/modal — nếu không,
+   * modal chi tiết pin (QĐ-2, FE-4) hoặc AuthPromptModal (FE-5) sẽ bị header
+   * đè hoặc đè lên header tuỳ thứ tự DOM (bẫy Panacea.html §4.2 — mockup dùng
+   * z-index:60 nguyên số, ngang hàng modal). Đừng viết số trần vào component.
+   */
   --z-dropdown: 40;
+  --z-header: 45;
   --z-sheet: 50;
   --z-modal: 60;
   --z-toast: 70;
@@ -208,6 +217,13 @@
   --spacing-sidebar-collapsed: var(--sidebar-collapsed);
 
   --font-sans: var(--font-be-vietnam-pro);
+  /*
+   * FE-2 — Varela Round cho chữ thương hiệu và <h1> (mockup Panacea dùng font
+   * này 21 lần cho tiêu đề, Be Vietnam Pro 18 lần cho phần thân). Chỉ có weight
+   * 400 trên Google Fonts, subsets latin/vietnamese. Component nên dùng qua
+   * `className="font-display"` (Tailwind v4 tự sinh utility từ --font-display).
+   */
+  --font-display: var(--font-varela-round);
 }
 
 body {
