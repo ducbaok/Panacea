@@ -231,3 +231,24 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/*
+ * FE-3 — spinner của PinGrid "đang tải thêm". Đặt ở đây thay vì `<style>` inline
+ * trong component để tránh duplicate mỗi lần Grid re-render và để keyframe có
+ * ngữ cảnh global. Tên có prefix `pin-grid-` để không đụng chạm sau này.
+ */
+@keyframes pin-grid-spin {
+  to { transform: rotate(360deg); }
+}
+
+/*
+ * FE-3 — Keyframe cho con quay "đang tải thêm" của PinGrid.
+ * Khai một lần ở đây thay vì <style> lặp trong component (React 19 hỗ trợ
+ * <style> ở mọi cấp nhưng thêm một DOM node/instance là lãng phí; keyframes
+ * là toàn cục thuần).
+ */
+@keyframes pin-grid-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

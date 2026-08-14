@@ -22,6 +22,7 @@ query Pin($id: ID!) {
       username
       avatarUrl
       isFollowedByViewer
+      followerCount
     }
     tags {
       id

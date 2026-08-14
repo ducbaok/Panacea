@@ -1,7 +1,12 @@
 'use client';
 
 /*
- * FE-0b — View của trang probe. TEMPORARY, xoá khi FE-4/FE-6 dựng màn thật.
+ * FE-0b — View của trang probe. TEMPORARY, xoá khi FE-5/FE-6 dựng màn thật.
+ *
+ * Cập nhật 14/08/2026 (sau FE-4): các nhóm [E] explore, [C] comments, [R]
+ * replies đã có màn thật (`/explore`, PinDetail). Vẫn giữ trang làm bằng
+ * chứng regression rẻ + [T] unauth và [H] homeFeed source — hai nhánh chưa
+ * có màn thật (chờ FE-5 login và FE-6 home 2 trạng thái).
  * Xem comment ở app/probe/data/page.tsx.
  */
 
@@ -44,7 +49,7 @@ export function ProbeDataView() {
     <main>
       <h1>FE-0b probe — tầng dữ liệu</h1>
       <p>
-        <em>TEMPORARY — xoá khi FE-4/FE-6 dựng màn thật.</em>
+        <em>TEMPORARY — xoá khi FE-5/FE-6 dựng màn thật.</em>
       </p>
       <SectionMe />
       <hr />

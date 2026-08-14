@@ -1,7 +1,7 @@
 /*
  * FE-0b — Trang probe TẦNG DỮ LIỆU.
  *
- * TEMPORARY — xoá khi FE-4/FE-6 dựng màn thật.
+ * TEMPORARY — xoá khi FE-5/FE-6 dựng màn thật (đã update banner 14/08 sau FE-4).
  *
  * Trang này CỐ TÌNH XẤU: bảng thô, không style. Mục đích duy nhất là chứng
  * minh tầng operation + tầng error-mapping chạy được TRƯỚC KHI có UI thật.

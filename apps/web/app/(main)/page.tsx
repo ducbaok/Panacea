@@ -1,51 +1,42 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { PinGrid } from '@/components/pin/pin-grid';
+import { useExploreFeed } from '@/lib/hooks/usePaginatedQuery';
+
 /**
- * Trang tạm ở `/` cho FE-2 — chỉ để bằng chứng T2 chạy được TRONG shell.
+ * Trang chủ ở FE-3 = lưới khám phá (QĐ-1 khách vãng lai).
  *
- * Trang chủ thật:
- *   • Khách vãng lai → nội dung explore (QĐ-1, FE-3+).
- *   • Đã đăng nhập → homeFeed với 2 nhánh FOLLOWING/EXPLORE (khung-ui-ux §4).
+ * Trang chủ THẬT theo `khung-ui-ux.md` §4/§7:
+ *   • Khách vãng lai → nội dung explore (đúng như đây).
+ *   • Đã đăng nhập → homeFeed với 2 nhánh FOLLOWING/EXPLORE + dải gợi ý.
+ * Nhánh đăng nhập là VIỆC CỦA FE-6, không phải FE-3 (xem PROMPT_FE3.md §1
+ * "Ngoài phạm vi"). Ở FE-3 cả hai vai trò cùng thấy exploreFeed.
  *
- * FE-3 dựng PinGrid/PinCard sẽ thay hoàn toàn nội dung dưới. Đừng copy layout
- * này — đây không phải chuẩn.
+ * Client Component vì Apollo là client-only (FE-0 chốt — xem
+ * `lib/apollo/client.ts:13-16`). Máy chủ prerender một lượt sẽ ra nhánh
+ * loading của lưới (khung xương CSS columns tất định) — đúng thiết kế §4.7
+ * của brief, không phải sự cố.
+ *
+ * FE-4 nối `onOpen` bằng router.push('/pin/'+id). Intercepting route
+ * `@modal/(.)pin/[id]` chặn ⇒ hiện modal đè lưới, URL đổi thành /pin/<id>,
+ * lưới còn nguyên trong DOM phía sau (T2.1). F5 tại URL đó ⇒ trang đầy đủ.
+ * Dưới 768px, modal tự đổi hình sang toàn màn variant='page' (§5.4 hướng A).
  */
 export default function Home() {
-  return (
-    <div className="px-6 py-8 flex flex-col gap-6">
-      <div
-        role="note"
-        className="rounded-[var(--radius-card)] p-4"
-        style={{
-          background: 'var(--color-primary-soft)',
-          border: '1px solid var(--color-border)',
-        }}
-      >
-        <p
-          className="text-sm"
-          style={{ color: 'var(--color-foreground)' }}
-        >
-          <strong>Chỗ giữ chỗ FE-2.</strong> Bạn đang xem shell (Sidebar +
-          TopBar + BottomTabBar), lưới pin thật sẽ do <code>FE-3</code> dựng
-          (masonry PinGrid). Đăng xuất/đăng nhập để so hai bản shell; thu cửa
-          sổ dưới 768px để thấy BottomTabBar.
-        </p>
-      </div>
+  const router = useRouter();
+  const { items, loading, loadingMore, hasNextPage, loadMore } = useExploreFeed();
 
-      <div className="flex flex-col gap-2">
-        <h1
-          className="text-2xl"
-          style={{
-            fontFamily: 'var(--font-display), var(--font-sans), sans-serif',
-            color: 'var(--color-foreground)',
-          }}
-        >
-          Trang chủ (chỗ giữ chỗ)
-        </h1>
-        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-          Font tiêu đề là <code>Varela Round</code> (§4.1 đã chốt), phần thân
-          là <code>Be Vietnam Pro</code>. Nếu thấy hai font trùng nhau, đọc
-          console để tìm cảnh báo font-loading.
-        </p>
-      </div>
+  return (
+    <div className="py-6">
+      <PinGrid
+        items={items}
+        loading={loading}
+        loadingMore={loadingMore}
+        hasNextPage={hasNextPage}
+        loadMore={loadMore}
+        onOpen={(id) => router.push(`/pin/${id}`)}
+      />
     </div>
   );
 }
