@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import type { ReactionType } from '@/lib/gql/graphql';
 import { REACTION_EMOJI } from '@/lib/reactions';
+import { useAuthPrompt } from '@/components/auth/auth-prompt';
 
 /**
  * FE-3 — Thẻ pin (khung + 6 trạng thái §3.3 của brief).
@@ -95,6 +97,8 @@ export function PinCard({ item, columnWidth, onOpen }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
+  const { status: sessionStatus } = useSession();
+  const { openAuthPrompt } = useAuthPrompt();
 
   const isSaved = optimisticSaved ?? item.isSavedByViewer ?? false;
   const url = pickImageUrl(item);
@@ -191,6 +195,13 @@ export function PinCard({ item, columnWidth, onOpen }: Props) {
           type="button"
           onClick={(e) => {
             e.stopPropagation();
+            // Khách vãng lai: mở AuthPromptModal thay vì thao tác (T2.4). Người đã
+            // đăng nhập: giữ trạng thái hình ảnh của FE-3 (mutation savePin thật
+            // là việc của FE-7, CỐ Ý chưa nối ở đợt này).
+            if (sessionStatus === 'unauthenticated') {
+              openAuthPrompt('lưu pin này');
+              return;
+            }
             setOptimisticSaved(!isSaved);
           }}
           aria-pressed={isSaved}

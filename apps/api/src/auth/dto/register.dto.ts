@@ -1,12 +1,11 @@
 import { IsEmail, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsPassword } from './password.decorator';
 
 export class RegisterDto {
   @IsEmail()
   email: string;
 
-  @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @IsPassword()
   password: string;
 
   @IsString()

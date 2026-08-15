@@ -6,6 +6,8 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -559,12 +561,24 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const email = record.identifier.replace('reset:', '');
 
-    await this.prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { email },
       data: { password: passwordHash },
     });
 
     await this.prisma.verificationToken.delete({ where: { token: dto.token } });
+
+    // ── Hướng C (spec §6.5): đổi mật khẩu = đăng xuất mọi thiết bị khác + gỡ khoá ──
+    // (1) Thu hồi TOÀN BỘ refresh token của user ⇒ thiết bị khác mất phiên (lần
+    //     refresh kế tiếp 401 → web signOut). Thiết bị vừa đặt lại mật khẩu sẽ
+    //     đăng nhập lại bằng mật khẩu mới và nhận cặp token mới.
+    await this.prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+
+    // (2) Gỡ khoá brute-force: ai bị khoá 15 phút vì gõ sai 5 lần, đặt lại mật
+    //     khẩu xong là đăng nhập được NGAY, không phải chờ hết khoá. Key theo
+    //     đúng chuỗi email nguyên văn như limiter (không hạ chữ thường).
+    const { failKey, lockKey } = this._loginKeys(email);
+    await this._clearLoginFailures(failKey, lockKey);
   }
 
   // ─── Email Verification ──────────────────────────────────────────────────────
@@ -589,73 +603,86 @@ export class AuthService {
     await this.prisma.verificationToken.delete({ where: { token } });
   }
 
-  renderVerifyEmailPage(token: string): string {
-    const baseUrl = this.configService.get<string>('app.baseUrl') || 'http://localhost:4000';
-    return `
-      <!DOCTYPE html>
-      <html lang="vi">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Xác thực Email - Antigravity</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-          .container { background-color: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; text-align: center; }
-          h2 { color: #e60023; margin-top: 0; }
-          p { color: #555; line-height: 1.5; }
-          button { background-color: #e60023; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 24px; cursor: pointer; margin-top: 20px; transition: background-color 0.2s; }
-          button:hover { background-color: #ad081b; }
-          button:disabled { background-color: #ccc; cursor: not-allowed; }
-          .message { margin-top: 20px; font-weight: 500; }
-          .success { color: #00875a; }
-          .error { color: #de350b; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h2>🪐 Antigravity</h2>
-          <p>Nhấn vào nút bên dưới để hoàn tất việc xác thực email của bạn.</p>
-          <button id="verifyBtn" onclick="verifyEmail()">Xác thực Email</button>
-          <div id="message" class="message"></div>
-        </div>
+  /**
+   * Gửi lại email xác thực (spec §6.3, hướng a+c).
+   *
+   * Nhận diện người dùng theo thứ tự ưu tiên:
+   *   (c) Bearer accessToken hợp lệ → chính chủ (mọi trạng thái của A5);
+   *   (a) nếu không có/không hợp lệ → token xác thực CŨ trong body — kể cả đã
+   *       hết hạn, vì `verifyEmail` KHÔNG xoá bản ghi hết hạn ⇒ vẫn tra ngược
+   *       ra chủ nhân.
+   *
+   * KHÔNG nhận email ⇒ A5 không cần ô email và không mở cửa dò tài khoản. Im
+   * lặng (void → 204) khi không nhận diện được hoặc email đã xác thực rồi —
+   * không tiết lộ gì. Chặn tần suất 60s bằng Redis, khoá theo sha256(email)
+   * như limiter đăng nhập.
+   */
+  async resendVerification(token?: string, authorization?: string): Promise<void> {
+    let user: { id: string; email: string; emailVerified: Date | null } | null = null;
 
-        <script>
-          async function verifyEmail() {
-            const btn = document.getElementById('verifyBtn');
-            const msg = document.getElementById('message');
-            btn.disabled = true;
-            btn.innerText = 'Đang xử lý...';
-            msg.innerText = '';
-            
-            try {
-              const res = await fetch('${baseUrl}/auth/verify-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: '${token}' })
-              });
-              
-              if (res.ok) {
-                msg.className = 'message success';
-                msg.innerText = '✅ Xác thực thành công! Bạn có thể đóng trang này.';
-                btn.style.display = 'none';
-              } else {
-                const data = await res.json();
-                msg.className = 'message error';
-                msg.innerText = '❌ Lỗi: ' + (data.message || 'Xác thực thất bại');
-                btn.disabled = false;
-                btn.innerText = 'Thử lại';
-              }
-            } catch (err) {
-              msg.className = 'message error';
-              msg.innerText = '❌ Lỗi kết nối máy chủ';
-              btn.disabled = false;
-              btn.innerText = 'Thử lại';
-            }
-          }
-        </script>
-      </body>
-      </html>
-    `;
+    // (c) Phiên đăng nhập — verify Bearer bằng đúng secret của access token.
+    const bearer = authorization?.startsWith('Bearer ')
+      ? authorization.slice('Bearer '.length).trim()
+      : null;
+    if (bearer) {
+      try {
+        const payload = this.jwtService.verify<{ sub?: string }>(bearer, {
+          secret: this.configService.get<string>('jwt.secret'),
+        });
+        if (payload?.sub) {
+          user = await this.prisma.user.findFirst({
+            where: { id: payload.sub, deletedAt: null },
+            select: { id: true, email: true, emailVerified: true },
+          });
+        }
+      } catch {
+        // Token hỏng/hết hạn — bỏ qua, thử tiếp đường (a).
+      }
+    }
+
+    // (a) Token xác thực cũ (có thể đã hết hạn) → tra ngược chủ nhân.
+    if (!user && token) {
+      const record = await this.prisma.verificationToken.findUnique({ where: { token } });
+      if (record?.userId && record.identifier.startsWith('verify:')) {
+        user = await this.prisma.user.findFirst({
+          where: { id: record.userId, deletedAt: null },
+          select: { id: true, email: true, emailVerified: true },
+        });
+      }
+    }
+
+    // Không nhận diện được, hoặc đã xác thực rồi → im lặng (không tiết lộ).
+    if (!user || user.emailVerified) return;
+
+    // Chặn tần suất: 60s/email. SET NX EX — chỉ đặt được nếu chưa có khoá.
+    const h = crypto.createHash('sha256').update(user.email).digest('hex').slice(0, 32);
+    const rlKey = `resend:verify:${h}`;
+    try {
+      const set = await this.redis.set(rlKey, '1', 'EX', 60, 'NX');
+      if (set === null) {
+        throw new HttpException(
+          'Please wait before requesting another verification email',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    } catch (e) {
+      if (e instanceof HttpException) throw e;
+      // Redis chết → fail-open (vẫn gửi), cùng triết lý với brute-force limiter.
+      this.logger.warn(
+        `[resend-verify] Redis lỗi khi chặn tần suất, BỎ QUA (fail-open): ${(e as Error).message}`,
+      );
+    }
+
+    // Xoay token: xoá token verify cũ của email này rồi tạo mới (hạn 1 giờ).
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 1000 * 60 * 60);
+    await this.prisma.verificationToken.deleteMany({
+      where: { identifier: `verify:${user.email}` },
+    });
+    await this.prisma.verificationToken.create({
+      data: { identifier: `verify:${user.email}`, token: rawToken, expires, userId: user.id },
+    });
+    await this.mailService.sendVerificationEmail(user.email, rawToken);
   }
 
   // ─── Private Helpers ─────────────────────────────────────────────────────────

@@ -60,8 +60,13 @@ export class MailService {
    * Gửi email xác thực tài khoản.
    */
   async sendVerificationEmail(email: string, token: string): Promise<void> {
-    const baseUrl = this.configService.get<string>('app.baseUrl') || 'http://localhost:4000';
-    const verifyUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+    // Trỏ về WEB (Next.js), KHÔNG phải API. Màn A5 `/verify-email` của web đọc
+    // `?token=` rồi gọi POST /auth/verify-email — nó cũng giữ lá chắn chống mail
+    // client prefetch (bắt người dùng bấm nút). `webUrl` = WEB_URL trong config
+    // (đã có sẵn, dùng chung với CORS ở main.ts) — đừng dùng `app.baseUrl`, đó là
+    // địa chỉ API. Xem spec-man-A3-A4-A5.md §6.1.
+    const baseUrl = this.configService.get<string>('webUrl') || 'http://localhost:3000';
+    const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
 
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -81,7 +86,9 @@ export class MailService {
    * Gửi email khôi phục mật khẩu.
    */
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    const baseUrl = this.configService.get<string>('app.baseUrl') || 'http://localhost:3000';
+    // Trỏ về WEB (Next.js) — màn A4 `/reset-password`. Trước đây dùng
+    // `app.baseUrl` (cổng 4000 = API) ⇒ link 404. Xem spec-man-A3-A4-A5.md §6.1.
+    const baseUrl = this.configService.get<string>('webUrl') || 'http://localhost:3000';
     const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     const html = `

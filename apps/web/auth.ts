@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
-import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
 import {
   exchangeOAuth,
@@ -44,18 +43,17 @@ import {
 const ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000;
 const REFRESH_LEEWAY_MS = 30 * 1000;
 
-type OAuthProvider = 'google' | 'github';
-const OAUTH_PROVIDERS = new Set<OAuthProvider>(['google', 'github']);
+// FE-5 Q2 (14/08/2026): BỎ GitHub, chỉ giữ Google — người dùng của trang chia
+// sẻ ảnh không đăng nhập bằng tài khoản lập trình viên. Giữ union/Set để nhánh
+// OAuth trong callback jwt vẫn tổng quát, dễ thêm provider sau này.
+type OAuthProvider = 'google';
+const OAUTH_PROVIDERS = new Set<OAuthProvider>(['google']);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-    }),
-    GitHub({
-      clientId: process.env.AUTH_GITHUB_ID!,
-      clientSecret: process.env.AUTH_GITHUB_SECRET!,
     }),
     Credentials({
       credentials: {

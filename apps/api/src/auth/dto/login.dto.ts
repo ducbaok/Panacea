@@ -1,10 +1,10 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail } from 'class-validator';
+import { IsPassword } from './password.decorator';
 
 export class LoginDto {
   @IsEmail()
   email: string;
 
-  @IsString()
-  @MinLength(8)
+  @IsPassword()
   password: string;
 }

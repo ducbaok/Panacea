@@ -1,6 +1,7 @@
 import { Sidebar } from '@/components/shell/sidebar';
 import { TopBar } from '@/components/shell/top-bar';
 import { BottomTabBar } from '@/components/shell/bottom-tab-bar';
+import { ScrollRestorer } from '@/components/auth/scroll-restorer';
 
 /**
  * Layout của nhóm route `(main)` — shell chính có Sidebar + TopBar + BottomTabBar.
@@ -38,6 +39,7 @@ export default function MainLayout({
       </div>
       {modal}
       <BottomTabBar />
+      <ScrollRestorer />
     </div>
   );
 }

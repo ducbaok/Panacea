@@ -55,10 +55,11 @@ export default async function (h) {
     expect: [400, 401, 404],
     match: /Invalid or expired reset token/,
   });
-  // GET trả 200 + HTML là CỐ Ý: render trang để user tự bấm, tránh mail client
-  // prefetch tự xác thực hộ. Logic thật nằm ở POST. Xem report mục 9.4.
-  await rest('GET /auth/verify-email (token rác → 200 HTML, đúng thiết kế)', 'GET', '/auth/verify-email?token=bad-token', {
-    expect: [400, 401, 404],
+  // GET /auth/verify-email ĐÃ XOÁ 15/08/2026 (spec §6.4): sau QĐ-1, link trong
+  // email trỏ về màn A5 của WEB; lá chắn chống mail-client prefetch (bắt người
+  // dùng bấm nút) nay do web giữ. Route không còn ⇒ 404. Logic thật vẫn ở POST.
+  await rest('GET /auth/verify-email (đã xoá → 404, lá chắn prefetch chuyển sang web)', 'GET', '/auth/verify-email?token=bad-token', {
+    expect: [404],
   });
   await rest('POST /auth/verify-email (token rác → 4xx)', 'POST', '/auth/verify-email', {
     body: { token: 'bad-token' },

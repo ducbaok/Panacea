@@ -3,19 +3,24 @@ import {
   Post,
   Get,
   Body,
-  Query,
   Headers,
   HttpCode,
   HttpStatus,
   UseGuards,
-  Header,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ExchangeDto } from './dto/exchange.dto';
-import { ForgotPasswordDto, ResetPasswordDto, RefreshTokenDto, GoogleAuthDto, VerifyEmailDto } from './dto/auth.dto';
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  RefreshTokenDto,
+  GoogleAuthDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+} from './dto/auth.dto';
 import { CurrentUserRest } from './decorators/current-user.decorator';
 import type { AuthUser } from './strategies/jwt.strategy';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiBearerAuth } from '@nestjs/swagger';
@@ -125,13 +130,11 @@ export class AuthController {
     return this.authService.resetPassword(dto);
   }
 
-  /** GET /auth/verify-email?token=... — Trả về trang HTML để user click (tránh pre-fetch) */
-  @Get('verify-email')
-  @Header('Content-Type', 'text/html')
-  @ApiOperation({ summary: 'Hiển thị trang xác thực email (tránh lỗi pre-fetch của trình duyệt/mail client)' })
-  renderVerifyEmailPage(@Query('token') token: string) {
-    return this.authService.renderVerifyEmailPage(token);
-  }
+  // GET /auth/verify-email (renderVerifyEmailPage) ĐÃ XOÁ 15/08/2026 — spec §6.4.
+  // Sau QĐ-1, link trong email trỏ về màn A5 của WEB (`/verify-email`), không còn
+  // ai dẫn tới trang HTML do API render. Lá chắn chống mail-client prefetch (bắt
+  // người dùng bấm nút) nay do web giữ (A5 trạng thái "Chờ bấm"), nên xoá route
+  // GET không để lại lỗ hổng. Logic xác thực thật vẫn ở POST bên dưới.
 
   /** POST /auth/verify-email — Xử lý logic xác thực */
   @Post('verify-email')
@@ -142,6 +145,31 @@ export class AuthController {
   @ApiResponse({ status: 404, description: 'Token không tồn tại.' })
   verifyEmailPost(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto.token);
+  }
+
+  /**
+   * POST /auth/resend-verification — gửi lại email xác thực (spec §6.3, hướng a+c).
+   *
+   * Nhận diện người dùng theo THỨ TỰ ƯU TIÊN:
+   *   (c) Header `Authorization: Bearer <accessToken>` — đang đăng nhập, gửi cho
+   *       chính mình. Chạy được ở MỌI trạng thái của A5.
+   *   (a) `{ token }` trong body — token xác thực CŨ (kể cả đã hết hạn, vì
+   *       verifyEmail KHÔNG xoá bản ghi hết hạn) ⇒ tra ngược ra chủ nhân.
+   *
+   * KHÔNG nhận `{ email }` ⇒ A5 không cần ô email, và không mở cửa dò tài khoản.
+   * Route PUBLIC (không @UseGuards) vì đường (a) chạy khi CHƯA đăng nhập; việc
+   * đọc Bearer là tuỳ chọn, do service tự verify.
+   */
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Gửi lại email xác thực (nhận diện bằng token cũ hoặc phiên đăng nhập)' })
+  @ApiResponse({ status: 204, description: 'Yêu cầu được chấp nhận (không tiết lộ email có tồn tại).' })
+  @ApiResponse({ status: 429, description: 'Gửi quá nhanh — chờ hết cooldown 60 giây.' })
+  resendVerification(
+    @Body() dto: ResendVerificationDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    return this.authService.resendVerification(dto.token, authorization);
   }
 
   /** GET /auth/me — kiểm tra token hợp lệ */

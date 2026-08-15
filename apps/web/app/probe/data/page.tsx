@@ -1,7 +1,8 @@
 /*
  * FE-0b — Trang probe TẦNG DỮ LIỆU.
  *
- * TEMPORARY — xoá khi FE-5/FE-6 dựng màn thật (đã update banner 14/08 sau FE-4).
+ * TEMPORARY — xoá khi FE-6 (FE-5 đã dựng login thật 15/08). Nhóm [T] me / [H]
+ * homeFeed / [P] loadMore còn là bằng chứng riêng ⇒ giữ trang, đừng xoá cả.
  *
  * Trang này CỐ TÌNH XẤU: bảng thô, không style. Mục đích duy nhất là chứng
  * minh tầng operation + tầng error-mapping chạy được TRƯỚC KHI có UI thật.

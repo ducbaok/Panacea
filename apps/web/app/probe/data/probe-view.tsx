@@ -49,7 +49,12 @@ export function ProbeDataView() {
     <main>
       <h1>FE-0b probe — tầng dữ liệu</h1>
       <p>
-        <em>TEMPORARY — xoá khi FE-5/FE-6 dựng màn thật.</em>
+        <em>
+          TEMPORARY — xoá khi FE-6. Sau FE-5 (login thật), các section này có
+          RACE hiển thị: query bắn trước khi useSession nạp token ⇒ lần tải đầu
+          [T]/[E]/[H] hiện unauthenticated/all-false dù đã đăng nhập. Dữ liệu
+          thật đúng — kiểm bằng /explore (nút "Đã lưu") hoặc query trực tiếp.
+        </em>
       </p>
       <SectionMe />
       <hr />

@@ -6,10 +6,15 @@
  *   - Nếu bị bundle vào client, thao tác so sánh `crypto.timingSafeEqual` bên
  *     apps/api sẽ mất ý nghĩa.
  *
- * Hợp đồng backend (đã kiểm 2026-08-12):
- *   POST /auth/exchange  header x-auth-secret  → TokenPair
- *   POST /auth/login     body { email, password }  → TokenPair
- *   POST /auth/refresh   body { refreshToken }     → { accessToken } (KHÔNG rotate refresh)
+ * Hợp đồng backend (kiểm lại 2026-08-15, FE-5):
+ *   POST /auth/exchange             header x-auth-secret        → TokenPair
+ *   POST /auth/login                { email, password }         → TokenPair
+ *   POST /auth/refresh              { refreshToken }            → { accessToken } (KHÔNG rotate)
+ *   POST /auth/register            { email, password, name }   → 201 TokenPair · 409 email trùng
+ *   POST /auth/forgot-password     { email }                   → 204 (kể cả email không tồn tại)
+ *   POST /auth/reset-password      { token, password(8..72) }  → 204 · 400 token sai/hết hạn
+ *   POST /auth/verify-email        { token }                   → 200 · 404/400 token sai/hết hạn
+ *   POST /auth/resend-verification { token? } [+ Bearer]       → 204 · 429 quá nhanh
  *
  * Access token TTL = 15m (apps/api/src/config/configuration.ts:73).
  */
@@ -31,6 +36,27 @@ export interface OAuthExchangeInput {
 }
 
 /**
+ * Lỗi HTTP từ backend MANG THEO status + body — không phải một `Error` chuỗi
+ * phẳng. Đây là điều kiện tiên quyết của FE-5 §4.2: nếu ném `new Error("...403...")`
+ * thì `mapError` không phân biệt được 401/403/khoá, và 3 trong 4 trạng thái lỗi
+ * đăng nhập không bao giờ hiện đúng.
+ *
+ * Đặt tên field `statusCode` + `bodyText` ĐÚNG như `ServerError` của Apollo v4 để
+ * nhánh duck-typing `extractServerError` trong map-error.ts nhận diện được ngay,
+ * không phải thêm nhánh mới.
+ */
+export class BackendHttpError extends Error {
+  readonly statusCode: number;
+  readonly bodyText: string;
+  constructor(statusCode: number, bodyText: string) {
+    super(`backend ${statusCode}: ${bodyText}`);
+    this.name = 'BackendHttpError';
+    this.statusCode = statusCode;
+    this.bodyText = bodyText;
+  }
+}
+
+/**
  * Chuẩn hoá email trước MỌI request auth:
  * - trim khoảng trắng
  * - hạ chữ thường
@@ -43,6 +69,27 @@ export interface OAuthExchangeInput {
  */
 export function normalizeEmail(raw: string | null | undefined): string {
   return String(raw ?? '').trim().toLowerCase();
+}
+
+/**
+ * POST JSON tới API. `bearer` tuỳ chọn (đường resend theo phiên). Ném
+ * `BackendHttpError` khi non-2xx (mang status + body). Lỗi mạng ném `TypeError`
+ * nguyên bản (map-error.ts nhận diện thành `{ kind: 'network' }`).
+ */
+async function postJson(path: string, body: unknown, bearer?: string): Promise<Response> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (bearer) headers.Authorization = `Bearer ${bearer}`;
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new BackendHttpError(res.status, text);
+  }
+  return res;
 }
 
 export async function exchangeOAuth(input: OAuthExchangeInput): Promise<TokenPair> {
@@ -63,35 +110,53 @@ export async function exchangeOAuth(input: OAuthExchangeInput): Promise<TokenPai
   });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`/auth/exchange ${res.status}: ${body}`);
+    throw new BackendHttpError(res.status, body);
   }
   return (await res.json()) as TokenPair;
 }
 
 export async function loginWithPassword(email: string, password: string): Promise<TokenPair> {
-  const res = await fetch(`${API_URL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: normalizeEmail(email), password }),
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`/auth/login ${res.status}: ${body}`);
-  }
+  const res = await postJson('/auth/login', { email: normalizeEmail(email), password });
   return (await res.json()) as TokenPair;
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string }> {
-  const res = await fetch(`${API_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`/auth/refresh ${res.status}: ${body}`);
-  }
+  const res = await postJson('/auth/refresh', { refreshToken });
   return (await res.json()) as { accessToken: string };
+}
+
+/** Đăng ký. 201 → TokenPair (backend tự cấp phiên). 409 → BackendHttpError. */
+export async function registerAccount(
+  email: string,
+  password: string,
+  name: string,
+): Promise<TokenPair> {
+  const res = await postJson('/auth/register', { email: normalizeEmail(email), password, name });
+  return (await res.json()) as TokenPair;
+}
+
+/** Quên mật khẩu. LUÔN 204 kể cả email không tồn tại (không tiết lộ). */
+export async function forgotPassword(email: string): Promise<void> {
+  await postJson('/auth/forgot-password', { email: normalizeEmail(email) });
+}
+
+/** Đặt lại mật khẩu bằng token. 204 → xong. 400 → token sai/hết hạn. */
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await postJson('/auth/reset-password', { token, password });
+}
+
+/** Xác thực email bằng token. 200 → xong. 404/400 → token sai/hết hạn/hỏng. */
+export async function verifyEmail(token: string): Promise<void> {
+  await postJson('/auth/verify-email', { token });
+}
+
+/**
+ * Gửi lại email xác thực. Nhận diện bằng token cũ (a) HOẶC phiên đăng nhập (c)
+ * — truyền `accessToken` để forward thành Bearer. 204 → gửi. 429 → quá nhanh.
+ */
+export async function resendVerification(
+  token?: string,
+  accessToken?: string,
+): Promise<void> {
+  await postJson('/auth/resend-verification', token ? { token } : {}, accessToken);
 }
