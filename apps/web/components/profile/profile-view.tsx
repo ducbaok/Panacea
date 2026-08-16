@@ -18,6 +18,7 @@ import { useUserPins, useUserBoards } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
+import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { formatCount } from '@/lib/format';
 
 /**
@@ -90,6 +91,8 @@ function ProfileContent({
   const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
+  const { status } = useSession();
+  const { openAuthPrompt } = useAuthPrompt();
   const [tab, setTab] = useState<'pin' | 'board'>('pin');
   const [hoverFollow, setHoverFollow] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -137,6 +140,10 @@ function ProfileContent({
   }
 
   async function runFollow() {
+    if (status !== 'authenticated') {
+      openAuthPrompt('theo dõi người này');
+      return;
+    }
     if (busy) return;
     setBusy(true);
     try {
@@ -176,6 +183,10 @@ function ProfileContent({
 
   async function runBlock() {
     setMenuOpen(false);
+    if (status !== 'authenticated') {
+      openAuthPrompt('chặn người này');
+      return;
+    }
     const ok = await confirm({
       title: `Chặn @${uname}?`,
       body: 'Họ không thấy pin của bạn và bạn không thấy pin của họ.',
