@@ -1,0 +1,187 @@
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  HT-2 — CI: build + codegen + `pnpm verify` THẬT trên DB sạch              ║
+# ║                                                                           ║
+# ║  Đây là đợt trả nợ lớn nhất: tới nay MỌI bằng chứng (`pnpm verify`) chỉ    ║
+# ║  tồn tại trên một máy Windows. CI cho ba thứ máy dev không có:             ║
+# ║   1. DB sạch mỗi lần  ⇒ hết trần 20 pin/ngày + khoá login:* sống dai Redis.║
+# ║   2. Máy chưa từng chạy codegen ⇒ mìn .gitignore (file sinh) nổ Ở ĐÂY.     ║
+# ║   3. So SDL: schema.graphql commit vs bản API sinh lúc boot — lệch ⇒ đỏ.   ║
+# ║      (Phép DUY NHẤT bắt "sửa resolver mà quên restart API": tsc không thấy)║
+# ║                                                                           ║
+# ║  Kỳ vọng trên DB sạch: verify OK=204 · EXPECTED=19 · FAIL=0 · exit 0.      ║
+# ║  ⚠️ KHÔNG hardcode con số vào điều kiện đỏ — cổng đỏ là EXIT CODE của       ║
+# ║  `pnpm verify` (run-all.mjs: process.exit(fail || stoppedAt ? 1 : 0)).     ║
+# ║  Nếu CI ra FAIL: đối chiếu theo cặp group::name, báo Luồng 2 (mục 0 của     ║
+# ║  họ) — ĐỪNG "sửa cho xanh". Mốc hiện hành: AGENT_HANDOFF.md §1.            ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# Một chạy/branch; hủy lần cũ khi push mới.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: build + verify (DB sạch)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: antigravity
+          POSTGRES_PASSWORD: antigravity
+          POSTGRES_DB: antigravity_dev
+          # Khớp docker-compose.yml: locale=C để tìm kiếm tiếng Việt không lệch
+          # giữa môi trường — baseline verify đo trên collation này.
+          POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U antigravity -d antigravity_dev"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 3s --health-retries 10
+
+    env:
+      # ── Kết nối tới service container (map ra localhost của runner) ──────────
+      DATABASE_URL: postgresql://antigravity:antigravity@localhost:5432/antigravity_dev
+      REDIS_URL: redis://localhost:6379
+      # ── Secret giả cho CI (đủ điều kiện Joi: JWT ≥32, INTERNAL ≥16) ─────────
+      BACKEND_JWT_SECRET: ci_backend_jwt_secret_min_32_chars_0123456789
+      REFRESH_TOKEN_SECRET: ci_refresh_token_secret_min_32_chars_0123456789
+      AUTH_SECRET: ci_authjs_shared_secret_min_32_chars_0123456789
+      INTERNAL_API_SECRET: ci_internal_secret_0123456789
+      AWS_ACCESS_KEY_ID: ci-dummy
+      AWS_SECRET_ACCESS_KEY: ci-dummy
+      S3_BUCKET_NAME: ci-raw
+      S3_PROCESSED_BUCKET: ci-processed
+      CLOUDFRONT_DOMAIN: cdn.example.test
+      GOOGLE_CLIENT_ID: ci-dummy.apps.googleusercontent.com
+      FIREBASE_SERVICE_ACCOUNT: "{}"
+      # MAIL_* cố ý ĐỂ TRỐNG ⇒ MailService fallback console.log. ⚠️ Máy dev cấu
+      # hình SMTP thật (token verify/reset đọc từ DB, không ở log); nếu lần chạy
+      # CI đầu tiên lệch baseline ở nhánh email, nghi khác biệt này TRƯỚC.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 24: `@antigravity/database` là raw-TS (main=src/index.ts, không
+          # build). Chỉ chạy nhờ type-stripping của Node ≥22.18; Node 20 sẽ nổ
+          # "Unknown file extension .ts" lúc runtime. Xem apps/api/Dockerfile bẫy #1.
+          node-version: 24
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate (engine Linux)
+        run: pnpm --filter @antigravity/database exec prisma generate
+
+      # Chạy codegen TƯỜNG MINH: nếu file sinh bị .gitignore và ai đó quên, mìn
+      # nổ ở đây chứ không nổ lúc deploy. (turbo build cũng dependsOn codegen,
+      # bước này chỉ để mìn nổ sớm + rõ.)
+      - name: Codegen
+        run: pnpm codegen
+
+      - name: Build (turbo)
+        run: pnpm turbo run build
+
+      - name: Typecheck API (tsc --noEmit)
+        run: pnpm --filter api exec tsc --noEmit -p tsconfig.json
+
+      - name: Prisma migrate deploy
+        run: pnpm --filter @antigravity/database exec prisma migrate deploy
+
+      - name: DB seed
+        run: pnpm --filter @antigravity/database db:seed
+
+      # NODE_ENV=development BẮT BUỘC: PrismaService bật log:['query'] chỉ khi dev
+      # (prisma.service.ts:25). Bộ đếm query của verify đọc log này; thiếu ⇒ mọi
+      # phép assertBatched phát SKIP thay vì OK ⇒ SKIP≠0, sai baseline.
+      - name: Start API (nền, stdout → api.log)
+        working-directory: apps/api
+        env:
+          NODE_ENV: development
+        run: |
+          node dist/main > "$GITHUB_WORKSPACE/api.log" 2>&1 &
+          echo $! > "$GITHUB_WORKSPACE/api.pid"
+          echo "API PID $(cat "$GITHUB_WORKSPACE/api.pid")"
+
+      - name: Wait for API (GraphQL { __typename })
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf -X POST http://localhost:4000/graphql \
+                 -H 'content-type: application/json' \
+                 -d '{"query":"{ __typename }"}' | grep -q '"__typename":"Query"'; then
+              echo "API up sau ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::API không lên sau 60s"; tail -50 "$GITHUB_WORKSPACE/api.log"; exit 1
+
+      # So SDL: API vừa sinh lại apps/api/schema.graphql lúc boot. Lệch với bản
+      # commit ⇒ ai đó sửa resolver mà quên restart+commit SDL. tsc KHÔNG bắt được.
+      - name: SDL drift check
+        run: |
+          if ! git diff --exit-code -- apps/api/schema.graphql; then
+            echo "::error::schema.graphql commit LỆCH với SDL API sinh lúc boot —"
+            echo "::error::sửa resolver mà quên restart API trước khi commit. Chạy API rồi commit lại schema.graphql."
+            exit 1
+          fi
+          echo "SDL khớp."
+
+      # Bằng chứng thật. Retry ĐÚNG 1 lần cho RIÊNG verify (flake Node crash cứng
+      # 0xC0000409 ~1/10 giữa 70-subscriptions — đừng đi tìm nguyên nhân, ghi log).
+      - name: Verify (thật, retry 1 lần)
+        env:
+          VERIFY_API: http://localhost:4000
+          VERIFY_LOG: ${{ github.workspace }}/api.log
+        run: |
+          set +e
+          pnpm verify
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "::warning::verify lần 1 exit=$code — retry 1 lần (flake 0xC0000409 đã biết)."
+            cp scripts/verify/results.json "results.attempt1.json" 2>/dev/null || true
+            pnpm verify
+            code=$?
+          fi
+          exit $code
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f "$GITHUB_WORKSPACE/api.pid" ]; then kill "$(cat "$GITHUB_WORKSPACE/api.pid")" 2>/dev/null || true; fi
+
+      - name: Upload logs + results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-evidence
+          path: |
+            api.log
+            scripts/verify/results.json
+            results.attempt1.json
+          if-no-files-found: ignore
+
+      # (Tuỳ chọn — khi Luồng 4 tạo scripts/check-doc-coords.mjs, thêm 1 step:
+      #   - run: node scripts/check-doc-coords.mjs
+      #  Phối hợp qua user; ĐỪNG tự tạo file lãnh thổ Luồng 4.)

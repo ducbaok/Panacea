@@ -1,0 +1,45 @@
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  .dockerignore — build context = ROOT của monorepo pnpm.                   ║
+# ║  Docker KHÔNG đọc .gitignore, nên mọi thứ bí mật / nặng / theo-nền-tảng    ║
+# ║  phải loại TƯỜNG MINH ở đây, kể cả khi git đã ignore.                      ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+
+# ── Cây build lại trong image (node_modules Linux, không phải Windows) ───────
+node_modules
+**/node_modules
+dist
+**/dist
+.next
+**/.next
+.turbo
+**/.turbo
+
+# ── Prisma client SINH LẠI trong image (engine Linux) ────────────────────────
+# Bản trên đĩa mang engine query Windows — vô dụng trong container. Loại ra để
+# `prisma generate` trong Dockerfile dựng bản Linux sạch.
+packages/database/src/client
+
+# ── Bí mật + trạng thái cục bộ (git ignore, nhưng vẫn nằm trên đĩa) ──────────
+**/.env
+**/.env.local
+**/.env.*.local
+api.log
+**/api.log
+scripts/verify/results.json
+
+# ── Ảnh upload test (HT-1 bẫy #4): 134 file, KHÔNG vào image ─────────────────
+apps/api/uploads
+
+# ── VCS / IDE / tài liệu — không cần để build ────────────────────────────────
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.md
+docs
+graphify-out
+
+# ── Chính các Dockerfile / compose (không cần trong context của chính nó) ────
+**/Dockerfile
+docker-compose.yml
