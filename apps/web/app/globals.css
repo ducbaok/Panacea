@@ -166,6 +166,12 @@
   --z-header: 45;
   --z-sheet: 50;
   --z-modal: 60;
+  /*
+   * FE-6: hộp xác nhận dùng chung phải nằm TRÊN modal (pin/AuthPrompt = 60) và
+   * DƯỚI toast (70) — mockup v2 xếp confirm giữa hai lớp này (đọc là thứ tự
+   * tương đối, KHÔNG chép số 110 của mockup). §6 mục 8 của brief FE-6.
+   */
+  --z-confirm: 65;
   --z-toast: 70;
 
   /* Chuyển động */

@@ -5,5 +5,30 @@ query Me {
     email
     name
     avatarUrl
+    bio
+    website
+    isOnboarded
+    locale
   }
+}
+
+# C2 — cập nhật hồ sơ. Backend: UpdateProfileInput (name/username/bio/website/
+# avatarUrl/locale); username regex ^[a-z0-9_]{3,20}$, đổi 1 lần / 30 ngày.
+mutation UpdateProfile($input: UpdateProfileInput!) {
+  updateProfile(input: $input) {
+    id
+    username
+    email
+    name
+    avatarUrl
+    bio
+    website
+    isOnboarded
+    locale
+  }
+}
+
+# C2 — xoá tài khoản (xác nhận hai bước ở UI). Trả Boolean.
+mutation DeleteAccount {
+  deleteAccount
 }

@@ -16,6 +16,7 @@ type User {
   followingCount: Float
   isFollowedByViewer: Boolean
   isFollowingViewer: Boolean
+  isBlockedByViewer: Boolean
 }
 
 type PageInfo {
@@ -258,13 +259,15 @@ type Query {
   pin(id: ID!): Pin
   exploreFeed(first: Int! = 20, after: String, categorySlug: String, tagName: String): PaginatedPins!
   userPins(first: Int! = 20, after: String, userId: ID!): PaginatedPins!
-  homeFeed(first: Int! = 20, after: String): HomeFeed!
+  homeFeed(first: Int! = 20, after: String, source: FeedSource): HomeFeed!
   categories: [Category!]!
   tags(query: String, first: Int = 20): [Tag!]!
   notifications(first: Int! = 20, after: String): PaginatedNotifications!
   unreadNotificationCount: Float!
   followers(first: Int! = 20, after: String, userId: String!): PaginatedUsers!
   following(first: Int! = 20, after: String, userId: String!): PaginatedUsers!
+  blockedUsers(first: Int! = 20, after: String): PaginatedUsers!
+  suggestedUsers(first: Int = 10): [User!]!
   board(id: ID!): Board
   userBoards(first: Int! = 20, after: String, userId: ID!): PaginatedBoards!
   boardPins(first: Int! = 20, after: String, boardId: ID!, sectionId: ID): PaginatedSavedPins!

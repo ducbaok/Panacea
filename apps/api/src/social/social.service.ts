@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CursorPaginationArgs, encodeCursor, decodeCursor } from '../common/pagination';
 import { Prisma, NotificationType } from '@antigravity/database';
 import { NotificationsService } from '../notifications/notifications.service';
+import { getBlockedUserIds } from '../common/blocking';
 
 @Injectable()
 export class SocialService {
@@ -317,7 +318,7 @@ export class SocialService {
     if (hasNextPage) follows.pop();
 
     const items = follows.map(f => f.following);
-    
+
     let endCursor: string | null = null;
     if (items.length > 0) {
       const last = follows[follows.length - 1];
@@ -331,5 +332,133 @@ export class SocialService {
         endCursor,
       },
     };
+  }
+
+  /**
+   * Get Blocked Users (Cursor Pagination) — người mà `blockerId` ĐÃ CHẶN.
+   * Nguồn dữ liệu cho C2b "Người đã chặn" (QĐ-7 / FE-6).
+   *
+   * MỘT CHIỀU CÓ CHỦ ĐÍCH: chỉ `blockerId = <viewer>`, KHÔNG phải quan hệ hai
+   * chiều của `getBlockedUserIds`. Danh sách này để viewer BỎ CHẶN, nên chỉ được
+   * chứa người viewer tự chặn; nhét thêm "người chặn viewer" vào đây sẽ cho ra
+   * nút Bỏ chặn không có row để xoá.
+   *
+   * Cursor mirror đúng getFollowers/getFollowing: keyset (createdAt DESC,
+   * blockedId DESC). `blockedId` là tie-breaker hợp lệ vì @@unique[blockerId,
+   * blockedId] + blockerId cố định ⇒ blockedId duy nhất trong tập block của tôi.
+   */
+  async getBlockedUsers(blockerId: string, args: CursorPaginationArgs) {
+    const { first, after } = args;
+
+    let cursorQuery = {};
+    if (after) {
+      const { createdAt, id } = decodeCursor(after);
+      cursorQuery = {
+        OR: [
+          { createdAt: { lt: createdAt } },
+          { createdAt, blockedId: { lt: id } },
+        ],
+      };
+    }
+
+    const blocks = await this.prisma.blockedUser.findMany({
+      where: { blockerId, ...cursorQuery },
+      take: first + 1,
+      orderBy: [
+        { createdAt: 'desc' },
+        { blockedId: 'desc' },
+      ],
+      include: {
+        blocked: true,
+      },
+    });
+
+    const hasNextPage = blocks.length > first;
+    if (hasNextPage) blocks.pop();
+
+    const items = blocks.map(b => b.blocked);
+
+    let endCursor: string | null = null;
+    if (items.length > 0) {
+      const last = blocks[blocks.length - 1];
+      endCursor = encodeCursor(last.createdAt, last.blockedId);
+    }
+
+    return {
+      items,
+      pageInfo: {
+        hasNextPage,
+        endCursor,
+      },
+    };
+  }
+
+  /**
+   * Suggested users (B-12) — nguồn cho khối "gợi ý người theo dõi" ở B1.
+   *
+   * Xếp hạng theo BẠN-CỦA-BẠN: người được nhiều người mà tôi đang follow theo
+   * dõi (mutual follows) lên trước. Loại khỏi kết quả 3 nhóm (§6b.2):
+   *   - chính mình
+   *   - người tôi đã follow (gợi ý follow lại là vô nghĩa)
+   *   - người bị chặn HAI CHIỀU — dùng lại `getBlockedUserIds`, đúng chỗ cho
+   *     bản hai chiều: không gợi ý cả người tôi chặn lẫn người chặn tôi.
+   *
+   * 🔴 BACKFILL BẮT BUỘC, KHÔNG PHẢI TÔ ĐIỂM. Khối gợi ý B1 hiện đúng cho người
+   * MỚI (follow 0 người) — mà mutual-follows cho tài khoản đó luôn RỖNG (không có
+   * cạnh f1 nào). Không backfill thì đúng đối tượng cần gợi ý nhất lại thấy khối
+   * trống. Backfill = người nhiều follower nhất, cùng bộ loại trừ.
+   *
+   * QĐ-9 (co lại/ẩn khi < 3) là việc của FRONTEND — ở đây chỉ trả tối đa `limit`
+   * người, có thể ít hơn nếu DB không đủ.
+   */
+  async getSuggestedUsers(viewerId: string, limit: number) {
+    const following = await this.prisma.follows.findMany({
+      where: { followerId: viewerId },
+      select: { followingId: true },
+    });
+    const followingIds = following.map((f) => f.followingId);
+    const blockedIds = await getBlockedUserIds(this.prisma, viewerId);
+    const excluded = [viewerId, ...followingIds, ...blockedIds];
+
+    // ── Ứng viên 1: bạn-của-bạn, xếp theo số mutual giảm dần ──
+    let candidateIds: string[] = [];
+    if (followingIds.length > 0) {
+      const rows = await this.prisma.follows.groupBy({
+        by: ['followingId'],
+        where: {
+          followerId: { in: followingIds },
+          followingId: { notIn: excluded },
+        },
+        _count: { followingId: true },
+        orderBy: { _count: { followingId: 'desc' } },
+        take: limit,
+      });
+      candidateIds = rows.map((r) => r.followingId);
+    }
+
+    // Nạp User đầy đủ, GIỮ đúng thứ tự xếp hạng. `findMany` đi qua middleware
+    // soft-delete nên user đã xoá bị loại tại đây (groupBy không lọc được).
+    const result: any[] = [];
+    if (candidateIds.length > 0) {
+      const users = await this.prisma.user.findMany({ where: { id: { in: candidateIds } } });
+      const byId = new Map(users.map((u) => [u.id, u]));
+      for (const id of candidateIds) {
+        const u = byId.get(id);
+        if (u) result.push(u);
+      }
+    }
+
+    // ── Backfill: người nhiều follower nhất, cùng bộ loại trừ + đã lấy ──
+    if (result.length < limit) {
+      const already = [...excluded, ...result.map((u) => u.id)];
+      const popular = await this.prisma.user.findMany({
+        where: { id: { notIn: already } },
+        orderBy: [{ followedBy: { _count: 'desc' } }, { createdAt: 'desc' }],
+        take: limit - result.length,
+      });
+      result.push(...popular);
+    }
+
+    return result;
   }
 }

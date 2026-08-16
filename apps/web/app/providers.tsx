@@ -4,6 +4,8 @@ import { SessionProvider } from 'next-auth/react';
 import { ApolloProviderWithSession } from '@/lib/apollo/provider';
 import { SessionErrorGuard } from '@/components/auth/session-error-guard';
 import { AuthPromptProvider } from '@/components/auth/auth-prompt';
+import { ToastProvider } from '@/components/ui/toast';
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 
 /**
  * Composed provider tree cho apps/web.
@@ -20,7 +22,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <SessionErrorGuard />
       <ApolloProviderWithSession>
-        <AuthPromptProvider>{children}</AuthPromptProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <AuthPromptProvider>{children}</AuthPromptProvider>
+          </ConfirmProvider>
+        </ToastProvider>
       </ApolloProviderWithSession>
     </SessionProvider>
   );

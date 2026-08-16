@@ -1,0 +1,336 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import {
+  FeedSource,
+  SuggestedUsersDocument,
+  type SuggestedUsersQuery,
+  FollowDocument,
+  type FollowMutation,
+  type FollowMutationVariables,
+} from '@/lib/gql/graphql';
+import { useHomeFeed, useExploreFeed } from '@/lib/hooks/usePaginatedQuery';
+import { PinGrid } from '@/components/pin/pin-grid';
+import { useToast } from '@/components/ui/toast';
+import { formatCount } from '@/lib/format';
+
+/**
+ * B1 — Trang chủ (FE-6). Hai vai:
+ *   • Khách vãng lai → nội dung Khám phá (homeFeed bắt buộc auth, QĐ-1).
+ *   • Đã đăng nhập → homeFeed 2 trạng thái FOLLOWING/EXPLORE, phân biệt bằng
+ *     `HomeFeed.source` (backend quyết, client ép được qua §6b.1).
+ *
+ * Tách AuthHome/GuestHome thành 2 component để KHÔNG gọi hook có điều kiện.
+ */
+export function HomeView() {
+  const { status } = useSession();
+  if (status === 'authenticated') return <AuthHome />;
+  if (status === 'unauthenticated') return <GuestHome />;
+  // status === 'loading': khung xương masonry, tránh nháy giữa hai nhánh.
+  return (
+    <div className="py-6">
+      <PinGrid items={[]} loading loadingMore={false} hasNextPage={false} loadMore={() => {}} />
+    </div>
+  );
+}
+
+function GuestHome() {
+  const router = useRouter();
+  const { items, loading, loadingMore, hasNextPage, loadMore } = useExploreFeed();
+  return (
+    <div className="py-6">
+      <PinGrid
+        items={items}
+        loading={loading}
+        loadingMore={loadingMore}
+        hasNextPage={hasNextPage}
+        loadMore={loadMore}
+        onOpen={(id) => router.push(`/pin/${id}`)}
+      />
+    </div>
+  );
+}
+
+function AuthHome() {
+  const router = useRouter();
+  const toast = useToast();
+  // undefined = để backend tự chọn (auto); có giá trị = client ép nguồn (§6b.1).
+  const [forcedSource, setForcedSource] = useState<FeedSource | undefined>(undefined);
+
+  const feed = useHomeFeed(forcedSource ? { source: forcedSource } : {});
+  const source = feed.source; // nguồn THỰC backend trả về (có thể khác forced)
+
+  const isExplore = source === FeedSource.Explore;
+  const showFollowingEmpty =
+    source === FeedSource.Following && !feed.loading && feed.items.length === 0;
+
+  return (
+    <div style={{ padding: '24px 0 0' }}>
+      <div style={{ padding: '0 16px' }}>
+        {/* Banner — chỉ hiện ở nhánh EXPLORE (đã đăng nhập) */}
+        {isExplore && (
+          <div
+            data-screen="home"
+            data-state="explore-banner"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 16,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'var(--color-primary-soft)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 18,
+              padding: '16px 20px',
+              marginBottom: 16,
+            }}
+          >
+            <div style={{ minWidth: 240, flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 15.5, color: 'var(--color-foreground)' }}>
+                Theo dõi vài người để trang chủ hợp gu hơn
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4, lineHeight: 1.5 }}>
+                Bạn chưa theo dõi ai, nên đây đang là nội dung khám phá.
+              </div>
+            </div>
+            <SuggestionBlock />
+          </div>
+        )}
+
+        {/* Chip nguồn — 2 chip, active = nguồn THỰC (không phải forced) */}
+        <div
+          role="tablist"
+          aria-label="Nguồn trang chủ"
+          style={{
+            display: 'inline-flex',
+            gap: 4,
+            background: 'var(--color-surface-muted)',
+            borderRadius: 999,
+            padding: 4,
+            marginBottom: 16,
+          }}
+        >
+          <SourceChip
+            label="Đang theo dõi"
+            active={source === FeedSource.Following}
+            onClick={() => setForcedSource(FeedSource.Following)}
+          />
+          <SourceChip
+            label="Khám phá"
+            active={source === FeedSource.Explore}
+            onClick={() => setForcedSource(FeedSource.Explore)}
+          />
+        </div>
+      </div>
+
+      {showFollowingEmpty ? (
+        <FollowingEmptyCard onExplore={() => setForcedSource(FeedSource.Explore)} />
+      ) : (
+        <PinGrid
+          items={feed.items}
+          loading={feed.loading}
+          loadingMore={feed.loadingMore}
+          hasNextPage={feed.hasNextPage}
+          loadMore={feed.loadMore}
+          onOpen={(id) => router.push(`/pin/${id}`)}
+        />
+      )}
+    </div>
+  );
+}
+
+function SourceChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        padding: '8px 18px',
+        borderRadius: 999,
+        border: 'none',
+        background: active ? 'var(--color-surface)' : 'transparent',
+        color: active ? 'var(--color-foreground)' : 'var(--color-muted)',
+        boxShadow: active ? 'var(--shadow-card)' : 'none',
+        fontWeight: 600,
+        fontSize: 13.5,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+/**
+ * Card rỗng FOLLOWING (§3 B1) — hiện khi ép FOLLOWING mà chưa follow ai. Chép
+ * NGUYÊN VĂN 3 chuỗi từ bản vẽ (§9: chép, đừng sáng tác).
+ */
+function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
+  return (
+    <div
+      data-screen="home"
+      data-state="empty-following"
+      style={{
+        margin: '0 16px',
+        padding: '64px 24px',
+        textAlign: 'center',
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
+    >
+      <div style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 21, color: 'var(--color-foreground)' }}>
+        Bạn chưa theo dõi ai
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          color: 'var(--color-muted)',
+          marginTop: 8,
+          lineHeight: 1.6,
+          maxWidth: 420,
+        }}
+      >
+        Khi bạn theo dõi ai đó, pin mới của họ sẽ hiện ở đây.
+      </div>
+      <button
+        type="button"
+        onClick={onExplore}
+        style={{
+          marginTop: 18,
+          padding: '11px 22px',
+          borderRadius: 999,
+          border: 'none',
+          background: 'var(--color-primary)',
+          color: 'var(--color-primary-foreground)',
+          fontWeight: 700,
+          fontSize: 14,
+          cursor: 'pointer',
+        }}
+      >
+        Xem Khám phá
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Khối gợi ý người theo dõi (§4.2 / B-12). QĐ-9: hiện đúng số API trả về, CO LẠI
+ * khi < 3, chỉ ẨN khi trả về 0. Bấm Theo dõi ⇒ follow thật + gỡ chip (follow
+ * KHÔNG có Hoàn tác — chỉ bỏ-theo-dõi mới có, §1 toast).
+ */
+function SuggestionBlock() {
+  const toast = useToast();
+  const { data } = useQuery<SuggestedUsersQuery>(SuggestedUsersDocument, {
+    variables: { first: 3 },
+  });
+  const [followMutation] = useMutation<FollowMutation, FollowMutationVariables>(FollowDocument);
+  const [followed, setFollowed] = useState<Set<string>>(new Set());
+
+  const users = (data?.suggestedUsers ?? []).filter((u) => !followed.has(u.id));
+  if (users.length === 0) return null; // QĐ-9: chỉ ẩn khi 0
+
+  const onFollow = async (u: SuggestedUsersQuery['suggestedUsers'][number]) => {
+    setFollowed((s) => new Set(s).add(u.id)); // optimistic: gỡ chip ngay
+    try {
+      await followMutation({ variables: { userId: u.id } });
+      toast({ message: `Đã theo dõi @${u.username ?? u.name ?? 'người này'}` });
+    } catch {
+      setFollowed((s) => {
+        const n = new Set(s);
+        n.delete(u.id);
+        return n;
+      });
+      toast({ message: 'Không theo dõi được, thử lại sau.' });
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {users.map((u) => (
+        <div
+          key={u.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 999,
+            padding: '5px 6px 5px 8px',
+          }}
+        >
+          <Avatar name={u.name ?? u.username} url={u.avatarUrl} size={28} />
+          <div style={{ lineHeight: 1.15 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--color-foreground)', maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {u.name ?? u.username}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>
+              {formatCount(u.followerCount ?? 0)} người theo dõi
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onFollow(u)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 999,
+              border: 'none',
+              background: 'var(--color-primary)',
+              color: 'var(--color-primary-foreground)',
+              fontWeight: 700,
+              fontSize: 12,
+              cursor: 'pointer',
+            }}
+          >
+            Theo dõi
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function Avatar({ name, url, size = 40 }: { name?: string | null; url?: string | null; size?: number }) {
+  const initial = (name ?? '?').trim().charAt(0).toUpperCase() || '?';
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt={name ?? ''}
+        width={size}
+        height={size}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flex: 'none' }}
+      />
+    );
+  }
+  return (
+    <div
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        flex: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--color-primary-soft)',
+        color: 'var(--color-primary-strong)',
+        fontWeight: 700,
+        fontSize: size * 0.42,
+      }}
+    >
+      {initial}
+    </div>
+  );
+}

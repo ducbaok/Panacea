@@ -380,6 +380,33 @@ export class DataloaderService {
     );
   }
 
+  // ─── Is Blocked By Viewer Loader (QĐ-7 / FE-6) ────────────────────────────
+
+  /**
+   * "Viewer đã CHẶN những user này chưa?" — MỘT CHIỀU: blockerId = viewer.
+   *
+   * ⚠️ CỐ Ý KHÔNG dùng `blockedUserIds()` / `getBlockedUserIds` ở đây. Hai hàm
+   * đó trả quan hệ HAI CHIỀU (gồm cả người đã chặn viewer) để LỌC FEED. Nút
+   * Chặn ↔ Bỏ chặn ở C1b cần đúng một câu hỏi hẹp hơn: "viewer có row block LÊN
+   * người này không". Trả true cho người-chặn-viewer sẽ hiện nút "Bỏ chặn" dẫn
+   * tới unblock rỗng (`social.service.ts:124` catch P2025 → false). Đây là loader
+   * phụ thuộc viewer nên đi qua `perViewer`, cùng khuôn `buildIsFollowedByLoader`.
+   */
+  buildIsBlockedByViewerLoader(currentUserId: string): DataLoader<string, boolean> {
+    return this.perViewer('isBlockedByViewer', currentUserId, () =>
+      new DataLoader<string, boolean>(async (userIds) => {
+        const blocks = await this.prisma.blockedUser.findMany({
+          where: {
+            blockerId: currentUserId,
+            blockedId: { in: [...userIds] },
+          },
+          select: { blockedId: true },
+        });
+        return mapExists(userIds, blocks, (b) => b.blockedId);
+      }),
+    );
+  }
+
   // ─── Is Saved By Viewer Loader (Đợt 3c) ───────────────────────────────────
 
   /**

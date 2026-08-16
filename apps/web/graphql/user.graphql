@@ -10,6 +10,34 @@ query UserByUsername($username: String!) {
     followingCount
     isFollowedByViewer
     isFollowingViewer
+    isBlockedByViewer
+  }
+}
+
+# B-12 (§6b.2) — gợi ý người theo dõi cho khối banner B1.
+query SuggestedUsers($first: Int = 10) {
+  suggestedUsers(first: $first) {
+    id
+    name
+    username
+    avatarUrl
+    followerCount
+  }
+}
+
+# §6b.3 — danh sách người TÔI đã chặn (C2b). Cursor-paginated.
+query BlockedUsers($first: Int! = 20, $after: String) {
+  blockedUsers(first: $first, after: $after) {
+    items {
+      id
+      name
+      username
+      avatarUrl
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useMeUsername } from './use-me-username';
 import {
   MAIN_NAV_AUTH,
   MAIN_NAV_GUEST,
@@ -156,7 +157,7 @@ function NavItemRow({ item, href, collapsed, active, badge }: NavItemRowProps) {
 }
 
 export function Sidebar() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const pathname = usePathname() || '/';
   const unreadCount = useUnreadCount();
 
@@ -184,7 +185,7 @@ export function Sidebar() {
   const isAuth = status === 'authenticated';
   const mainNav = isAuth ? MAIN_NAV_AUTH : MAIN_NAV_GUEST;
   const subNav = isAuth ? SUB_NAV_AUTH : SUB_NAV_GUEST;
-  const username = (session?.user?.email ?? null)?.split('@')[0] ?? null;
+  const username = useMeUsername();
 
   const width = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED;
 

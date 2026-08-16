@@ -1,5 +1,5 @@
-query HomeFeed($first: Int! = 20, $after: String) {
-  homeFeed(first: $first, after: $after) {
+query HomeFeed($first: Int! = 20, $after: String, $source: FeedSource) {
+  homeFeed(first: $first, after: $after, source: $source) {
     source
     items {
       id

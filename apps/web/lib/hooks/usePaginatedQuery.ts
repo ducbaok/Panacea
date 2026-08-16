@@ -36,6 +36,9 @@ import {
   UserBoardsDocument,
   type UserBoardsQuery,
   type UserBoardsQueryVariables,
+  BlockedUsersDocument,
+  type BlockedUsersQuery,
+  type BlockedUsersQueryVariables,
   BoardPinsDocument,
   type BoardPinsQuery,
   type BoardPinsQueryVariables,
@@ -253,6 +256,36 @@ export function useFollowing(
     variables,
     pickPage: (d) =>
       d.following as PaginatedShape<FollowingQuery['following']['items'][number]>,
+    merge,
+    skip: opts.skip,
+  });
+}
+
+// ------- Blocked users (C2b) -------
+
+export function useBlockedUsers(
+  variables: Omit<BlockedUsersQueryVariables, 'after'> = {},
+  opts: { skip?: boolean } = {},
+): UseInfinitePaginationResult<BlockedUsersQuery['blockedUsers']['items'][number]> {
+  const merge = useCallback(
+    (previous: BlockedUsersQuery, incoming: BlockedUsersQuery): BlockedUsersQuery => ({
+      ...previous,
+      blockedUsers: {
+        ...incoming.blockedUsers,
+        items: [...previous.blockedUsers.items, ...incoming.blockedUsers.items],
+      },
+    }),
+    [],
+  );
+  return useInfinitePagination<
+    BlockedUsersQuery,
+    BlockedUsersQueryVariables,
+    BlockedUsersQuery['blockedUsers']['items'][number]
+  >({
+    query: BlockedUsersDocument,
+    variables,
+    pickPage: (d) =>
+      d.blockedUsers as PaginatedShape<BlockedUsersQuery['blockedUsers']['items'][number]>,
     merge,
     skip: opts.skip,
   });

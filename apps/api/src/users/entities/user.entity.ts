@@ -84,6 +84,18 @@ export class User {
    */
   @Field(() => Boolean, { nullable: true })
   isFollowingViewer?: boolean;
+
+  /**
+   * Viewer đã CHẶN user này chưa? — MỘT CHIỀU: blockerId = viewer (QĐ-7 / FE-6).
+   *
+   * ⚠️ MỘT CHIỀU CÓ CHỦ ĐÍCH, KHÁC `getBlockedUserIds` (hai chiều). Hàm hai
+   * chiều trả lời "ai tôi KHÔNG được thấy" (lọc feed, gồm cả người chặn tôi);
+   * dùng nó ở đây thì hồ sơ của người CHẶN TÔI cũng hiện nút "Bỏ chặn", bấm vào
+   * lại không có row nào để xoá ⇒ nút chết. Field này chỉ hỏi "TÔI có chặn họ
+   * không" để C1b đổi nút Chặn ↔ Bỏ chặn. Xem buildIsBlockedByViewerLoader.
+   */
+  @Field(() => Boolean, { nullable: true })
+  isBlockedByViewer?: boolean;
 }
 
 import { createPaginatedType } from '../../common/pagination';

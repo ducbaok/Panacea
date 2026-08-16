@@ -1,10 +1,11 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { SocialService } from './social.service';
 import { GqlAuthGuard, GqlOptionalAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { FollowListArgs } from './dto/follow-list.args';
+import { CursorPaginationArgs } from '../common/pagination';
 import { User, PaginatedUsers } from '../users/entities/user.entity';
 
 @Resolver()
@@ -115,5 +116,40 @@ export class SocialResolver {
     @CurrentUser() user: AuthUser | null,
   ) {
     return this.socialService.getFollowing(userId, paginationArgs, user?.userId);
+  }
+
+  /**
+   * Query: blockedUsers — danh sách người TÔI đã chặn (C2b "Người đã chặn").
+   *
+   * MỘT CHIỀU (blockerId = viewer). Bắt buộc đăng nhập: đây là danh sách quản lý
+   * của chính viewer, không phải dữ liệu công khai ⇒ GqlAuthGuard, KHÔNG phải
+   * Optional. Chỉ có first/after nên `@Args()` không tên vẫn an toàn (cùng kiểu
+   * exploreFeed/notifications/conversations — xem cursor-pagination.ts).
+   */
+  @Query(() => PaginatedUsers)
+  @UseGuards(GqlAuthGuard)
+  async blockedUsers(
+    @Args() args: CursorPaginationArgs,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.socialService.getBlockedUsers(user.userId, args);
+  }
+
+  /**
+   * Query: suggestedUsers — "gợi ý người theo dõi" cho khối banner B1 (B-12).
+   *
+   * Bắt buộc đăng nhập: gợi ý phải biết viewer để loại người đã follow / bị chặn
+   * / chính mình. `first` là một @Args('...') ĐƠN LẺ nên KHÔNG dính bẫy trộn
+   * @Args() không tên. Không phân trang (khối B1 chỉ hiện vài người) ⇒ trả list
+   * phẳng; QĐ-9 (co lại/ẩn khi < 3) do frontend xử lý.
+   */
+  @Query(() => [User])
+  @UseGuards(GqlAuthGuard)
+  async suggestedUsers(
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 10 }) first: number,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const limit = Math.min(Math.max(first ?? 10, 1), 50);
+    return this.socialService.getSuggestedUsers(user.userId, limit);
   }
 }

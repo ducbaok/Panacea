@@ -493,14 +493,30 @@ export class PinsService {
     viewerId: string,
     pagination: CursorPaginationArgs,
     blockedIds: string[],
+    forcedSource?: FeedSource,
   ): Promise<PaginatedResult<any> & { source: FeedSource }> {
-    // Một query đếm cho mỗi request. `@@index([followerId])` đã có sẵn
-    // (schema.prisma:165) nên đây là index-only scan, không phải seq scan.
-    const followingCount = await this.prisma.follows.count({
-      where: { followerId: viewerId },
-    });
+    // ── Chọn nguồn ────────────────────────────────────────────────────────────
+    // `forcedSource` có giá trị (§6b.1 / QĐ-1): client ÉP nguồn ⇒ tôn trọng tuyệt
+    // đối, KHÔNG fallback. Ép FOLLOWING khi follow 0 người ⇒ nhánh raw SQL bên
+    // dưới INNER JOIN "Follows" khớp 0 dòng ⇒ trả RỖNG kèm source=FOLLOWING —
+    // đúng thứ card rỗng B1 cần, và là lý do KHÔNG đụng followingCount ở nhánh này.
+    //
+    // `forcedSource` bỏ trống ⇒ hành vi cũ: suy nhánh từ followingCount, có
+    // fallback. Vẫn giữ quyết định #1 ở docblock — chọn nhánh bằng TRẠNG THÁI
+    // NGƯỜI DÙNG (đã follow ai chưa), không bằng cursor hay "trang này rỗng".
+    let source: FeedSource;
+    if (forcedSource) {
+      source = forcedSource;
+    } else {
+      // Một query đếm cho mỗi request. `@@index([followerId])` đã có sẵn
+      // (schema.prisma:165) nên đây là index-only scan, không phải seq scan.
+      const followingCount = await this.prisma.follows.count({
+        where: { followerId: viewerId },
+      });
+      source = followingCount === 0 ? FeedSource.EXPLORE : FeedSource.FOLLOWING;
+    }
 
-    if (followingCount === 0) {
+    if (source === FeedSource.EXPLORE) {
       const explore = await this.exploreFeed(pagination, blockedIds);
       return { ...explore, source: FeedSource.EXPLORE };
     }

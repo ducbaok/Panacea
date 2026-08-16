@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { BellIcon, SearchIcon } from './icons';
 import { useUnreadCount } from './use-unread-count';
+import { useMeUsername } from './use-me-username';
 
 /**
  * TopBar sticky (QĐ-3b, mockup Panacea §3.2).
@@ -33,6 +34,7 @@ export function TopBar() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const unread = useUnreadCount();
+  const meUsername = useMeUsername();
   const [query, setQuery] = useState('');
 
   const isAuth = status === 'authenticated';
@@ -161,11 +163,7 @@ export function TopBar() {
       {/* Avatar hoặc nút Đăng nhập */}
       {isAuth ? (
         <Link
-          href={
-            session?.user?.email
-              ? `/@${session.user.email.split('@')[0]}`
-              : '/@me'
-          }
+          href={meUsername ? `/@${meUsername}` : '/'}
           aria-label="Hồ sơ của tôi"
           className="inline-flex items-center justify-center rounded-full overflow-hidden"
           style={{

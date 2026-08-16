@@ -164,5 +164,22 @@ export class UsersResolver {
     if (!viewer) return false;
     return this.dataloaderService.buildIsFollowingLoader(viewer.userId).load(user.id);
   }
+
+  /**
+   * Resolve isBlockedByViewer — "viewer có đang chặn user này không" (một chiều).
+   *
+   * Cùng khuôn isFollowedByViewer: không viewer ⇒ false (khách chưa chặn ai).
+   * Đường vào C1b là `userByUsername` (GqlOptionalAuthGuard) nên @CurrentUser có
+   * viewer khi client gửi token — không cần guard riêng ở field, đúng như hai
+   * field follow ngay trên (đã chạy thật qua verify).
+   */
+  @ResolveField(() => Boolean)
+  async isBlockedByViewer(
+    @Parent() user: User,
+    @CurrentUser() viewer: AuthUser | null,
+  ) {
+    if (!viewer) return false;
+    return this.dataloaderService.buildIsBlockedByViewerLoader(viewer.userId).load(user.id);
+  }
 }
 

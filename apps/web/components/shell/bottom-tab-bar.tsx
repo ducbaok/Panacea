@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useMeUsername } from './use-me-username';
 import {
   BOTTOM_TABS_AUTH,
   BOTTOM_TABS_GUEST,
@@ -36,11 +37,11 @@ function resolveHref(item: NavItem, username: string | null): string {
 }
 
 export function BottomTabBar() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const pathname = usePathname() || '/';
   const isAuth = status === 'authenticated';
   const tabs = isAuth ? BOTTOM_TABS_AUTH : BOTTOM_TABS_GUEST;
-  const username = (session?.user?.email ?? null)?.split('@')[0] ?? null;
+  const username = useMeUsername();
 
   return (
     <nav

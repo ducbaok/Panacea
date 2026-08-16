@@ -49,6 +49,7 @@ import { UpdatePinInput } from './dto/update-pin.input';
 import { CursorPaginationArgs } from '../common/pagination';
 import { UserPinsArgs } from './dto/user-pins.args';
 import { ExploreFeedArgs } from './dto/explore-feed.args';
+import { HomeFeedArgs } from './dto/home-feed.args';
 import { DataloaderService } from '../common/dataloader';
 import { GqlAuthGuard, GqlOptionalAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -134,14 +135,16 @@ export class PinsResolver {
   @Query(() => HomeFeed, { name: 'homeFeed' })
   @UseGuards(GqlAuthGuard)
   async homeFeed(
-    @Args() pagination: CursorPaginationArgs,
+    // `source` tuỳ chọn (§6b.1): bỏ trống ⇒ backend tự chọn nhánh như cũ; có ⇒
+    // client ép nguồn, không fallback. Gộp cùng first/after trong MỘT ArgsType.
+    @Args() { source, ...pagination }: HomeFeedArgs,
     @CurrentUser() user: AuthUser,
   ) {
     // Cùng khuôn với 3 query trên (Đợt 3e): resolver đọc memo rồi TRUYỀN XUỐNG.
     // `PinsService` không được inject `DataloaderService` — nó là Scope.REQUEST
     // và sẽ kéo cả `PinsController` theo.
     const blockedIds = await this.dataloaderService.blockedUserIds(user.userId);
-    return this.pinsService.homeFeed(user.userId, pagination, blockedIds);
+    return this.pinsService.homeFeed(user.userId, pagination, blockedIds, source);
   }
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
