@@ -1,3 +1,42 @@
+mutation CreateBoard($input: CreateBoardInput!) {
+  createBoard(input: $input) {
+    id
+    name
+    description
+    isSecret
+    pinCount
+    createdAt
+    coverPin {
+      id
+      imageUrl
+      thumbnailUrl
+      imageWidth
+      imageHeight
+    }
+  }
+}
+
+mutation UpdateBoard($input: UpdateBoardInput!) {
+  updateBoard(input: $input) {
+    id
+    name
+    description
+    isSecret
+    pinCount
+    coverPin {
+      id
+      imageUrl
+      thumbnailUrl
+      imageWidth
+      imageHeight
+    }
+  }
+}
+
+mutation DeleteBoard($id: ID!) {
+  deleteBoard(id: $id)
+}
+
 query Board($id: ID!) {
   board(id: $id) {
     id

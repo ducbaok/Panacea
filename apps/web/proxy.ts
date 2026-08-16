@@ -10,9 +10,12 @@ import { auth } from '@/auth';
  * chạy ở **Node.js runtime**, nên cấu hình Auth.js đầy đủ (có fetch tới backend
  * trong callback jwt/session) dùng được, không vướng giới hạn Edge.
  *
- * Danh sách route còn NGẮN vì FE-6/FE-7 chưa dựng màn (/settings, /messages,
- * /notifications, /pin/new hiện 404). Khi màn mới ra đời, thêm vào CẢ `matcher`
- * bên dưới — matcher phải là hằng để Next phân tích lúc build.
+ * FE-7 thêm 4 route cần đăng nhập: /pin/new (tạo pin), /pin/:id/edit (sửa pin),
+ * /board/new + /board/:id/edit (tạo/sửa board). ⚠️ BẪY path-to-regexp: mẫu
+ * '/pin/new/:path*' KHÔNG khớp CHÍNH '/pin/new' (nó cần ít nhất một segment con)
+ * ⇒ phải liệt kê '/pin/new' RIÊNG, nếu không khách vào thẳng /pin/new sẽ lọt
+ * lưới, không bị đẩy về /login (phép T2.2). Matcher phải là hằng để Next phân
+ * tích lúc build; thêm màn mới thì bổ sung vào đây.
  */
 export default auth((req) => {
   if (!req.auth) {
@@ -32,6 +35,10 @@ export const config = {
     '/settings/:path*',
     '/messages/:path*',
     '/notifications/:path*',
+    '/pin/new',
     '/pin/new/:path*',
+    '/pin/:id/edit',
+    '/board/new',
+    '/board/:id/edit',
   ],
 };

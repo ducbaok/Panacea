@@ -1,3 +1,68 @@
+mutation CreatePin($input: CreatePinInput!) {
+  createPin(input: $input) {
+    id
+    title
+    description
+    imageUrl
+    thumbnailUrl
+    mediumUrl
+    imageWidth
+    imageHeight
+    sourceUrl
+    savedCount
+    commentCount
+    createdAt
+    creator {
+      id
+      username
+      name
+      avatarUrl
+    }
+    tags {
+      id
+      name
+    }
+    categories {
+      id
+      name
+      slug
+      icon
+    }
+    isSavedByViewer
+    viewerReaction
+  }
+}
+
+mutation UpdatePin($input: UpdatePinInput!) {
+  updatePin(input: $input) {
+    id
+    title
+    description
+    sourceUrl
+    imageUrl
+    imageWidth
+    imageHeight
+    tags {
+      id
+      name
+    }
+    categories {
+      id
+      name
+      slug
+      icon
+    }
+    isSavedByViewer
+    viewerReaction
+  }
+}
+
+mutation DeletePin($id: ID!) {
+  deletePin(id: $id) {
+    id
+  }
+}
+
 query Pin($id: ID!) {
   pin(id: $id) {
     id

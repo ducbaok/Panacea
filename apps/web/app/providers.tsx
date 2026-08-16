@@ -6,6 +6,7 @@ import { SessionErrorGuard } from '@/components/auth/session-error-guard';
 import { AuthPromptProvider } from '@/components/auth/auth-prompt';
 import { ToastProvider } from '@/components/ui/toast';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
+import { BoardPickerProvider } from '@/components/board/board-picker';
 
 /**
  * Composed provider tree cho apps/web.
@@ -24,7 +25,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ApolloProviderWithSession>
         <ToastProvider>
           <ConfirmProvider>
-            <AuthPromptProvider>{children}</AuthPromptProvider>
+            <AuthPromptProvider>
+              <BoardPickerProvider>{children}</BoardPickerProvider>
+            </AuthPromptProvider>
           </ConfirmProvider>
         </ToastProvider>
       </ApolloProviderWithSession>

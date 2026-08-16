@@ -154,7 +154,7 @@
   --sidebar-collapsed: 72px;
 
   /*
-   * Tầng z — dropdown < header < sheet < modal < toast.
+   * Tầng z — dropdown < header < sheet < modal < picker < confirm < toast.
    *
    * FE-2 chèn --z-header giữa dropdown và sheet: TopBar sticky phải nằm TRÊN
    * mọi dropdown/tooltip trong nội dung nhưng DƯỚI mọi sheet/modal — nếu không,
@@ -167,6 +167,13 @@
   --z-sheet: 50;
   --z-modal: 60;
   /*
+   * FE-7: BoardPicker (B6) mở TRÊN modal pin (60) — pill "Lưu vào bảng" sống
+   * trong modal nên picker phải phủ nó — nhưng DƯỚI confirm (65) để hộp xác nhận
+   * rời trang / xoá vẫn phủ được picker. Thứ tự TƯƠNG ĐỐI; KHÔNG chép 95/110/130
+   * của mockup (bẫy §8.7 brief FE-7).
+   */
+  --z-picker: 62;
+  /*
    * FE-6: hộp xác nhận dùng chung phải nằm TRÊN modal (pin/AuthPrompt = 60) và
    * DƯỚI toast (70) — mockup v2 xếp confirm giữa hai lớp này (đọc là thứ tự
    * tương đối, KHÔNG chép số 110 của mockup). §6 mục 8 của brief FE-6.
@@ -178,6 +185,16 @@
   --duration-hover: 120ms;
   --duration-modal: 200ms;
   --duration-sidebar: 180ms;
+}
+
+/* FE-7 B4 — thanh tải ảnh indeterminate (không bịa % vì fetch không có progress event). */
+@keyframes upload-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 /*

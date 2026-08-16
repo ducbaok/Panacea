@@ -37,3 +37,23 @@ export function formatCount(n: number | null | undefined): string {
   }
   return String(v);
 }
+
+/**
+ * formatBytes — kích thước file kiểu Việt cho hint upload B4/B5.
+ *
+ * Khớp mockup Panacea "3:4 · 1.240 × 1.653 · 2,4MB" (ban-do-man-panacea.md §5f):
+ *   - Dấu thập phân là dấu PHẨY (locale vi-VN), KHÔNG phải chấm.
+ *   - MB hiện 1 chữ số thập phân, CẮT CỤT như formatCount (không phóng đại): 2,4MB · 3,0MB.
+ *   - < 1MB hiện KB nguyên; < 1KB hiện byte (hiếm — server đã chặn < 1024 byte).
+ *   - Cơ số 1024 (KiB/MiB) nhưng nhãn gọn "KB"/"MB" theo thói quen người dùng.
+ *
+ * Tính bằng số nguyên (`b*10 / base`) để tránh sai số float — xem cảnh báo ở formatCount.
+ */
+export function formatBytes(bytes: number | null | undefined): string {
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '0';
+  const b = Math.floor(bytes);
+  if (b < 1024) return `${b}B`;
+  if (b < 1024 * 1024) return `${Math.round(b / 1024)}KB`;
+  const tenths = Math.floor((b * 10) / (1024 * 1024)); // phần mười MB, cắt cụt
+  return `${Math.floor(tenths / 10)},${tenths % 10}MB`;
+}

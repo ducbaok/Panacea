@@ -91,7 +91,22 @@ export function BoardView({ id }: { id: string }) {
       <div style={{ display: 'flex', gap: 9, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
         {isOwner && (
           <>
-            <DisabledButton title="Sửa board sẽ có ở bản sau">Sửa board</DisabledButton>
+            <button
+              type="button"
+              onClick={() => router.push(`/board/${board.id}/edit`)}
+              style={{
+                padding: '9px 18px',
+                borderRadius: 999,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-foreground)',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Sửa board
+            </button>
             <DisabledButton title="Cộng tác viên sẽ có ở bản sau">Cộng tác viên</DisabledButton>
             <DisabledButton title="Quản lý section sẽ có ở bản sau">Quản lý section</DisabledButton>
           </>

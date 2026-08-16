@@ -1,10 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@apollo/client/react';
-import { PinDocument, type PinQuery, type PinQueryVariables } from '@/lib/gql/graphql';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useMutation, useQuery } from '@apollo/client/react';
+import {
+  PinDocument,
+  type PinQuery,
+  type PinQueryVariables,
+  SavePinDocument,
+  type SavePinMutation,
+  type SavePinMutationVariables,
+  UnsavePinDocument,
+  type UnsavePinMutation,
+  type UnsavePinMutationVariables,
+  MeDocument,
+  type MeQuery,
+  DeletePinDocument,
+  type DeletePinMutation,
+  type DeletePinMutationVariables,
+} from '@/lib/gql/graphql';
 import { toReadState } from '@/lib/errors/map-error';
 import { REACTION_ORDER, REACTION_EMOJI, REACTION_LABEL } from '@/lib/reactions';
+import { useAuthPrompt } from '@/components/auth/auth-prompt';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useBoardPicker } from '@/components/board/board-picker';
 import { PinComments } from './pin-comments';
 
 /**
@@ -174,6 +195,36 @@ function PinDetailContent({
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
   const [optimisticFollow, setOptimisticFollow] = useState<boolean | null>(null);
   const [optimisticReaction, setOptimisticReaction] = useState<string | null>(null);
+  const { status: sessionStatus } = useSession();
+  const { openAuthPrompt } = useAuthPrompt();
+  const { openBoardPicker } = useBoardPicker();
+  const toast = useToast();
+  const [savePin] = useMutation<SavePinMutation, SavePinMutationVariables>(SavePinDocument);
+  const [unsavePin] = useMutation<UnsavePinMutation, UnsavePinMutationVariables>(UnsavePinDocument);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const router = useRouter();
+  const confirm = useConfirm();
+  const meQuery = useQuery<MeQuery>(MeDocument, { skip: sessionStatus !== 'authenticated' });
+  const [deletePin] = useMutation<DeletePinMutation, DeletePinMutationVariables>(DeletePinDocument);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const isOwner = meQuery.data?.me?.id != null && meQuery.data.me.id === pin.creator.id;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   const isSaved = optimisticSaved ?? pin.isSavedByViewer ?? false;
   const isFollowed = optimisticFollow ?? pin.creator.isFollowedByViewer ?? false;
@@ -183,6 +234,89 @@ function PinDetailContent({
   const description = pin.description ?? '';
   const followerLabel = formatFollowerCount(pin.creator.followerCount);
   const authorName = pin.creator.name || pin.creator.username || 'Người dùng';
+
+  // Pill "Lưu vào bảng ▾" → mở BoardPicker (save mode). Khách → AuthPrompt.
+  const openPicker = () => {
+    if (sessionStatus === 'unauthenticated') {
+      openAuthPrompt('lưu pin này');
+      return;
+    }
+    openBoardPicker({ mode: 'save', pinId: pin.id });
+  };
+
+  // Lưu lại sau Hoàn tác — im lặng.
+  const resaveQuiet = async () => {
+    setOptimisticSaved(true);
+    try {
+      await savePin({ variables: { input: { pinId: pin.id } } });
+    } catch {
+      setOptimisticSaved(false);
+    }
+  };
+
+  // Nút Lưu = lưu nhanh vào HỒ SƠ (boardId null) — nợ FE-6b: thêm nhánh khách.
+  const toggleSave = async () => {
+    if (sessionStatus === 'unauthenticated') {
+      openAuthPrompt('lưu pin này');
+      return;
+    }
+    if (saveBusy) return;
+    const next = !isSaved;
+    setOptimisticSaved(next);
+    setSaveBusy(true);
+    try {
+      if (next) {
+        await savePin({ variables: { input: { pinId: pin.id } } });
+      } else {
+        await unsavePin({
+          variables: { pinId: pin.id },
+          update: (cache) =>
+            cache.modify({
+              id: cache.identify({ __typename: 'Pin', id: pin.id }),
+              fields: { isSavedByViewer: () => false },
+            }),
+        });
+        toast({
+          message: 'Đã bỏ lưu',
+          action: { label: 'Hoàn tác', onClick: () => void resaveQuiet() },
+        });
+      }
+    } catch {
+      setOptimisticSaved(!next);
+      toast({ message: 'Không lưu được, thử lại sau.' });
+    } finally {
+      setSaveBusy(false);
+    }
+  };
+
+  const onEditPin = () => {
+    setMenuOpen(false);
+    router.push(`/pin/${pin.id}/edit`);
+  };
+
+  const onDeletePin = async () => {
+    setMenuOpen(false);
+    const ok = await confirm({
+      title: `Xoá "${pin.title?.trim() || 'pin này'}"?`,
+      body: 'Pin và bình luận trên đó sẽ không còn hiển thị.',
+      yesLabel: 'Xoá pin',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await deletePin({
+        variables: { id: pin.id },
+        update: (cache) => {
+          cache.evict({ id: cache.identify({ __typename: 'Pin', id: pin.id }) });
+          cache.gc();
+        },
+      });
+      toast({ message: 'Đã xoá pin' });
+      router.push('/');
+    } catch {
+      toast({ message: 'Không xoá được pin, thử lại sau.' });
+    }
+  };
 
   const headerRow = (
     <div
@@ -219,23 +353,63 @@ function PinDetailContent({
         </>
       ) : (
         <>
-          <button
-            type="button"
-            aria-label="Thêm tuỳ chọn"
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-surface)',
-              color: 'var(--color-foreground)',
-              cursor: 'pointer',
-              fontSize: 15,
-              lineHeight: 1,
-            }}
-          >
-            ⋯
-          </button>
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              aria-label="Thêm tuỳ chọn"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-foreground)',
+                cursor: 'pointer',
+                fontSize: 15,
+                lineHeight: 1,
+              }}
+            >
+              ⋯
+            </button>
+            {menuOpen && isOwner && (
+              <div
+                role="menu"
+                style={{
+                  position: 'absolute',
+                  top: 44,
+                  left: 0,
+                  minWidth: 150,
+                  background: 'var(--color-surface)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 12,
+                  boxShadow: 'var(--shadow-modal)',
+                  padding: 6,
+                  zIndex: 'var(--z-dropdown)' as unknown as number,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={onEditPin}
+                  style={{ textAlign: 'left', padding: '9px 12px', border: 'none', background: 'none', color: 'var(--color-foreground)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, borderRadius: 8, width: '100%' }}
+                >
+                  Sửa pin
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => void onDeletePin()}
+                  style={{ textAlign: 'left', padding: '9px 12px', border: 'none', background: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, borderRadius: 8, width: '100%' }}
+                >
+                  Xoá pin
+                </button>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             style={{
@@ -256,19 +430,17 @@ function PinDetailContent({
       <div style={{ flex: 1 }} />
       <button
         type="button"
-        disabled
-        aria-label="Chọn bảng để lưu (BoardPicker sẽ dựng ở FE-7)"
-        title="BoardPicker sẽ dựng ở FE-7"
+        onClick={openPicker}
+        aria-label="Chọn board để lưu pin"
         style={{
           padding: isModal ? '9px 16px' : '10px 18px',
           borderRadius: 'var(--radius-button)',
           border: '1px solid var(--color-border)',
-          background: 'var(--color-surface-muted)',
-          color: 'var(--color-muted)',
+          background: 'var(--color-surface)',
+          color: 'var(--color-foreground)',
           fontWeight: 600,
           fontSize: isModal ? 13 : 13.5,
-          cursor: 'not-allowed',
-          opacity: 0.75,
+          cursor: 'pointer',
         }}
       >
         Lưu vào bảng ▾
@@ -276,7 +448,7 @@ function PinDetailContent({
       <button
         type="button"
         aria-pressed={isSaved}
-        onClick={() => setOptimisticSaved(!isSaved)}
+        onClick={() => void toggleSave()}
         style={{
           padding: isModal ? '9px 16px' : '10px 18px',
           borderRadius: 'var(--radius-button)',

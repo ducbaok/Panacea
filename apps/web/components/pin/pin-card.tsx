@@ -2,9 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import type { ReactionType } from '@/lib/gql/graphql';
+import { useMutation } from '@apollo/client/react';
+import {
+  type ReactionType,
+  SavePinDocument,
+  type SavePinMutation,
+  type SavePinMutationVariables,
+  UnsavePinDocument,
+  type UnsavePinMutation,
+  type UnsavePinMutationVariables,
+} from '@/lib/gql/graphql';
 import { REACTION_EMOJI } from '@/lib/reactions';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
+import { useToast } from '@/components/ui/toast';
 
 /**
  * FE-3 — Thẻ pin (khung + 6 trạng thái §3.3 của brief).
@@ -99,6 +109,10 @@ export function PinCard({ item, columnWidth, onOpen }: Props) {
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
   const { status: sessionStatus } = useSession();
   const { openAuthPrompt } = useAuthPrompt();
+  const toast = useToast();
+  const [savePin] = useMutation<SavePinMutation, SavePinMutationVariables>(SavePinDocument);
+  const [unsavePin] = useMutation<UnsavePinMutation, UnsavePinMutationVariables>(UnsavePinDocument);
+  const [saveBusy, setSaveBusy] = useState(false);
 
   const isSaved = optimisticSaved ?? item.isSavedByViewer ?? false;
   const url = pickImageUrl(item);
@@ -117,6 +131,53 @@ export function PinCard({ item, columnWidth, onOpen }: Props) {
   }, []);
 
   const handleOpen = () => onOpen?.(item.id);
+
+  // Lưu lại sau khi Hoàn tác — im lặng, không toast lồng.
+  const resaveQuiet = async () => {
+    setOptimisticSaved(true);
+    try {
+      await savePin({ variables: { input: { pinId: item.id } } });
+    } catch {
+      setOptimisticSaved(false);
+    }
+  };
+
+  // Lưu nhanh: toggle lưu/bỏ-lưu vào HỒ SƠ (boardId null) — KHÔNG mở picker (Q3).
+  const toggleSave = async () => {
+    if (sessionStatus === 'unauthenticated') {
+      openAuthPrompt('lưu pin này');
+      return;
+    }
+    if (saveBusy) return;
+    const next = !isSaved;
+    setOptimisticSaved(next); // optimistic
+    setSaveBusy(true);
+    try {
+      if (next) {
+        // savePin trả pin{ id isSavedByViewer } ⇒ Apollo cache tự cập nhật.
+        await savePin({ variables: { input: { pinId: item.id } } });
+      } else {
+        // Bỏ lưu hồ sơ: KHÔNG truyền boardId (truyền vào đòi quyền EDITOR — §8.10).
+        await unsavePin({
+          variables: { pinId: item.id },
+          update: (cache) =>
+            cache.modify({
+              id: cache.identify({ __typename: 'Pin', id: item.id }),
+              fields: { isSavedByViewer: () => false },
+            }),
+        });
+        toast({
+          message: 'Đã bỏ lưu',
+          action: { label: 'Hoàn tác', onClick: () => void resaveQuiet() },
+        });
+      }
+    } catch {
+      setOptimisticSaved(!next); // rollback
+      toast({ message: 'Không lưu được, thử lại sau.' });
+    } finally {
+      setSaveBusy(false);
+    }
+  };
 
   return (
     <article
@@ -195,14 +256,7 @@ export function PinCard({ item, columnWidth, onOpen }: Props) {
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            // Khách vãng lai: mở AuthPromptModal thay vì thao tác (T2.4). Người đã
-            // đăng nhập: giữ trạng thái hình ảnh của FE-3 (mutation savePin thật
-            // là việc của FE-7, CỐ Ý chưa nối ở đợt này).
-            if (sessionStatus === 'unauthenticated') {
-              openAuthPrompt('lưu pin này');
-              return;
-            }
-            setOptimisticSaved(!isSaved);
+            void toggleSave();
           }}
           aria-pressed={isSaved}
           className={`transition-opacity ${isSaved ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
