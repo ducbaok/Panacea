@@ -7,6 +7,7 @@ import { AuthPromptProvider } from '@/components/auth/auth-prompt';
 import { ToastProvider } from '@/components/ui/toast';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { BoardPickerProvider } from '@/components/board/board-picker';
+import { NotificationSubscriber } from '@/components/shell/notification-subscriber';
 
 /**
  * Composed provider tree cho apps/web.
@@ -23,6 +24,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <SessionErrorGuard />
       <ApolloProviderWithSession>
+        <NotificationSubscriber />
         <ToastProvider>
           <ConfirmProvider>
             <AuthPromptProvider>

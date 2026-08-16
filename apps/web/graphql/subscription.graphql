@@ -3,7 +3,11 @@ subscription NotificationReceived {
     id
     type
     isRead
-    createdAt
+    # ⚠️ KHÔNG chọn `createdAt` (DateTime) ở đây. Payload subscription đi qua
+    # PubSub biến Date → chuỗi ISO, và scalar DateTime của backend serialize
+    # chuỗi thành null ⇒ CẢ subscription lỗi (và có thể làm sập API). Bug backend
+    # `notificationReceived` — xem debug_history §FE-8. Frontend gán createdAt
+    # xấp xỉ phía client khi chèn (tin vừa tới ⇒ "Vừa xong" là đúng).
     actor {
       id
       name
@@ -14,6 +18,7 @@ subscription NotificationReceived {
       id
       imageUrl
       thumbnailUrl
+      title
     }
     comment {
       id

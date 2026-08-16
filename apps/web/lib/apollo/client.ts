@@ -4,7 +4,8 @@ import { ApolloClient, HttpLink, InMemoryCache, split } from '@apollo/client';
 import { SetContextLink } from '@apollo/client/link/context';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
-import { createClient } from 'graphql-ws';
+import { createClient, type Client as WsClient } from 'graphql-ws';
+import type { WsStatus } from './ws-status';
 
 /**
  * FE-0 QĐ-B/1a — Apollo Client cho apps/web.
@@ -28,12 +29,26 @@ import { createClient } from 'graphql-ws';
 export interface AccessTokenSource {
   /** Trả về token hiện tại (hoặc null nếu chưa login). Có thể là snapshot đồng bộ. */
   getAccessToken: () => string | null | Promise<string | null>;
+  /** FE-8 — báo trạng thái socket cho UI (banner "Đang kết nối lại…" ở D2). */
+  onWsStatus?: (status: WsStatus) => void;
+}
+
+/**
+ * FE-8 — trả về CẢ ApolloClient lẫn graphql-ws client. Provider cần tay cầm
+ * `wsClient` để `terminate()` ép nối lại khi access token xoay (điểm mù FE-0):
+ * socket bắt tay MỘT LẦN bằng token cũ, backend đóng 4403 khi token hết hạn;
+ * terminate() → graphql-ws thử lại → bắt tay lại, `connectionParams` đọc token
+ * mới nhất từ ref. `wsClient` là null khi prerender trên server (không có window).
+ */
+export interface ApolloBundle {
+  client: ApolloClient;
+  wsClient: WsClient | null;
 }
 
 const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://localhost:4000/graphql';
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:4000/graphql';
 
-export function createApolloClient(source: AccessTokenSource): ApolloClient {
+export function createApolloClient(source: AccessTokenSource): ApolloBundle {
   const httpLink = new HttpLink({
     uri: GRAPHQL_URL,
     // credentials: 'omit' — backend chỉ chấp Bearer, không dựa cookie.
@@ -50,24 +65,40 @@ export function createApolloClient(source: AccessTokenSource): ApolloClient {
     };
   });
 
-  // WebSocket link chỉ được tạo bên client. Trong Next 16, Client Component vẫn
+  // WebSocket client chỉ được tạo bên client. Trong Next 16, Client Component vẫn
   // có thể prerender 1 lần trên server nên phải guard bằng typeof window.
-  const wsLink =
+  const wsClient =
     typeof window === 'undefined'
       ? null
-      : new GraphQLWsLink(
-          createClient({
-            url: WS_URL,
-            connectionParams: async () => {
-              const token = await source.getAccessToken();
-              // graphql-ws gọi hàm này TẠI HANDSHAKE, không refresh khi token
-              // đổi. Nếu backend đóng 4403, hook subscription sẽ nhận connect
-              // error — logic reconnect nằm ở tầng UI (FE-8/FE-9), không ở đây.
-              return token ? { authorization: `Bearer ${token}` } : {};
-            },
-            shouldRetry: () => false,
-          }),
-        );
+      : createClient({
+          url: WS_URL,
+          // `lazy` (mặc định true) ⇒ chỉ mở socket khi có subscription; đóng khi
+          // hết subscription. Vì thế khách chưa đăng nhập không tốn kết nối.
+          connectionParams: async () => {
+            const token = await source.getAccessToken();
+            // Gọi TẠI MỖI LẦN bắt tay (kể cả lần nối lại) ⇒ luôn lấy token mới
+            // nhất từ ref. Đây là điều làm cho terminate()-để-nối-lại lấy đúng
+            // token đã xoay.
+            return token ? { authorization: `Bearer ${token}` } : {};
+          },
+          // Nối lại khi rụng vì mạng (đóng bất thường). Token hết hạn (4403) là
+          // "chí mạng" ⇒ graphql-ws không tự thử lại; đường phục hồi là provider
+          // gọi terminate() khi token xoay + subscriber remount khi lỗi.
+          shouldRetry: () => true,
+          retryAttempts: Infinity,
+          retryWait: (retries) =>
+            new Promise((resolve) =>
+              setTimeout(resolve, Math.min(1000 * 2 ** retries, 10_000)),
+            ),
+          on: {
+            connecting: () => source.onWsStatus?.('connecting'),
+            connected: () => source.onWsStatus?.('connected'),
+            closed: () => source.onWsStatus?.('closed'),
+            error: () => source.onWsStatus?.('closed'),
+          },
+        });
+
+  const wsLink = wsClient ? new GraphQLWsLink(wsClient) : null;
 
   const link = wsLink
     ? split(
@@ -80,9 +111,11 @@ export function createApolloClient(source: AccessTokenSource): ApolloClient {
       )
     : authLink.concat(httpLink);
 
-  return new ApolloClient({
+  const client = new ApolloClient({
     link,
     cache: new InMemoryCache(),
     devtools: { enabled: process.env.NODE_ENV !== 'production' },
   });
+
+  return { client, wsClient };
 }

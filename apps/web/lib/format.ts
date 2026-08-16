@@ -57,3 +57,43 @@ export function formatBytes(bytes: number | null | undefined): string {
   const tenths = Math.floor((b * 10) / (1024 * 1024)); // phần mười MB, cắt cụt
   return `${Math.floor(tenths / 10)},${tenths % 10}MB`;
 }
+
+/**
+ * formatRelativeTime — thời gian tương đối tiếng Việt cho dòng thông báo (D2, FE-8).
+ *
+ * Từ vựng + ngưỡng đã duyệt với user 16/08/2026:
+ *   < 1 phút   → "Vừa xong"
+ *   < 60 phút  → "N phút trước"
+ *   < 24 giờ   → "N giờ trước"
+ *   < 48 giờ   → "Hôm qua"
+ *   < 7 ngày   → "N ngày trước"
+ *   < 28 ngày  → "N tuần trước"
+ *   còn lại    → "dd/mm/yyyy"
+ *
+ * - `iso` là chuỗi ISO (scalar DateTime → string, xem codegen.ts). Trả '' nếu rỗng/hỏng.
+ * - `now` truyền vào được để test tất định; mặc định `Date.now()`. Chỉ gọi ở client
+ *   (component 'use client') ⇒ không lệch hydration vì dữ liệu thông báo vốn nạp
+ *   phía client qua Apollo, không SSR.
+ * - Lệch đồng hồ nhẹ (then > now) coi như "Vừa xong", không hiện số âm.
+ */
+export function formatRelativeTime(
+  iso: string | null | undefined,
+  now: number = Date.now(),
+): string {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return '';
+  const min = Math.floor((now - then) / 60_000);
+  if (min < 1) return 'Vừa xong';
+  if (min < 60) return `${min} phút trước`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour} giờ trước`;
+  const day = Math.floor(hour / 24);
+  if (day < 2) return 'Hôm qua';
+  if (day < 7) return `${day} ngày trước`;
+  if (day < 28) return `${Math.floor(day / 7)} tuần trước`;
+  const d = new Date(then);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}

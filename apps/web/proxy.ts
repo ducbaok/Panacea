@@ -16,6 +16,9 @@ import { auth } from '@/auth';
  * ⇒ phải liệt kê '/pin/new' RIÊNG, nếu không khách vào thẳng /pin/new sẽ lọt
  * lưới, không bị đẩy về /login (phép T2.2). Matcher phải là hằng để Next phân
  * tích lúc build; thêm màn mới thì bổ sung vào đây.
+ *
+ * FE-8 thêm '/notifications' CHÍNH (bare) cùng lý do trên: '/notifications/:path*'
+ * chỉ khớp route con, không khớp chính '/notifications' — trang D2 cần đăng nhập.
  */
 export default auth((req) => {
   if (!req.auth) {
@@ -34,6 +37,7 @@ export const config = {
   matcher: [
     '/settings/:path*',
     '/messages/:path*',
+    '/notifications',
     '/notifications/:path*',
     '/pin/new',
     '/pin/new/:path*',

@@ -32,3 +32,11 @@ query Notifications($first: Int! = 20, $after: String) {
 query UnreadNotificationCount {
   unreadNotificationCount
 }
+
+mutation MarkNotificationRead($id: String!) {
+  markNotificationRead(id: $id)
+}
+
+mutation MarkAllNotificationsRead {
+  markAllNotificationsRead
+}
