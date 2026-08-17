@@ -20,6 +20,7 @@ import {
   type DeletePinMutation,
   type DeletePinMutationVariables,
   TrackPinViewDocument,
+  TrackPinClickDocument,
   TogglePinReactionDocument,
   FollowDocument,
   UnfollowDocument,
@@ -274,15 +275,16 @@ function PinDetailContent({
    *   StrictMode; debounce 30 phút của backend là lưới thứ hai, không phải thứ nhất).
    */
   /*
-   * TODO(FE-10): CHỜ NGƯỜI DÙNG — `trackPinClick` chưa wire vì KHÔNG có bề mặt
-   * gọi nào đã vẽ. Màn chi tiết pin không render `pin.sourceUrl`, và
-   * `Panacea-v2.1.html` chỉ vẽ Ô NHẬP "Link nguồn" ở form tạo/sửa pin (B4/B5) —
-   * không có link nguồn bấm được ở màn xem. Thêm link = bịa giao diện (luật 19),
-   * nên người dùng chốt 17/08: hoãn Click, đợt này chỉ wire View.
-   * Mở lại khi có bản vẽ link nguồn: gọi `TrackPinClickDocument` (operation đã
-   * sinh sẵn ở pin.graphql) ngay tại chỗ mở link, fire-and-forget như View.
+   * ✅ DEBT-1b b4 (17/08/2026) — TODO(FE-10) ở đây ĐÃ ĐÓNG.
+   *
+   * Nó chặn vì **thiếu bản vẽ**, không vì thiếu code: `Panacea-v2.1.html` chỉ vẽ
+   * Ô NHẬP "Link nguồn" ở form tạo/sửa pin (B4/B5), không có link nguồn bấm được
+   * ở màn xem, và thêm đại một cái = bịa giao diện (luật 19). User chốt 17/08:
+   * dựng **một dòng "Nguồn: `<domain>`" dưới dải tag, chỉ bản page** ⇒ nay đã có
+   * bề mặt, và `trackPinClick` gắn vào đúng cú bấm đó (xem `sourceRow` bên dưới).
    */
   const [trackView] = useMutation(TrackPinViewDocument);
+  const [trackClick] = useMutation(TrackPinClickDocument);
   const trackedPinIdRef = useRef<string | null>(null);
 
   /**
@@ -822,6 +824,55 @@ function PinDetailContent({
       </div>
     ) : null;
 
+  /**
+   * DEBT-1b b4 — dòng "Nguồn: `<domain>`", **chỉ bản page** (✅⑤).
+   *
+   * Đặt ngay sau `tagsRow` vì `tagsRow` cũng page-only ⇒ hai khối cùng điều kiện
+   * nằm cạnh nhau, không sinh thêm một nhánh `!isModal` rời rạc ở chỗ khác.
+   *
+   * `pin.sourceUrl` là **chữ người dùng nhập**, nên `new URL()` phải bọc
+   * try/catch: một giá trị không parse được sẽ ném và làm trắng cả màn xem pin.
+   * Không parse được ⇒ **không render gì**, giống hệt nhánh `null`.
+   *
+   * 🔴 `trackPinClick` **fire-and-forget, KHÔNG chặn điều hướng.** Không
+   * `preventDefault`, không `await` trước khi mở link: `<a target="_blank">` chạy
+   * theo nhịp của trình duyệt, còn mutation đi đường của nó. Boolean trả về là
+   * *"lần này có tăng bộ đếm không"* — `false` là **bình thường** (debounce 30
+   * phút, hoặc pin không có `sourceUrl`), **không** phải mã lỗi ⇒ không toast,
+   * không render theo kết quả. Một phép đo hụt không được làm hỏng cú bấm.
+   *
+   * 📌 Seed chỉ **3/20 pin** có `sourceUrl` (`pin_1_id` · `pin_2_id` · `pin_9_id`).
+   * Pin khác không hiện dòng này — **đúng, không phải bug**.
+   */
+  let sourceHost: string | null = null;
+  if (!isModal && pin.sourceUrl) {
+    try {
+      sourceHost = new URL(pin.sourceUrl).hostname;
+    } catch {
+      sourceHost = null;
+    }
+  }
+
+  const sourceRow =
+    sourceHost && pin.sourceUrl ? (
+      <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginBottom: 20 }}>
+        Nguồn:{' '}
+        <a
+          href={pin.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            void trackClick({ variables: { pinId: pin.id } }).catch(() => {
+              // Im lặng — xem khối "fire-and-forget" ở trên.
+            });
+          }}
+          style={{ color: 'var(--color-primary-strong)', fontWeight: 600 }}
+        >
+          {sourceHost}
+        </a>
+      </div>
+    ) : null;
+
   const authorRow = (
     <div
       style={{
@@ -929,6 +980,7 @@ function PinDetailContent({
           {h1}
           {descP}
           {tagsRow}
+          {sourceRow}
         </>
       )}
 

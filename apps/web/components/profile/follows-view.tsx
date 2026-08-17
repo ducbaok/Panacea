@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useMutation, useQuery } from '@apollo/client/react';
+import { useApolloClient, useMutation, useQuery } from '@apollo/client/react';
 import {
   UserByUsernameDocument,
   type UserByUsernameQuery,
@@ -70,14 +70,44 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
   );
   const list = tab === 'followers' ? followers : following;
 
-  // Ghi đè cục bộ trạng thái theo dõi sau khi mutation xong. Không viết vào
-  // Apollo cache theo id User vì `isFollowedByViewer` của CÙNG một user còn xuất
-  // hiện ở màn khác với nghĩa khác nhau tuỳ viewer; ghi đè cục bộ là mặt cắt hẹp
-  // và đủ cho màn này (F5 đọc lại từ server — phép T2.3 kiểm đúng chỗ đó).
-  const [followOverride, setFollowOverride] = useState<Record<string, boolean>>({});
+  /*
+   * ─── DEBT-1b b5 (17/08/2026) — ghi thẳng Apollo cache, bỏ ghi đè cục bộ ───
+   *
+   * 🔴 **Đính chính tiền đề của brief.** `PROMPT_DEBT1.md` §2b.5 mô tả món này là
+   * *"gọi `userQuery.refetch()` + `list.refetch()` ⇒ 3 request/lần bấm"* và trỏ
+   * `follows-view.tsx:204-205`. **Đo lại 17/08: KHÔNG đúng.** Hai dòng đó là nút
+   * *"Thử lại"* của thẻ lỗi mạng — refetch cả hai ở đó là **đúng**. Nút Theo dõi
+   * chưa bao giờ refetch; FE-10 đã dùng `followOverride` cục bộ. Số đo trên trình
+   * duyệt **trước** đợt này: bấm Theo dõi ⇒ **đúng 1 operation** (`Follow`).
+   * ⇒ *Mẫu "follow rồi refetch" thật sự nằm ở `pin-detail.tsx` và
+   * `profile-view.tsx`, không nằm ở màn này* — đã đăng ký lại cho đúng chỗ.
+   *
+   * **Vậy đổi để được gì, nếu số request không giảm:** `followOverride` là một
+   * nguồn sự thật **thứ hai, chỉ sống trong màn này**. Theo dõi ai đó ở C3 rồi
+   * mở hồ sơ của họ ⇒ nút bên đó vẫn hiện "Theo dõi", vì cache chưa hề biết.
+   * `cache.modify` theo `cache.identify({ __typename: 'User', id })` sửa đúng
+   * thực thể đó, nên **mọi màn đang mở cùng user đều đúng** — khuôn `unsavePin`
+   * của `pin-detail.tsx` với `isSavedByViewer`.
+   *
+   * **Lý do cũ ("field viewer-aware, ghi cache là nguy hiểm") KHÔNG còn đứng
+   * vững, và kiểm được:** `lib/apollo/provider.tsx:188` gọi `client.resetStore()`
+   * mỗi khi danh tính đổi (khách→đăng nhập, đăng nhập→khách, đổi token). Trong
+   * một lần nạp cache chỉ có **đúng một** viewer, nên `isFollowedByViewer` trong
+   * cache không thể mang nghĩa của người khác. Nếu ngày nào đó bỏ `resetStore`
+   * thì phải xét lại chỗ này — đó là điều kiện, không phải giả định.
+   */
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [followM] = useMutation(FollowDocument);
   const [unfollowM] = useMutation(UnfollowDocument);
+  const apollo = useApolloClient();
+
+  /** Ghi `isFollowedByViewer` của ĐÚNG một User vào cache. Xem khối lý do ở trên. */
+  const writeFollowed = (userId: string, value: boolean) => {
+    apollo.cache.modify({
+      id: apollo.cache.identify({ __typename: 'User', id: userId }),
+      fields: { isFollowedByViewer: () => value },
+    });
+  };
 
   const rows = list.items;
 
@@ -88,9 +118,12 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
     }
     if (busyIds.has(row.id)) return;
 
-    const currently = followOverride[row.id] ?? row.isFollowedByViewer ?? false;
+    const currently = row.isFollowedByViewer ?? false;
     const next = !currently;
-    setFollowOverride((m) => ({ ...m, [row.id]: next }));
+    // Ghi cache NGAY, trước khi mạng trả lời: đây là phần "optimistic" của thao
+    // tác. Thất bại thì viết ngược lại ở `catch` — cùng một cơ chế cho cả hai
+    // chiều, nên không có trạng thái nào chỉ tồn tại ở một nửa đường đi.
+    writeFollowed(row.id, next);
     setBusyIds((s) => new Set(s).add(row.id));
     try {
       // Chọn mutation theo trạng thái ĐANG đọc được, không phải theo nút hiển thị.
@@ -100,7 +133,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
         await unfollowM({ variables: { userId: row.id } });
       }
     } catch (err) {
-      setFollowOverride((m) => ({ ...m, [row.id]: currently }));
+      writeFollowed(row.id, currently);
       const raw = err instanceof Error ? err.message : '';
       toast({ message: translateBoardError(raw) ?? 'Không đổi được trạng thái theo dõi, thử lại sau.' });
     } finally {
@@ -231,7 +264,10 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 640 }}>
             {rows.map((u) => {
-              const isFollowed = followOverride[u.id] ?? u.isFollowedByViewer ?? false;
+              // Đọc thẳng từ dữ liệu query — Apollo đã chuẩn hoá theo `User:id`
+              // nên `cache.modify` ở `writeFollowed` hiện ra ngay tại đây, không
+              // còn lớp ghi đè cục bộ nào chen giữa.
+              const isFollowed = u.isFollowedByViewer ?? false;
               return (
                 <div
                   key={u.id}
