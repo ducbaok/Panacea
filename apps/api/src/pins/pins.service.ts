@@ -18,12 +18,15 @@
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
 import {
+  Inject,
   Injectable,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import type Redis from 'ioredis';
+import { REDIS_CLIENT } from '../redis/redis.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationType, ReactionType } from '@antigravity/database';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -54,6 +57,8 @@ export class PinsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    // `RedisModule` là @Global nên inject được mà không cần import module.
+    @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
 
   // ─── Taxonomy (Đợt 6) ────────────────────────────────────────────────────────
@@ -316,6 +321,104 @@ export class PinsService {
     }
 
     return pin;
+  }
+
+  // ─── B-4: View / click tracking ─────────────────────────────────────────────
+  //
+  // ╔═══════════════════════════════════════════════════════════════════════════╗
+  // ║  QUYẾT ĐỊNH ĐÃ CHỐT VỚI USER 16/08/2026 (hướng A) — đừng tự đảo:         ║
+  // ║   • debounce bằng **Redis TTL theo cặp (người xem, pin)**                ║
+  // ║   • "view" đếm khi **mở chi tiết pin**, KHÔNG đếm impression trên lưới   ║
+  // ║   • "click" = bấm link ngoài ⇒ chỉ pin CÓ link mới có sự kiện           ║
+  // ║   • khách vãng lai định danh bằng **anonId do client giữ, KHÔNG dùng IP**║
+  // ║     (sau ALB mọi request chung một IP tới khi HT-3 vá `trust proxy`)     ║
+  // ║                                                                          ║
+  // ║  ĐÍNH CHÍNH TÊN FIELD: brief gọi là `pin.link`; trong schema nó tên      ║
+  // ║  **`sourceUrl`** (`schema.prisma:216`, `String?`). Không có field `link`.║
+  // ╚═══════════════════════════════════════════════════════════════════════════╝
+
+  /**
+   * TTL cửa sổ debounce — **30 phút**.
+   *
+   * Biên dưới của khoảng 30–60′ mà user duyệt. Chọn biên dưới vì thứ cửa sổ này
+   * cần khử là **burst**: F5, back/forward, mở lại tab. Những thứ đó xảy ra
+   * trong vài giây tới vài phút, nên 30′ đã trùm trọn; nới lên 60′ chỉ đánh mất
+   * lượt xem thật của người quay lại sau bữa trưa. Đổi số này là đổi ngữ nghĩa
+   * của `viewCount`, nên nếu đổi thì phải ghi lại mốc đổi.
+   */
+  private static readonly TRACK_DEBOUNCE_TTL_SEC = 30 * 60;
+
+  /**
+   * Ghi nhận một sự kiện đếm được, có khử trùng lặp.
+   *
+   * @returns `true` nếu lần gọi NÀY làm bộ đếm tăng; `false` nếu bị debounce
+   *          hoặc không định danh được người xem.
+   *
+   * ⚠️ **KHÔNG ĐỊNH DANH ĐƯỢC ⇒ KHÔNG ĐẾM** (`identity` rỗng). Đây là đánh đổi
+   * có chủ đích, không phải bỏ sót: quyết định A đã loại IP, nên với một request
+   * không token và không `anonId` thì **không tồn tại** khoá debounce nào. Đếm
+   * nó = tạo một bộ đếm mà bất kỳ vòng `for` nào cũng bơm được. Thà mất lượt
+   * xem của client không gửi anonId còn hơn có một con số vô nghĩa.
+   *
+   * ⚠️ **GIỚI HẠN ĐÃ BIẾT, GHI RA THAY VÌ GIẢ VỜ ĐÃ GIẢI QUYẾT:** `anonId` do
+   * client sinh nên client xoay vòng nó là thổi phồng được `viewCount`. Đó là
+   * hệ quả cố hữu của "không dùng IP", không phải lỗi cài đặt. Muốn chặn thật
+   * thì cần chữ ký phía server hoặc rate-limit theo IP — và cả hai đều phải chờ
+   * `trust proxy` của HT-3 mới có IP thật để mà dựa vào.
+   */
+  private async _trackOnce(
+    kind: 'view' | 'click',
+    pinId: string,
+    identity: string | null,
+  ): Promise<boolean> {
+    if (!identity) return false;
+
+    const key = `track:${kind}:${pinId}:${identity}`;
+    try {
+      const set = await this.redis.set(key, '1', 'EX', PinsService.TRACK_DEBOUNCE_TTL_SEC, 'NX');
+      // `null` ⇒ khoá đã tồn tại ⇒ vẫn trong cửa sổ ⇒ KHÔNG đếm lần này.
+      if (set === null) return false;
+    } catch (e) {
+      // ⚠️ FAIL-**OPEN**, ngược với khoá của job purge (`purge.scheduler.ts`).
+      // Ở đó fail-closed vì hậu quả của nhánh sai là XOÁ TRÙNG dữ liệu. Ở đây
+      // hai nhánh đều vô hại: hoặc mất số liệu, hoặc phồng nhẹ số liệu trong
+      // lúc Redis chết. Chức năng CHÍNH là đếm, còn debounce chỉ là bộ lọc chất
+      // lượng — nên khi không lọc được thì vẫn đếm.
+      // (Hướng fail-safe do HẬU QUẢ quyết định, không do thói quen của codebase.)
+      this.logger.warn(`[track] Redis lỗi khi debounce ${kind} ${pinId}: ${(e as Error).message}`);
+    }
+
+    await this.prisma.pin.update({
+      where: { id: pinId },
+      data: kind === 'view' ? { viewCount: { increment: 1 } } : { clickCount: { increment: 1 } },
+    });
+    return true;
+  }
+
+  /**
+   * Đếm một lượt **mở chi tiết pin**.
+   *
+   * `findById` chạy trước và ném `Pin not found` cho pin đã xoá mềm hoặc pin
+   * của người bị chặn (2 chiều) — cùng đường với query `pin(id)`, cố ý không
+   * viết nhánh kiểm tra thứ hai. Hệ quả đúng: người bị chặn không bơm được
+   * lượt xem cho nhau, và pin đã xoá không nhận thêm số liệu.
+   */
+  async trackPinView(pinId: string, identity: string | null, blockedIds: string[]): Promise<boolean> {
+    await this.findById(pinId, blockedIds);
+    return this._trackOnce('view', pinId, identity);
+  }
+
+  /**
+   * Đếm một lượt **bấm link ngoài**.
+   *
+   * Pin không có `sourceUrl` ⇒ trả `false` chứ không ném lỗi: về mặt nghiệp vụ
+   * sự kiện đó không tồn tại (không có link để mà bấm), và một client gọi nhầm
+   * không đáng bị coi là lỗi hệ thống.
+   */
+  async trackPinClick(pinId: string, identity: string | null, blockedIds: string[]): Promise<boolean> {
+    const pin = await this.findById(pinId, blockedIds);
+    if (!pin.sourceUrl) return false;
+    return this._trackOnce('click', pinId, identity);
   }
 
   // ─── Reactions ──────────────────────────────────────────────────────────────

@@ -292,6 +292,8 @@ type Mutation {
   updatePin(input: UpdatePinInput!): Pin!
   deletePin(id: ID!): Pin!
   togglePinReaction(pinId: ID!, type: ReactionType!): Boolean!
+  trackPinView(pinId: ID!): Boolean!
+  trackPinClick(pinId: ID!): Boolean!
   markNotificationRead(id: String!): Boolean!
   markAllNotificationsRead: Boolean!
   follow(userId: String!): Boolean!

@@ -54,6 +54,7 @@ import { HomeFeedArgs } from './dto/home-feed.args';
 import { DataloaderService } from '../common/dataloader';
 import { GqlAuthGuard, GqlOptionalAuthGuard } from '../auth/guards/gql-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AnonId } from '../auth/decorators/anon-id.decorator';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { User } from '../users/entities/user.entity';
 // Enum GraphQL đã `registerEnumType` — dùng lại bản của comments thay vì khai
@@ -227,6 +228,63 @@ export class PinsResolver {
   ) {
     await this.pinsService.toggleReaction(user.userId, pinId, type);
     return true;
+  }
+
+  // ─── B-4: view / click tracking ──────────────────────────────────────────────
+  //
+  // GraphQL chứ không REST: luật §3.1 dành REST cho **Auth / Uploads /
+  // Internal**, và đây không thuộc ô nào trong ba.
+  //
+  // `GqlOptionalAuthGuard` cho cả hai: khách vãng lai xem được chi tiết pin thì
+  // lượt xem của họ cũng phải được đếm. Nhưng có `@CurrentUser()` là **bắt buộc
+  // có guard** (luật *guard tạo danh tính*) — thiếu guard thì `request.user`
+  // không tồn tại, decorator trả `null` kể cả khi client gửi token hợp lệ, và
+  // MỌI lượt xem sẽ bị gán nhầm sang nhánh khách vãng lai.
+  //
+  // Trả `Boolean!` với ngữ nghĩa **"lần gọi này có làm bộ đếm tăng không"**,
+  // không phải "đã nhận yêu cầu". Luôn trả `true` thì phép kiểm quyết định
+  // ("gọi 2 lần trong cửa sổ ⇒ tăng đúng 1") mất một nửa bằng chứng, và client
+  // cũng không phân biệt được "đã đếm" với "bị khử trùng".
+
+  /** Đếm lượt MỞ CHI TIẾT pin (không phải impression trên lưới). */
+  @Mutation(() => Boolean)
+  @UseGuards(GqlOptionalAuthGuard)
+  async trackPinView(
+    @Args('pinId', { type: () => ID }) pinId: string,
+    @CurrentUser() user?: AuthUser | null,
+    @AnonId() anonId?: string | null,
+  ) {
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.pinsService.trackPinView(pinId, this._identity(user, anonId), blockedIds);
+  }
+
+  /** Đếm lượt BẤM LINK NGOÀI (chỉ pin có `sourceUrl`). */
+  @Mutation(() => Boolean)
+  @UseGuards(GqlOptionalAuthGuard)
+  async trackPinClick(
+    @Args('pinId', { type: () => ID }) pinId: string,
+    @CurrentUser() user?: AuthUser | null,
+    @AnonId() anonId?: string | null,
+  ) {
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.pinsService.trackPinClick(pinId, this._identity(user, anonId), blockedIds);
+  }
+
+  /**
+   * Định danh dùng làm khoá debounce.
+   *
+   * Tiền tố `u:` / `a:` là BẮT BUỘC, không phải trang trí: thiếu nó thì một
+   * khách vãng lai chỉ cần đặt `anonId` bằng `userId` của người khác là dùng
+   * chung cửa sổ debounce với họ — tức chặn được lượt xem của người đó. Tiền tố
+   * làm hai không gian khoá không thể chạm nhau.
+   *
+   * Người đã đăng nhập LUÔN thắng `anonId`: danh tính đến từ token, còn
+   * `anonId` là thứ client tự khai (luật §3.5 số 14).
+   */
+  private _identity(user: AuthUser | null | undefined, anonId: string | null | undefined): string | null {
+    if (user?.userId) return `u:${user.userId}`;
+    if (anonId) return `a:${anonId}`;
+    return null;
   }
 
   // ─── ResolveField (DataLoader) ───────────────────────────────────────────────
