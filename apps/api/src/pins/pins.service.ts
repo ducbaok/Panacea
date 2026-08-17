@@ -36,6 +36,8 @@ import {
   encodeCursor,
   PageInfo,
   CREATED_DESC,
+  RELATED_PINS_KEYSET,
+  decodeKeysetValues,
   keysetPage,
 } from '../common/pagination';
 import { FeedSource } from './entities/home-feed.entity';
@@ -449,6 +451,102 @@ export class PinsService {
     );
 
     return this._buildPaginatedResult(rows, first);
+  }
+
+  // ─── B-11: Related pins by tag ───────────────────────────────────────────────
+
+  /**
+   * Pin liên quan với `pinId`, xếp theo **số tag chung giảm dần**.
+   *
+   * ```sql
+   * WITH src AS (                       -- tag của pin gốc, CHỈ khi pin gốc còn thấy được
+   *   SELECT pt."B" AS tag_id FROM "_PinToTag" pt
+   *     JOIN "Pin" sp ON sp."id" = pt."A"
+   *    WHERE pt."A" = $1 AND sp."deletedAt" IS NULL [AND sp."creatorId" NOT IN (…)]
+   * )
+   * SELECT p.*, COUNT(*)::int AS "sharedTagCount"
+   *   FROM "Pin" p
+   *   JOIN "_PinToTag" pt ON pt."A" = p."id" AND pt."B" IN (SELECT tag_id FROM src)
+   *  WHERE p."deletedAt" IS NULL AND p."id" <> $1 [AND p."creatorId" NOT IN (…)]
+   *  GROUP BY p."id"
+   * [HAVING (COUNT(*)::int, p."createdAt", p."id") < ($n::int,$m::timestamp,$k::text)]
+   *  ORDER BY COUNT(*) DESC, p."createdAt" DESC, p."id" DESC
+   *  LIMIT $last
+   * ```
+   *
+   * ⚠️ **CỘT `A`/`B` CỦA HAI BẢNG NỐI NGƯỢC CHIỀU NHAU** — bẫy đã trả giá ở B-5.
+   * Prisma đặt A/B theo thứ tự chữ cái của TÊN MODEL, không theo tên relation:
+   * `_PinToTag` có **Pin ở cột A**, Tag ở cột B (còn `_PinToCategory` thì
+   * Category ở A, **Pin ở cột B**). Đoán nhầm KHÔNG sinh lỗi cú pháp: câu vẫn
+   * chạy và trả sai. Ở đây nó còn im lặng hơn nữa vì kết quả rỗng trông hệt
+   * như "pin này không có pin liên quan" — nên phép kiểm bắt buộc phải là bản
+   * đồ pin↔pin đối chiếu từng cặp, không phải "có trả về gì không".
+   *
+   * ⚠️ **`JOIN` ở đây là CỐ Ý, ngược với `EXISTS` của B-5.** B-5 chỉ hỏi "có
+   * tồn tại một cạnh không" nên `JOIN` sẽ nhân bản dòng `Pin` và phá `LIMIT+1`.
+   * Ở đây ta CẦN đếm số cạnh, nên phải `JOIN` rồi `GROUP BY p."id"` gom lại —
+   * `GROUP BY` khoá chính cho phép `SELECT p.*` (Postgres suy ra phụ thuộc hàm),
+   * và sau khi gom thì mỗi pin lại đúng một dòng nên `LIMIT+1` vẫn đúng.
+   *
+   * ⚠️ **Pin gốc phải bị loại bằng `p."id" <> $1`, không phải bằng "chắc nó
+   * không có tag chung với chính nó"** — nó có, và nhiều nhất bảng.
+   *
+   * Lọc chặn **2 chiều** đi qua `blockedIds` mà resolver lấy từ
+   * `getBlockedUserIds` (`common/blocking/`) — dùng lại đúng mảng đó cho **cả
+   * hai** chỗ: pin gốc và pin kết quả. Chặn ở pin gốc không thừa: thiếu nó thì
+   * người bị chặn vẫn "gợi ý" được nội dung qua chính pin của họ.
+   */
+  async relatedPins(
+    pinId: string,
+    pagination: CursorPaginationArgs,
+    blockedIds: string[],
+  ): Promise<PaginatedResult<any>> {
+    const { first, after } = pagination;
+    const take = first + 1;
+
+    const q = this._sqlParams();
+    const pinIdParam = q.bind(pinId);
+
+    const srcBlocked = this._notInBlocked(q, blockedIds, 'sp.');
+    const rowBlocked = this._notInBlocked(q, blockedIds, 'p.');
+
+    // Keyset 3 thành phần, CÙNG hướng desc ⇒ diễn đạt được bằng so sánh theo
+    // HÀNG. `sharedTagCount` là aggregate nên mệnh đề phải nằm ở `HAVING`,
+    // không phải `WHERE` (ở `WHERE` thì Postgres báo lỗi "aggregate functions
+    // are not allowed in WHERE" — lỗi ồn ào, không phải lỗi im lặng).
+    let having = '';
+    if (after) {
+      const [count, createdAt, id] = decodeKeysetValues(RELATED_PINS_KEYSET, after);
+      having = `HAVING (COUNT(*)::int, p."createdAt", p."id")
+                     < (${q.bind(count)}::int, ${q.bind(createdAt)}::timestamp, ${q.bind(id)}::text)`;
+    }
+
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `WITH src AS (
+         SELECT pt."B" AS tag_id
+           FROM "_PinToTag" pt
+           JOIN "Pin" sp ON sp."id" = pt."A"
+          WHERE pt."A" = ${pinIdParam}
+            AND sp."deletedAt" IS NULL
+            ${srcBlocked ? `AND ${srcBlocked}` : ''}
+       )
+       SELECT p.*, COUNT(*)::int AS "sharedTagCount"
+         FROM "Pin" p
+         JOIN "_PinToTag" pt ON pt."A" = p."id"
+                            AND pt."B" IN (SELECT tag_id FROM src)
+        WHERE p."deletedAt" IS NULL
+          AND p."id" <> ${pinIdParam}
+          ${rowBlocked ? `AND ${rowBlocked}` : ''}
+        GROUP BY p."id"
+        ${having}
+        ORDER BY COUNT(*) DESC, p."createdAt" DESC, p."id" DESC
+        LIMIT ${q.bind(take)}`,
+      ...q.values,
+    );
+
+    // KHÔNG dùng `_buildPaginatedResult` (nó chốt cứng `CREATED_DESC`): cursor
+    // phải mang cả `sharedTagCount`, nếu không trang 2 sẽ lọc theo nhầm khoá.
+    return keysetPage(RELATED_PINS_KEYSET as any, rows as any, first) as any;
   }
 
   // ─── Home Feed (yêu cầu đăng nhập) ───────────────────────────────────────────

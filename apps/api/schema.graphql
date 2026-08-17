@@ -259,6 +259,7 @@ type Query {
   pin(id: ID!): Pin
   exploreFeed(first: Int! = 20, after: String, categorySlug: String, tagName: String): PaginatedPins!
   userPins(first: Int! = 20, after: String, userId: ID!): PaginatedPins!
+  relatedPins(first: Int! = 20, after: String, pinId: ID!): PaginatedPins!
   homeFeed(first: Int! = 20, after: String, source: FeedSource): HomeFeed!
   categories: [Category!]!
   tags(query: String, first: Int = 20): [Tag!]!

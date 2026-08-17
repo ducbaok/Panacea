@@ -156,6 +156,25 @@ interface DecodedKeyset {
  * Lỗ hổng #4: cursor số phần lệch với spec ⇒ nếu không assert số phần, spec
  * 3-phần được đưa cursor 2-phần sẽ cho `sortOrder: NaN` ⇒ 500.
  */
+/**
+ * Giải cursor ra **mảng giá trị theo đúng thứ tự spec** — cho consumer viết
+ * raw SQL, nơi `keysetWhere` (vốn sinh object `where` của Prisma) không dùng
+ * được. Dùng bởi `PinsService.relatedPins` (B-11).
+ *
+ * ⚠️ Đây KHÔNG phải cửa sau để tự dựng mệnh đề keyset theo ý mình. Consumer
+ * raw SQL vẫn phải giữ đúng hai bất biến của keyset: so sánh theo **hàng**
+ * `(f1, f2, …) < ($1, $2, …)` (Postgres so sánh từ điển đúng ngữ nghĩa keyset,
+ * và chỉ hợp lệ khi **mọi** field cùng hướng) và `ORDER BY` **khớp từng field
+ * từng hướng** với spec. Lệch một trong hai thì phân trang lặp/thiếu item mà
+ * không có exception nào — đúng hình dạng P0 #6.
+ */
+export function decodeKeysetValues<T>(
+  spec: KeysetSpec<T>,
+  cursor: string,
+): Array<Date | string | number> {
+  return decodeKeysetCursor(spec, cursor).values;
+}
+
 function decodeKeysetCursor<T>(spec: KeysetSpec<T>, cursor: string): DecodedKeyset {
   let raw: string;
   try {
@@ -308,6 +327,32 @@ export const BOARD_PINS_KEYSET = defineKeyset<{
   id: string;
 }>([
   { name: 'sortOrder', type: 'number', direction: 'asc' },
+  { name: 'createdAt', type: 'date', direction: 'desc' },
+  { name: 'id', type: 'string', direction: 'desc' },
+]);
+
+/**
+ * `(sharedTagCount desc, createdAt desc, id desc)` — dùng bởi
+ * `PinsService.relatedPins` (B-11, 17/08/2026).
+ *
+ * ⚠️ `sharedTagCount` là **giá trị TÍNH ĐƯỢC** (`COUNT(*)` trên `_PinToTag`),
+ * không phải cột của `Pin`. Nó hợp lệ làm khoá keyset vì trong **cùng một tập
+ * kết quả** (cùng pin gốc) nó tất định; nhưng vì thế cursor của
+ * `relatedPins(pinId: X)` **không** dùng lại được cho `pinId: Y` — nó sẽ giải
+ * mã trót lọt rồi lọc theo một con số vô nghĩa. Đó là lý do cursor của mọi
+ * query trong dự án là **chuỗi mờ**: client không được phép hiểu, ghép, hay
+ * mang cursor từ query này sang query khác.
+ *
+ * ⚠️ Ba field CÙNG hướng `desc` — điều kiện bắt buộc để consumer raw SQL viết
+ * được thành so sánh theo hàng `(a,b,c) < ($1,$2,$3)`. Đổi hướng một field mà
+ * quên đổi câu SQL sẽ lặp/thiếu item mà không ném lỗi.
+ */
+export const RELATED_PINS_KEYSET = defineKeyset<{
+  sharedTagCount: number;
+  createdAt: Date | string;
+  id: string;
+}>([
+  { name: 'sharedTagCount', type: 'number', direction: 'desc' },
   { name: 'createdAt', type: 'date', direction: 'desc' },
   { name: 'id', type: 'string', direction: 'desc' },
 ]);

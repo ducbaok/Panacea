@@ -189,6 +189,44 @@ export default async function (h) {
       : `KHÔNG ném lỗi — người bị chặn vẫn đọc được pin: ${JSON.stringify(pinBlockedRev?.data?.pin)}`,
   );
 
+  // ─── Call-site 4/4: relatedPins (B-11, 17/08/2026) ─────────────────────────
+  //
+  // ⚠️ `relatedPins` có HAI chỗ phải lọc, không phải một — và chỗ thứ hai là
+  // chỗ dễ quên nhất:
+  //   (a) pin KẾT QUẢ: giống 3 call-site trên;
+  //   (b) pin GỐC: nếu không lọc, người bị chặn vẫn "gợi ý" được nội dung —
+  //       viewer đưa pinId của họ vào và nhận về một dải pin sinh ra từ tag của
+  //       pin đó. Lỗ này vô hình với mọi phép kiểm chỉ nhìn danh sách trả về,
+  //       vì danh sách đó toàn pin hợp lệ.
+  //
+  // `pin_18_id` (của bob) chọn làm pin gốc vì nó có tag chung với **cả 3 pin
+  // của john** lẫn pin của alice/bob ⇒ đo được Δ chính xác chứ không phải
+  // "rỗng hết".
+  {
+    const RELATED = `query($p:ID!){ relatedPins(pinId:$p, first:20){ items{ id } } }`;
+    const rel = await h.silent(RELATED, { p: 'pin_18_id' }, state.T1);
+    const relIds = (rel?.data?.relatedPins?.items ?? []).map((x) => x.id);
+    const johnLeft = JOHN_PINS.filter((p) => relIds.includes(p));
+    h.assert(
+      'relatedPins(pin_18) theo bao: mất pin của john, GIỮ pin của người khác (không lọc quá tay)',
+      !rel?.errors && johnLeft.length === 0 && relIds.length > 0,
+      rel?.errors
+        ? `LỖI: ${rel.errors[0].message}`
+        : `còn ${relIds.length} pin [${relIds.join(',')}]` +
+            (johnLeft.length ? ` · CÒN SÓT của john: ${johnLeft.join(',')}` : ''),
+    );
+
+    // (b) PIN GỐC bị chặn ⇒ rỗng. Dùng pin của bao, xem bằng token john.
+    const relSrcBlocked = await h.silent(RELATED, { p: BAO_PINS[0] }, state.T3);
+    h.assert(
+      '2 CHIỀU: relatedPins với PIN GỐC của người đã chặn mình ⇒ rỗng (không gợi ý vòng qua tag)',
+      !relSrcBlocked?.errors && (relSrcBlocked?.data?.relatedPins?.items ?? []).length === 0,
+      relSrcBlocked?.errors
+        ? `LỖI: ${relSrcBlocked.errors[0].message}`
+        : `${(relSrcBlocked?.data?.relatedPins?.items ?? []).length} item (phải 0)`,
+    );
+  }
+
   // ─── Khách vãng lai — bắt lỗi `NOT IN ()` và lỗi "lọc nhầm thành lọc tất" ──
   // Mảng rỗng KHÔNG phải biên hiếm: đó là đường đi của mọi request không token
   // và của mọi người chưa chặn ai. `NOT IN ()` là lỗi cú pháp SQL, sẽ nổ thành

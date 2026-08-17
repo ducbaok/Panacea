@@ -49,6 +49,7 @@ import { UpdatePinInput } from './dto/update-pin.input';
 import { CursorPaginationArgs } from '../common/pagination';
 import { UserPinsArgs } from './dto/user-pins.args';
 import { ExploreFeedArgs } from './dto/explore-feed.args';
+import { RelatedPinsArgs } from './dto/related-pins.args';
 import { HomeFeedArgs } from './dto/home-feed.args';
 import { DataloaderService } from '../common/dataloader';
 import { GqlAuthGuard, GqlOptionalAuthGuard } from '../auth/guards/gql-auth.guard';
@@ -118,6 +119,28 @@ export class PinsResolver {
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
     return this.pinsService.userPins(userId, pagination, blockedIds);
+  }
+
+  /**
+   * B-11 — Pin liên quan với một pin, theo **tag chung**, nhiều tag chung xếp
+   * trước.
+   *
+   * `GqlOptionalAuthGuard` chứ không phải `GqlAuthGuard`: khách vãng lai xem
+   * được trang chi tiết pin thì cũng phải xem được dải "pin liên quan" dưới đó.
+   * Nhưng có `@CurrentUser()` thì **bắt buộc có guard** (luật *guard tạo danh
+   * tính*) — thiếu guard, `request.user` không tồn tại và decorator trả `null`
+   * **kể cả khi client gửi token hợp lệ**, tức bộ lọc chặn im lặng tắt.
+   */
+  @Query(() => PaginatedPins, { name: 'relatedPins' })
+  @UseGuards(GqlOptionalAuthGuard)
+  async relatedPins(
+    @Args() { pinId, ...pagination }: RelatedPinsArgs,
+    @CurrentUser() user?: AuthUser | null,
+  ) {
+    // Cùng một mảng `blockedIds` (2 chiều, từ `common/blocking/`) dùng cho CẢ
+    // pin gốc lẫn pin kết quả — service lo phần đó. Đừng viết nhánh lọc mới.
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.pinsService.relatedPins(pinId, pagination, blockedIds);
   }
 
   /**
