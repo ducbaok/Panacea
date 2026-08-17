@@ -8,7 +8,8 @@
 # ║   3. So SDL: schema.graphql commit vs bản API sinh lúc boot — lệch ⇒ đỏ.   ║
 # ║      (Phép DUY NHẤT bắt "sửa resolver mà quên restart API": tsc không thấy)║
 # ║                                                                           ║
-# ║  Kỳ vọng trên DB sạch: verify OK=204 · EXPECTED=19 · FAIL=0 · exit 0.      ║
+# ║  Mốc lúc chạy CI lần đầu (17/08, sau khi Luồng B2 đóng hàng đợi):          ║
+# ║  OK=261 · EXPECTED=21 · FAIL=0 · SKIP=0 · TOTAL=282, exit 0.               ║
 # ║  ⚠️ KHÔNG hardcode con số vào điều kiện đỏ — cổng đỏ là EXIT CODE của       ║
 # ║  `pnpm verify` (run-all.mjs: process.exit(fail || stoppedAt ? 1 : 0)).     ║
 # ║  Nếu CI ra FAIL: đối chiếu theo cặp group::name, báo Luồng 2 (mục 0 của     ║
@@ -31,32 +32,28 @@ jobs:
     name: build + verify (DB sạch)
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: antigravity
-          POSTGRES_PASSWORD: antigravity
-          POSTGRES_DB: antigravity_dev
-          # Khớp docker-compose.yml: locale=C để tìm kiếm tiếng Việt không lệch
-          # giữa môi trường — baseline verify đo trên collation này.
-          POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U antigravity -d antigravity_dev"
-          --health-interval 10s --health-timeout 5s --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s --health-timeout 3s --health-retries 10
+    # ⚠️ KHÔNG dùng khối `services:` của GitHub Actions ở đây — đã thử và nó SAI.
+    #
+    # `services:` sinh container với tên do runner đặt (`<job>_postgres_<hash>`).
+    # Nhưng `scripts/verify/steps/60-search-notif.mjs:16` gọi thẳng
+    # `docker exec antigravity-postgres psql …` để dựng pin `description=NULL`
+    # cho đối chứng âm coalesce của B-3 — và khi `docker exec` không tìm thấy
+    # container ĐÚNG TÊN ĐÓ, bước 60 ghi **FAIL** (dòng 126-129), không phải SKIP.
+    # ⇒ CI sẽ đỏ vì tên container, chứ không vì code hỏng. Đúng loại "lệch runner"
+    # tệ nhất: đỏ thật, nguyên nhân giả.
+    #
+    # Dựng bằng `docker-compose.yml` CỦA CHÍNH REPO thì tên container
+    # (`antigravity-postgres` / `antigravity-redis`), `POSTGRES_INITDB_ARGS`
+    # (locale=C) và cổng 5434 đều là MỘT nguồn sự thật với máy dev nơi mốc hồi
+    # quy được đo. `scripts/verify/**` là lãnh thổ Luồng 2 — sửa workflow cho
+    # khớp verify, không sửa verify cho khớp workflow.
 
     env:
-      # ── Kết nối tới service container (map ra localhost của runner) ──────────
-      DATABASE_URL: postgresql://antigravity:antigravity@localhost:5432/antigravity_dev
+      # ── Kết nối tới container của docker-compose.yml ────────────────────────
+      # Cổng 5434 là mặc định của compose (`${POSTGRES_PORT:-5434}:5432`) — trên
+      # runner không có Postgres native chiếm cổng, nhưng vẫn giữ 5434 để CI và
+      # máy dev dùng đúng một chuỗi kết nối.
+      DATABASE_URL: postgresql://antigravity:antigravity@localhost:5434/antigravity_dev
       REDIS_URL: redis://localhost:6379
       # ── Secret giả cho CI (đủ điều kiện Joi: JWT ≥32, INTERNAL ≥16) ─────────
       BACKEND_JWT_SECRET: ci_backend_jwt_secret_min_32_chars_0123456789
@@ -76,6 +73,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # `--wait` chờ healthcheck của compose (pg_isready / redis-cli ping) chứ
+      # không chỉ chờ "đã tạo container". Postgres lần đầu chạy initdb rồi
+      # RESTART — không chờ healthy thì `migrate deploy` bắn vào khoảng chết đó.
+      - name: Dựng Postgres + Redis bằng docker-compose.yml của repo
+        run: |
+          docker compose up -d --wait
+          docker compose ps
 
       - uses: pnpm/action-setup@v4
         with:
@@ -171,6 +176,12 @@ jobs:
         run: |
           if [ -f "$GITHUB_WORKSPACE/api.pid" ]; then kill "$(cat "$GITHUB_WORKSPACE/api.pid")" 2>/dev/null || true; fi
 
+      # Log của Postgres/Redis chỉ có giá trị khi CI đỏ, nhưng lúc đó thì runner
+      # đã biến mất — nên đổ ra file NGAY, đi kèm artifact ở bước dưới.
+      - name: Log Postgres + Redis
+        if: always()
+        run: docker compose logs --no-color > "$GITHUB_WORKSPACE/compose.log" 2>&1 || true
+
       - name: Upload logs + results
         if: always()
         uses: actions/upload-artifact@v4
@@ -178,6 +189,7 @@ jobs:
           name: verify-evidence
           path: |
             api.log
+            compose.log
             scripts/verify/results.json
             results.attempt1.json
           if-no-files-found: ignore
