@@ -25,6 +25,10 @@
 // ║      các brief. Basename trần `client.mjs` → tra chỉ mục basename.         ║
 // ║        0 khớp → ERROR;  1 khớp → dùng;  >1 → WARN (không chắc file nào).   ║
 // ║    • Đích là THƯ MỤC vẫn hợp lệ (link tới `apps/web/app/probe/`).          ║
+// ║    • File trong node_modules (vd nội bộ của @nestjs/core): ĐỪNG viết dạng  ║
+// ║      `ten-file.js:line` — script KHÔNG index node_modules, và CI trên máy  ║
+// ║      sạch còn chưa cài dependency ⇒ kết quả sẽ khác nhau theo máy. Viết    ║
+// ║      `ten-file.js` của `pkg@version`, dòng N–M (không có dấu `:` ⇒ bỏ qua).║
 // ║    • URL http/https/mailto (kể cả trong inline code), anchor thuần `#…`     ║
 // ║      → bỏ qua.                                                             ║
 // ║    • Fenced code block (``` hoặc ~~~) → bỏ qua toàn khối (ví dụ trong đó    ║
