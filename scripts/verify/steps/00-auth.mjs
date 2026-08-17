@@ -12,6 +12,25 @@ export default async function (h) {
   state.uniq = uniq;
   state.probeEmail = `probe_${uniq}@example.com`;
 
+  // ─── HT-3 #2 — health check phải TỒN TẠI và phải CHẠM dependency ──────────
+  //
+  // Vì sao đây là bản ghi verify chứ không phải "kiểm một lần rồi thôi": hình
+  // dạng hỏng đã xảy ra thật là **endpoint không tồn tại**. `AppController` là
+  // di sản `nest new` và **chưa từng được đăng ký** trong `AppModule`, nên
+  // `GET /` trả 404 suốt nhiều tháng mà không ai biết — kể cả `PLAN_HATANG.md`
+  // §1 cũng mô tả nhầm là "chỉ có getHello()". Một endpoint biến mất là thứ
+  // không tính năng nào khác báo động hộ, còn trên ECS thì nó nghĩa là **không
+  // task nào từng healthy**.
+  h.setGroup('REST/health');
+  {
+    const hz = await rest('GET /health → 200', 'GET', '/health');
+    h.assert(
+      'health CHẠM THẬT tới DB và Redis (không phải endpoint rỗng trả 200)',
+      hz?.status === 'ok' && hz?.db?.ok === true && hz?.redis?.ok === true,
+      `status=${hz?.status} db=${JSON.stringify(hz?.db)} redis=${JSON.stringify(hz?.redis)}`,
+    );
+  }
+
   h.setGroup('REST/auth');
 
   await rest('POST /auth/register', 'POST', '/auth/register', {

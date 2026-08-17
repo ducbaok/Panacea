@@ -27,6 +27,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MessagesModule } from './messages/messages.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MaintenanceModule } from './maintenance/maintenance.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -101,6 +102,10 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
     MessagesModule,
     SearchModule,
     MaintenanceModule,
+    // HT-3 #2 — health check THẬT. `AppController` (di sản `nest new`) chưa
+    // từng được đăng ký ở đây, nên trước 17/08 `GET /` trả **404** và ALB sẽ
+    // không bao giờ thấy task nào healthy. Đã xoá `AppController`/`AppService`.
+    HealthModule,
   ],
   providers: [
     // Global rate limiting
