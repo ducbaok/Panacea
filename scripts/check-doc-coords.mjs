@@ -49,12 +49,24 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 // Thư mục không bao giờ đi vào — vừa để quét .md, vừa để dựng chỉ mục basename.
 const SKIP_DIRS = new Set([
   'node_modules', '.git', '.next', 'dist', 'build', 'coverage',
-  '.turbo', 'uploads', '.pnpm', 'out',
+  '.turbo', '.pnpm', 'out',
   // `.claude/worktrees/**` là bản checkout SONG SONG của chính repo (thiết lập
   // 5 luồng). Nếu để lọt vào chỉ mục basename thì mọi file bị đếm gấp đôi →
   // hàng loạt WARN "trùng 2 file" và tệ hơn: một basename chỉ còn trong worktree
   // vẫn được coi là "ok". Bỏ cả `.claude`.
   '.claude',
+]);
+
+// Bỏ theo ĐƯỜNG DẪN CỤ THỂ (posix, tính từ REPO_ROOT) — khác SKIP_DIRS ở chỗ
+// SKIP_DIRS khớp theo TÊN thư mục ở bất kỳ độ sâu nào.
+//   `apps/api/uploads/` = kho ảnh test (88 file), đúng là không nên index.
+//   Nhưng `apps/api/src/uploads/` là MÃ NGUỒN THẬT (uploads.controller.ts,
+//   uploads.service.ts). Khi 'uploads' còn nằm trong SKIP_DIRS, cả hai cùng bị
+//   bỏ ⇒ mọi toạ độ trỏ vào `apps/api/src/uploads/**` bị báo ERROR "không tìm
+//   thấy file" DÙ ĐÚNG — tức script đẩy người viết đi sửa một toạ độ vốn không
+//   hỏng. Đó là loại dương tính giả tệ hơn cả bỏ sót.
+const SKIP_PATHS = new Set([
+  'apps/api/uploads',
 ]);
 
 // Ref inline chỉ tính là "toạ độ" khi phần trước dấu `:` kết thúc bằng một đuôi
@@ -79,7 +91,9 @@ function walk(dir, out = []) {
   for (const e of entries) {
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
-      walk(path.join(dir, e.name), out);
+      const abs = path.join(dir, e.name);
+      if (SKIP_PATHS.has(path.relative(REPO_ROOT, abs).split(path.sep).join('/'))) continue;
+      walk(abs, out);
     } else if (e.isFile()) {
       out.push(path.join(dir, e.name));
     }
