@@ -101,9 +101,19 @@ type Props = {
   item: PinCardItem;
   columnWidth: number;
   onOpen?: (id: string) => void;
+  /**
+   * FE-10 — chỗ cắm overlay THEO NGỮ CẢNH, render bên trong vỏ ảnh (vỏ đã
+   * `position:relative`, nên node truyền vào tự định vị bằng `position:absolute`).
+   *
+   * Vì sao là prop chung chứ không phải "nút đặt làm bìa": menu ⋯ "Đặt làm bìa"
+   * + badge "Ảnh bìa" chỉ có nghĩa TRONG một board cụ thể (cần boardId, cần
+   * coverPinId, cần vai trò EDITOR trên board đó). Nhồi vào PinCard là buộc mọi
+   * màn dùng lưới phải biết về board. Chủ gọi (board-view) giữ toàn bộ logic đó.
+   */
+  overlay?: React.ReactNode;
 };
 
-export function PinCard({ item, columnWidth, onOpen }: Props) {
+export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
@@ -323,6 +333,10 @@ export function PinCard({ item, columnWidth, onOpen }: Props) {
             {REACTION_EMOJI[item.viewerReaction]}
           </div>
         )}
+
+        {/* Overlay theo ngữ cảnh (FE-10): board-view cắm badge "Ảnh bìa" + menu
+            ⋯ "Đặt làm bìa" vào đây. Đặt CUỐI để nằm trên ảnh và các chỉ báo. */}
+        {overlay}
       </div>
 
       {/* Khối chữ — height CỐ ĐỊNH, không đổi theo nội dung (§4.4.1) */}

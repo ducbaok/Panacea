@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { getSession, useSession } from 'next-auth/react';
 import { useMutation, useQuery } from '@apollo/client/react';
 import {
   PinDocument,
@@ -19,6 +19,7 @@ import {
   DeletePinDocument,
   type DeletePinMutation,
   type DeletePinMutationVariables,
+  TrackPinViewDocument,
 } from '@/lib/gql/graphql';
 import { toReadState } from '@/lib/errors/map-error';
 import { REACTION_ORDER, REACTION_EMOJI, REACTION_LABEL } from '@/lib/reactions';
@@ -209,6 +210,93 @@ function PinDetailContent({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isOwner = meQuery.data?.me?.id != null && meQuery.data.me.id === pin.creator.id;
+
+  /**
+   * FE-10 (wire B-4) — đo lượt xem pin. MỘT điểm gọi cho cả hai bản (modal
+   * `@modal/(.)pin/[id]` và trang `/pin/[id]`) vì cả hai dùng chung component này.
+   *
+   * • **LOẠI self-view** (người dùng chốt 17/08): chủ pin xem pin của mình KHÔNG
+   *   được đếm. Backend hiện đếm cả chủ pin, nên chặn ở đây là chỗ duy nhất.
+   * • **Chờ danh tính rõ ràng trước khi gọi.** `sessionStatus === 'loading'` hoặc
+   *   `me` chưa về ⇒ chưa biết người xem có phải chủ pin không; gọi sớm là tự
+   *   đếm mất một lượt self-view. Khách (`unauthenticated`) thì gọi ngay — danh
+   *   tính của họ là header `x-anon-id`.
+   * • **Fire-and-forget.** Boolean trả về là "lần này CÓ tăng bộ đếm không"
+   *   (`false` khi trong cửa sổ debounce 30 phút, hoặc pin không có `sourceUrl`
+   *   với click, hoặc không định danh được) — KHÔNG phải mã lỗi. Không toast,
+   *   không render theo kết quả, lỗi thì im lặng: một phép đo hụt không được làm
+   *   hỏng màn xem pin.
+   * • Một lần cho MỖI pinId trong một lần mount (ref chặn double-invoke của
+   *   StrictMode; debounce 30 phút của backend là lưới thứ hai, không phải thứ nhất).
+   */
+  /*
+   * TODO(FE-10): CHỜ NGƯỜI DÙNG — `trackPinClick` chưa wire vì KHÔNG có bề mặt
+   * gọi nào đã vẽ. Màn chi tiết pin không render `pin.sourceUrl`, và
+   * `Panacea-v2.1.html` chỉ vẽ Ô NHẬP "Link nguồn" ở form tạo/sửa pin (B4/B5) —
+   * không có link nguồn bấm được ở màn xem. Thêm link = bịa giao diện (luật 19),
+   * nên người dùng chốt 17/08: hoãn Click, đợt này chỉ wire View.
+   * Mở lại khi có bản vẽ link nguồn: gọi `TrackPinClickDocument` (operation đã
+   * sinh sẵn ở pin.graphql) ngay tại chỗ mở link, fire-and-forget như View.
+   */
+  const [trackView] = useMutation(TrackPinViewDocument);
+  const trackedPinIdRef = useRef<string | null>(null);
+
+  /**
+   * 🔴 BẪY ĐÃ TRẢ GIÁ TRONG ĐỢT NÀY (đo được, không phải phòng xa):
+   * `useSession().status` KHÔNG đáng tin ở lần render đầu của một tab LẠNH.
+   * `<SessionProvider>` (app/providers.tsx) không được truyền `session` sẵn nên
+   * mỗi lần tải trang nó phải tự fetch `/api/auth/session`; trong cửa sổ đó
+   * `status` đã có thể là `'unauthenticated'` dù cookie phiên vẫn còn.
+   *
+   * Hậu quả đo được: mở pin CỦA CHÍNH MÌNH trong tab mới ⇒ guard tưởng là khách
+   * ⇒ `trackPinView` bắn ⇒ viewCount 0→1, tức self-view vẫn bị đếm (đúng thứ
+   * người dùng đã chốt phải loại). Không có lỗi nào hiện ra: request 200, UI
+   * bình thường. Đây là bẫy 1 (viewer-aware im lặng) ở dạng thời gian.
+   *
+   * Vì thế "là khách" phải được XÁC NHẬN bằng nguồn xác thực (`getSession()` gọi
+   * thẳng `/api/auth/session`), không suy từ status. Ràng buộc này đồng thời bảo
+   * đảm điều thứ hai: khi phiên CÓ thật, ta chờ tới lúc `me` về — lúc đó Apollo
+   * authLink cũng đã có token, nên lượt đếm mang đúng danh tính chứ không rơi về
+   * `x-anon-id`.
+   */
+  const [guestConfirmed, setGuestConfirmed] = useState(false);
+  useEffect(() => {
+    if (sessionStatus !== 'unauthenticated') return;
+    let cancelled = false;
+    void getSession().then((s) => {
+      if (!cancelled && !s) setGuestConfirmed(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionStatus]);
+
+  /**
+   * Danh tính phải là bằng chứng DƯƠNG, không phải "hết loading".
+   *
+   * Bản đầu của đợt này viết `meQuery.data !== undefined || meQuery.error !== undefined`
+   * và đo được là SAI: khi `me` lỗi 401 (request bay ra trước lúc authLink kịp có
+   * token — cửa sổ vài chục ms ở tab lạnh), nhánh `error` làm `identityKnown` bật,
+   * `isOwner` là false vì chưa có `me`, và lượt xem CỦA CHÍNH CHỦ PIN bị đếm —
+   * xác nhận bằng viewCount 1→2 kèm khoá Redis `track:view:pin_6_id:u:user_2_id`.
+   *
+   * Nay chỉ chấp nhận: (a) đã xác nhận là KHÁCH bằng getSession(), hoặc (b) đọc
+   * ĐƯỢC `me.id`. Nếu `me` lỗi mãi thì lượt xem đó không được đếm — mất một phép
+   * đo còn hơn đếm sai vào đúng cái ta vừa hứa loại.
+   */
+  const identityKnown =
+    (sessionStatus === 'unauthenticated' && guestConfirmed) ||
+    (sessionStatus === 'authenticated' && !!meQuery.data?.me?.id);
+
+  useEffect(() => {
+    if (!identityKnown) return;
+    if (isOwner) return; // self-view: cố ý không đếm
+    if (trackedPinIdRef.current === pin.id) return;
+    trackedPinIdRef.current = pin.id;
+    void trackView({ variables: { pinId: pin.id } }).catch(() => {
+      // Im lặng — xem mục "fire-and-forget" ở trên.
+    });
+  }, [identityKnown, isOwner, pin.id, trackView]);
 
   useEffect(() => {
     if (!menuOpen) return;

@@ -104,6 +104,22 @@ query Pin($id: ID!) {
   }
 }
 
+# ─────────── FE-10 · wire B-4 (đo lượt xem / lượt bấm) ───────────
+# Boolean trả về = "lần gọi NÀY có làm bộ đếm tăng không", KHÔNG phải "đã nhận
+# yêu cầu". false là BÌNH THƯỜNG: trong cửa sổ debounce 30 phút, hoặc không định
+# danh được (không token + không x-anon-id), hoặc click trên pin không có
+# sourceUrl. ⇒ Gọi fire-and-forget, KHÔNG render theo kết quả, KHÔNG toast.
+# Guard backend là GqlOptionalAuthGuard: khách vãng lai được đếm qua header
+# `x-anon-id` (xem lib/anon-id.ts).
+
+mutation TrackPinView($pinId: ID!) {
+  trackPinView(pinId: $pinId)
+}
+
+mutation TrackPinClick($pinId: ID!) {
+  trackPinClick(pinId: $pinId)
+}
+
 query UserPins($userId: ID!, $first: Int! = 20, $after: String) {
   userPins(userId: $userId, first: $first, after: $after) {
     items {

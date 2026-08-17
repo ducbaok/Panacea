@@ -16,6 +16,7 @@ import {
   type BlockedUsersQuery,
 } from '@/lib/gql/graphql';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { useAvatarUpload } from '@/components/profile/use-avatar-upload';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
@@ -37,6 +38,7 @@ export default function SettingsPage() {
   const confirm = useConfirm();
   const toast = useToast();
 
+  const avatarUpload = useAvatarUpload();
   const meQuery = useQuery<MeQuery>(MeDocument);
   const blockedQuery = useQuery<BlockedUsersQuery>(BlockedUsersDocument, { variables: { first: 50 } });
   const [updateProfile, { loading: saving }] = useMutation<UpdateProfileMutation, UpdateProfileMutationVariables>(UpdateProfileDocument);
@@ -104,6 +106,74 @@ export default function SettingsPage() {
         <Card>
           <CardTitle>Hồ sơ</CardTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Đổi ảnh đại diện (FE-10, bản vẽ C2): avatar preview 60×60 + nút có
+                icon camera + hint. Cùng luồng với nút camera ở C1a — một hook
+                `useAvatarUpload`, chỉ gửi { avatarUrl } (§4.9).
+                ⚠️ Hint 200×200 là lời khuyên UI: backend KHÔNG kiểm vuông/min-size. */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              {me?.avatarUrl ? (
+                <img
+                  src={me.avatarUrl}
+                  alt=""
+                  style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flex: 'none' }}
+                />
+              ) : (
+                <div
+                  aria-hidden
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    background: 'var(--color-primary)',
+                    color: 'var(--color-primary-foreground)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: 22,
+                    flex: 'none',
+                  }}
+                >
+                  {(me?.name ?? me?.username ?? '?').trim().charAt(0).toUpperCase() || '?'}
+                </div>
+              )}
+              <div style={{ minWidth: 0 }}>
+                <input {...avatarUpload.inputProps} />
+                <button
+                  type="button"
+                  onClick={avatarUpload.pick}
+                  disabled={avatarUpload.phase === 'working'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '9px 16px',
+                    borderRadius: 999,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface)',
+                    color: 'var(--color-foreground)',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: avatarUpload.phase === 'working' ? 'wait' : 'pointer',
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l.9-1.6a1 1 0 0 1 .87-.5h5.06a1 1 0 0 1 .87.5L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                    <circle cx="12" cy="12.5" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+                  </svg>
+                  {avatarUpload.phase === 'working' ? 'Đang tải ảnh…' : 'Đổi ảnh đại diện'}
+                </button>
+                <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>
+                  Ảnh vuông, tối thiểu 200×200.
+                </div>
+              </div>
+            </div>
+
             <Field label="Tên hiển thị">
               <input
                 value={name}

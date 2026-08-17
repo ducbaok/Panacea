@@ -101,6 +101,69 @@ query UserBoards($userId: ID!, $first: Int! = 20, $after: String) {
   }
 }
 
+# ─────────── FE-10 · C6 quản lý section ───────────
+# Đọc-side dùng lại query Board ở trên (đã select sections{id,name,sortOrder}).
+# BoardSection KHÔNG có pinCount ở SDL ⇒ C6 bỏ nhãn "{n} pin" của bản vẽ (§4.3,
+# người dùng đã chốt 17/08). Đừng thêm field đó vào đây khi backend chưa có.
+
+mutation CreateSection($input: CreateSectionInput!) {
+  createSection(input: $input) {
+    id
+    name
+    sortOrder
+  }
+}
+
+mutation UpdateSection($input: UpdateSectionInput!) {
+  updateSection(input: $input) {
+    id
+    name
+    sortOrder
+  }
+}
+
+mutation DeleteSection($id: ID!) {
+  deleteSection(id: $id)
+}
+
+# Nhận TOÀN BỘ mảng id theo thứ tự mới (backend set sortOrder = index trong một
+# transaction) — KHÔNG gửi từng cặp (id, index). §4.7.
+mutation ReorderSections($boardId: ID!, $sectionIds: [ID!]!) {
+  reorderSections(boardId: $boardId, sectionIds: $sectionIds)
+}
+
+# ─────────── FE-10 · C7 cộng tác viên ───────────
+# Không có query `boardCollaborators` riêng: danh sách nạp qua Board.collaborators
+# ở trên và KHÔNG phân trang (§4.5). Chủ board KHÔNG nằm trong mảng đó.
+
+mutation InviteCollaborator($boardId: ID!, $userId: ID!, $role: CollaboratorRole!) {
+  inviteCollaborator(boardId: $boardId, userId: $userId, role: $role) {
+    id
+    role
+    user {
+      id
+      name
+      username
+      avatarUrl
+    }
+  }
+}
+
+# Dùng cho CẢ hai nút: "Gỡ" (chủ gỡ người khác) và "Rời board" (CTV tự gỡ mình).
+# Không có mutation `leaveBoard` — §4.7.
+mutation RemoveCollaborator($boardId: ID!, $userId: ID!) {
+  removeCollaborator(boardId: $boardId, userId: $userId)
+}
+
+mutation UpdateCollaboratorRole($boardId: ID!, $userId: ID!, $role: CollaboratorRole!) {
+  updateCollaboratorRole(boardId: $boardId, userId: $userId, role: $role)
+}
+
+# ─────────── FE-10 · setBoardCover (C4) ───────────
+mutation SetBoardCover($boardId: ID!, $pinId: ID!) {
+  setBoardCover(boardId: $boardId, pinId: $pinId)
+}
+
 query BoardPins($boardId: ID!, $sectionId: ID, $first: Int! = 20, $after: String) {
   boardPins(boardId: $boardId, sectionId: $sectionId, first: $first, after: $after) {
     items {

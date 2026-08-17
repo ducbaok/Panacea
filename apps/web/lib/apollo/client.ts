@@ -5,6 +5,7 @@ import { SetContextLink } from '@apollo/client/link/context';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient, type Client as WsClient } from 'graphql-ws';
+import { getAnonId } from '@/lib/anon-id';
 import type { WsStatus } from './ws-status';
 
 /**
@@ -60,9 +61,18 @@ export function createApolloClient(source: AccessTokenSource): ApolloBundle {
   const authLink = new SetContextLink(async (prevContext) => {
     const token = await source.getAccessToken();
     const prevHeaders = (prevContext.headers ?? {}) as Record<string, string>;
-    return {
-      headers: token ? { ...prevHeaders, Authorization: `Bearer ${token}` } : prevHeaders,
-    };
+    const headers: Record<string, string> = { ...prevHeaders };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    /**
+     * FE-10 (wire B-4) — `x-anon-id` cho `trackPinView`/`trackPinClick`. Gắn cho
+     * MỌI request, kể cả khi đã đăng nhập: backend lấy danh tính từ token trước
+     * và token luôn thắng anonId, nên gửi kèm là vô hại và tránh phải phân nhánh
+     * theo phiên ở đây. Không có mã (prerender / storage bị chặn) thì bỏ header —
+     * backend hiểu là "không định danh được" và cố ý không đếm.
+     */
+    const anonId = getAnonId();
+    if (anonId) headers['x-anon-id'] = anonId;
+    return { headers };
   });
 
   // WebSocket client chỉ được tạo bên client. Trong Next 16, Client Component vẫn

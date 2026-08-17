@@ -21,6 +21,7 @@ import { PinGrid } from '@/components/pin/pin-grid';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
+import { useAvatarUpload } from '@/components/profile/use-avatar-upload';
 import { formatCount } from '@/lib/format';
 
 /**
@@ -263,7 +264,7 @@ function ProfileContent({
         }}
       />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: -46 }}>
-        <HeaderAvatar name={dispName} url={profile.avatarUrl} />
+        <HeaderAvatar name={dispName} url={profile.avatarUrl} editable={isSelf} />
         <h1 style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 25, margin: '12px 0 2px', color: 'var(--color-foreground)' }}>
           {dispName}
         </h1>
@@ -301,17 +302,19 @@ function ProfileContent({
           </a>
         )}
 
-        {/* 2 nút số đếm — trỏ C3 (ngoài phạm vi §9): giữ nút, chú thích qua toast */}
+        {/* 2 nút số đếm → C3 (FE-10 mở khoá; trước đó chỉ hiện toast "sẽ có ở
+            bản sau"). Đích là chính `uname` đang xem, KHÔNG phải người đăng nhập —
+            C3 xem được danh sách của người khác. */}
         <div style={{ display: 'flex', gap: 22, marginTop: 12, fontSize: 13.5 }}>
           <CountButton
             count={profile.followerCount ?? 0}
             label="người theo dõi"
-            onClick={() => toast({ message: 'Danh sách người theo dõi sẽ có ở bản sau.' })}
+            onClick={() => router.push(`/@${uname}/followers`)}
           />
           <CountButton
             count={profile.followingCount ?? 0}
             label="đang theo dõi"
-            onClick={() => toast({ message: 'Danh sách đang theo dõi sẽ có ở bản sau.' })}
+            onClick={() => router.push(`/@${uname}/following`)}
           />
         </div>
 
@@ -545,19 +548,31 @@ function BoardsGrid({
 
 // ─── Bits dùng lại trong C1 ────────────────────────────────────────────────────
 
-function HeaderAvatar({ name, url }: { name?: string | null; url?: string | null }) {
+/**
+ * Avatar 92×92 của C1/C1a. `editable` (chỉ hồ sơ CỦA MÌNH) thêm nút camera tròn
+ * 32×32 đè góc phải-dưới — bản vẽ C1a của `Panacea-v2.1.html`, không nhãn chữ,
+ * `title="Đổi ảnh đại diện"`.
+ */
+function HeaderAvatar({
+  name,
+  url,
+  editable,
+}: {
+  name?: string | null;
+  url?: string | null;
+  editable?: boolean;
+}) {
   const initial = (name ?? '?').trim().charAt(0).toUpperCase() || '?';
   const border = '4px solid var(--color-background)';
-  if (url) {
-    return (
-      <img
-        src={url}
-        alt={name ?? ''}
-        style={{ width: 92, height: 92, borderRadius: '50%', objectFit: 'cover', border }}
-      />
-    );
-  }
-  return (
+  const avatarUpload = useAvatarUpload();
+
+  const face = url ? (
+    <img
+      src={url}
+      alt={name ?? ''}
+      style={{ width: 92, height: 92, borderRadius: '50%', objectFit: 'cover', border }}
+    />
+  ) : (
     <div
       aria-hidden
       style={{
@@ -576,6 +591,56 @@ function HeaderAvatar({ name, url }: { name?: string | null; url?: string | null
     >
       {initial}
     </div>
+  );
+
+  if (!editable) return face;
+
+  return (
+    <div style={{ position: 'relative', width: 92, height: 92 }}>
+      {face}
+      <input {...avatarUpload.inputProps} />
+      <button
+        type="button"
+        onClick={avatarUpload.pick}
+        disabled={avatarUpload.phase === 'working'}
+        title="Đổi ảnh đại diện"
+        aria-label="Đổi ảnh đại diện"
+        style={{
+          position: 'absolute',
+          right: -2,
+          bottom: -2,
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          border: '2px solid var(--color-background)',
+          background: 'var(--color-surface)',
+          color: 'var(--color-foreground)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+          cursor: avatarUpload.phase === 'working' ? 'wait' : 'pointer',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <CameraIcon />
+      </button>
+    </div>
+  );
+}
+
+/** Icon camera 15×15 — bản vẽ C1a/C2 dùng cùng một hình. */
+function CameraIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l.9-1.6a1 1 0 0 1 .87-.5h5.06a1 1 0 0 1 .87.5L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12.5" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
   );
 }
 

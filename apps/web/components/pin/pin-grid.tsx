@@ -136,6 +136,12 @@ type Props = {
   loadMore: () => void;
   /** FE-4 sẽ cắm điều hướng modal/(.)pin/[id]. FE-3 để trống hành vi. */
   onOpen?: (id: string) => void;
+  /**
+   * FE-10 — overlay theo ngữ cảnh cho từng thẻ (xem prop `overlay` của PinCard).
+   * Lưới chỉ chuyển tiếp, không biết nội dung: C4 dùng để cắm badge "Ảnh bìa" +
+   * menu ⋯ "Đặt làm bìa".
+   */
+  renderOverlay?: (item: PinCardItem) => React.ReactNode;
 };
 
 export function PinGrid({
@@ -145,6 +151,7 @@ export function PinGrid({
   hasNextPage,
   loadMore,
   onOpen,
+  renderOverlay,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -245,7 +252,12 @@ export function PinGrid({
                   width: `${pos.width}px`,
                 }}
               >
-                <PinCard item={item} columnWidth={pos.width} onOpen={onOpen} />
+                <PinCard
+                  item={item}
+                  columnWidth={pos.width}
+                  onOpen={onOpen}
+                  overlay={renderOverlay?.(item)}
+                />
               </div>
             );
           })}

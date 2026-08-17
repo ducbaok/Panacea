@@ -18,6 +18,7 @@ import {
   type TagsQueryVariables,
 } from '@/lib/gql/graphql';
 import { measureImage, uploadImage, UploadError, type UploadErrorKind } from '@/lib/upload';
+import { UPLOAD_ERROR_TEXT } from '@/lib/errors/upload-error-vi';
 import { mapError } from '@/lib/errors/map-error';
 import { formatBytes } from '@/lib/format';
 import { useToast } from '@/components/ui/toast';
@@ -47,16 +48,11 @@ const DESC_MAX = 2000;
 const TAGS_MAX = 10;
 const CATS_MAX = 3;
 
-/** Q1 — 5 chuỗi lỗi upload đã DUYỆT 16/08/2026. Kind→chuỗi (không nhúng ở lib/upload). */
-const UPLOAD_ERROR_TEXT: Record<UploadErrorKind, string> = {
-  'too-large': 'Ảnh vượt quá 10MB — chọn ảnh nhỏ hơn.',
-  'unsupported-type': 'Định dạng không được hỗ trợ — chỉ nhận JPG, PNG, WEBP, GIF.',
-  'too-small': 'Ảnh quá nhỏ (tối thiểu 1KB).',
-  'no-file': 'Không tải được ảnh lên — kiểm tra kết nối rồi thử lại.',
-  unauthorized: 'Không tải được ảnh lên — kiểm tra kết nối rồi thử lại.',
-  network: 'Không tải được ảnh lên — kiểm tra kết nối rồi thử lại.',
-  unknown: 'Không tải được ảnh lên — kiểm tra kết nối rồi thử lại.',
-};
+/*
+ * Q1 — 5 chuỗi lỗi upload đã DUYỆT 16/08/2026 nay ở `lib/errors/upload-error-vi.ts`.
+ * FE-10 chuyển ra đó vì luồng đổi ảnh đại diện (C1a + C2) dùng CHUNG bảng này;
+ * để cục bộ ở đây thì bản thứ hai sẽ trôi khỏi bản này.
+ */
 /** Q1 — trần ngày (403 createPin), đã duyệt. */
 const DAILY_CAP_TEXT = 'Bạn đã đạt trần 20 pin hôm nay — quay lại vào ngày mai.';
 /** Q2 — savePin fail sau createPin, đã duyệt. */

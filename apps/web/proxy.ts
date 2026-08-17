@@ -24,6 +24,15 @@ import { auth } from '@/auth';
  * trước — nhưng nó CHỈ khớp '/messages/<id>', nên trước đợt này khách vào thẳng
  * '/messages' sẽ lọt lưới. Đây là lần thứ BA cùng một cái bẫy (pin/new ở FE-7,
  * notifications ở FE-8): mẫu '/x/:path*' không bao gồm '/x'.
+ *
+ * FE-10 thêm 2 route board cần đăng nhập: '/board/:id/sections' (C6) và
+ * '/board/:id/collaborators' (C7) — cả hai là segment CỐ ĐỊNH cuối nên không
+ * vướng bẫy bare-route ở trên (không có route con nào dưới chúng).
+ *
+ * 🔴 CỐ Ý KHÔNG liệt kê '/[handle]/followers' và '/[handle]/following' (C3):
+ * hai màn này auth TUỲ CHỌN — khách phải xem được danh sách, chỉ khi bấm nút
+ * Theo dõi mới bị AuthPrompt chặn. Thêm vào matcher là đẩy khách về /login và
+ * làm hỏng đúng cái nhánh "khách xem được" mà phép T2.1 phải chứng minh.
  */
 export default auth((req) => {
   if (!req.auth) {
@@ -50,5 +59,7 @@ export const config = {
     '/pin/:id/edit',
     '/board/new',
     '/board/:id/edit',
+    '/board/:id/sections',
+    '/board/:id/collaborators',
   ],
 };
