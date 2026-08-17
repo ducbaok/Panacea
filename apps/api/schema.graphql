@@ -17,6 +17,7 @@ type User {
   isFollowedByViewer: Boolean
   isFollowingViewer: Boolean
   isBlockedByViewer: Boolean
+  categories: [Category!]!
 }
 
 type PageInfo {
@@ -29,16 +30,16 @@ type PaginatedUsers {
   pageInfo: PageInfo!
 }
 
-type Tag {
-  id: ID!
-  name: String!
-}
-
 type Category {
   id: ID!
   name: String!
   slug: String!
   icon: String
+}
+
+type Tag {
+  id: ID!
+  name: String!
 }
 
 type Pin {
@@ -288,6 +289,8 @@ enum SearchType {
 type Mutation {
   updateProfile(input: UpdateProfileInput!): User!
   deleteAccount: Boolean!
+  updateMyCategories(slugs: [String!]!): User!
+  completeOnboarding: User!
   createPin(input: CreatePinInput!): Pin!
   updatePin(input: UpdatePinInput!): Pin!
   deletePin(id: ID!): Pin!

@@ -7,6 +7,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { DataloaderService } from '../common/dataloader/dataloader.service';
 import { UpdateProfileInput } from './dto/update-profile.input';
+import { Category } from '../pins/entities/category.entity';
 
 /**
  * UsersResolver — xử lý GraphQL queries cho User.
@@ -102,6 +103,63 @@ export class UsersResolver {
   @UseGuards(GqlAuthGuard)
   async deleteAccount(@CurrentUser() user: AuthUser): Promise<boolean> {
     return this.usersService.deleteAccount(user.userId);
+  }
+
+  // ─── B-7: Onboarding ────────────────────────────────────────────────────────
+  //
+  // HAI mutation riêng chứ không một (Đ2a, user chốt 17/08). Gộp lại thành
+  // `finishOnboarding(slugs)` sẽ trói hai việc vốn độc lập: người dùng đổi
+  // category yêu thích ở màn Cài đặt (sau này) không nên phải "hoàn tất
+  // onboarding" thêm lần nữa.
+  //
+  // Cả hai đặt ở `users` vì cả hai **mutate User** — cùng chỗ với `updateProfile`,
+  // và trả `User!` đúng khuôn nhà (`schema.graphql` `updateProfile(input): User!`).
+  //
+  // ⚠️ Nhãn `data-op` bước 5 trong bundle mockup ghi `setOnboarded` — đó là
+  // **tên nháp**. Tên thật đã chốt là `completeOnboarding`.
+
+  /**
+   * THAY THẾ toàn bộ danh sách category yêu thích.
+   *
+   * `@CurrentUser()` ⇒ **bắt buộc** `GqlAuthGuard` (luật *guard tạo danh tính*).
+   * Khách không gọi được: không có "sở thích của khách vãng lai".
+   */
+  @Mutation(() => User)
+  @UseGuards(GqlAuthGuard)
+  async updateMyCategories(
+    @Args('slugs', { type: () => [String] }) slugs: string[],
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.usersService.updateMyCategories(user.userId, slugs);
+  }
+
+  /** Đặt `isOnboarded = true`. Không tham số ⇒ không có đường un-onboard. */
+  @Mutation(() => User)
+  @UseGuards(GqlAuthGuard)
+  async completeOnboarding(@CurrentUser() user: AuthUser) {
+    return this.usersService.completeOnboarding(user.userId);
+  }
+
+  /**
+   * `User.categories` — category yêu thích, đọc lại cho dải chip ở trang chủ (Q6).
+   *
+   * ⚠️ ĐỪNG NHẦM VỚI `Pin.categories`. SDL trước đợt này **chưa hề có**
+   * `User.categories`; `schema.graphql:65` là của **Pin**, và loader sẵn có
+   * `categoriesByPinIdLoader` cũng là nhánh Pin↔Category. Đây là quan hệ khác
+   * hẳn: `UserCategories` (`schema.prisma:77`).
+   *
+   * Công khai như `bio` — sở thích chủ đề không nhạy cảm.
+   *
+   * 📌 Chưa dùng DataLoader **có chủ đích**: mọi call-site hôm nay đọc field này
+   * cho **một** user (trang chủ của chính mình, hồ sơ một người). Thêm loader
+   * bây giờ là thêm một thứ phải bảo trì cho một bài toán chưa tồn tại. **Mốc
+   * để làm:** ngày có query trả về DANH SÁCH user kèm `categories`
+   * (`suggestedUsers`, `followers`…) — lúc đó nó là N+1 thật và phải đi qua
+   * `perViewer`/`dataloader.util.ts` như mọi loader khác.
+   */
+  @ResolveField(() => [Category])
+  async categories(@Parent() user: User) {
+    return this.usersService.getUserCategories(user.id);
   }
 
   // ─── ResolveFields (Phase 2.1) ─────────────────────────────────────────────
