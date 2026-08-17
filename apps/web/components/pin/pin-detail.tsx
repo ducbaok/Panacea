@@ -20,6 +20,10 @@ import {
   type DeletePinMutation,
   type DeletePinMutationVariables,
   TrackPinViewDocument,
+  TogglePinReactionDocument,
+  FollowDocument,
+  UnfollowDocument,
+  type ReactionType,
 } from '@/lib/gql/graphql';
 import { toReadState } from '@/lib/errors/map-error';
 import { REACTION_ORDER, REACTION_EMOJI, REACTION_LABEL } from '@/lib/reactions';
@@ -38,13 +42,22 @@ import { PinComments } from './pin-comments';
  * (h1 24 vs 27, mô tả 14 vs 14.5), avatar tác giả khác (38 vs 40), và 4 khối
  * CHỈ có ở page: dòng phụ tác giả · dải tag · ô soạn bình luận · nút Chia sẻ.
  *
- * ⚠️ ĐỌC + ĐIỀU HƯỚNG. Không gọi mutation nào (PROMPT_FE4.md §1). Nút Lưu,
- * hàng cảm xúc, nút Theo dõi, ô soạn — dựng đủ hình + đọc đúng trạng thái từ
- * API, nhưng KHÔNG mutate. Ràng buộc là "màn đăng nhập là FE-5, chưa có" ⇒
- * viết mutation bây giờ = code chạy mà không nghiệm thu được.
+ * ⚠️ LỊCH SỬ CỦA CÁI BANNER NÀY — đọc trước khi tin comment trong file:
+ * bản FE-4 viết ở đây "không gọi mutation nào … nút Lưu, hàng cảm xúc, nút Theo
+ * dõi, ô soạn — dựng đủ hình nhưng KHÔNG mutate". Câu đó **sai từ FE-7** mà
+ * không ai sửa, và nó là cơ chế đã GIẤU 3 nút chết suốt 4 đợt: người sau đọc
+ * banner, tin rằng ở đây không có gì để nối, nên không mở file ra kiểm. Bài học
+ * ở `LEARNING_NOTES.md` §31.
+ *
+ * Hiện trạng SAU FE-11 (17/08/2026) — file này mutate THẬT, 7 mutation:
+ *   • `savePin` / `unsavePin` / `deletePin`  (FE-7)
+ *   • `trackPinView`                          (FE-10, wire B-4)
+ *   • `togglePinReaction` / `follow` / `unfollow` (FE-11)
+ * Ô soạn bình luận sống ở `pin-comments.tsx` (`createComment`, FE-4).
+ * Còn treo: `trackPinClick` — xem TODO ở dưới, chặn vì thiếu bản vẽ.
  *
  * Pill board (`{{ detailBoard }}`) — API không có dữ liệu này (§4.2). Render
- * trung tính "Lưu vào bảng ▾", `disabled`. BoardPicker là FE-7.
+ * trung tính "Lưu vào bảng ▾"; từ FE-7 nó mở `BoardPicker` (không còn disabled).
  *
  * Ảnh: `largeUrl ?? mediumUrl ?? imageUrl` — 3 URL responsive nullable ở dev
  * (bẫy 8). Vẫn phải xuống được `imageUrl` (non-null theo SDL).
@@ -180,22 +193,48 @@ export function PinDetail({ pinId, variant, onClose }: Props) {
     );
   }
 
-  return <PinDetailContent pin={pin} variant={variant} onClose={onClose} />;
+  return (
+    <PinDetailContent
+      pin={pin}
+      variant={variant}
+      onClose={onClose}
+      refetchPin={() => query.refetch()}
+    />
+  );
 }
 
 function PinDetailContent({
   pin,
   variant,
   onClose,
+  refetchPin,
 }: {
   pin: NonNullable<PinQuery['pin']>;
   variant: Variant;
   onClose?: () => void;
+  /**
+   * FE-11 — `pin` tới đây qua prop nên component này KHÔNG có `refetch` của
+   * riêng nó; nguồn query nằm ở `PinDetail` phía trên. Khuôn `refetchProfile`
+   * của `profile-view.tsx` — truyền hàm đọc lại xuống.
+   *
+   * Bắt buộc, không phải tuỳ chọn: cạnh nút Theo dõi là `creator.followerCount`
+   * và hàng cảm xúc đọc `viewerReaction`. Chỉ set state cục bộ thì chữ nút đổi
+   * mà số follower đứng im — sai ngay trên cùng một dòng.
+   */
+  refetchPin: () => Promise<unknown>;
 }) {
   const isModal = variant === 'modal';
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
   const [optimisticFollow, setOptimisticFollow] = useState<boolean | null>(null);
-  const [optimisticReaction, setOptimisticReaction] = useState<string | null>(null);
+  /**
+   * FE-11 — ba trạng thái, KHÔNG phải hai. `null` = "không có optimistic, đọc
+   * server"; `'NONE'` = "optimistic: vừa GỠ cảm xúc". Bản FE-4 dùng `null` cho cả
+   * hai nghĩa (`setOptimisticReaction(active ? null : r)`) và sống được đúng vì
+   * `viewerReaction` của server luôn `null` — chưa ai ghi. Nay có ghi thật: nếu
+   * giữ `null` làm nghĩa "vừa gỡ" thì `optimisticReaction ?? pin.viewerReaction`
+   * rơi ngay về giá trị CŨ của server, nút sáng lại trong lúc chờ mạng.
+   */
+  const [optimisticReaction, setOptimisticReaction] = useState<ReactionType | 'NONE' | null>(null);
   const { status: sessionStatus } = useSession();
   const { openAuthPrompt } = useAuthPrompt();
   const { openBoardPicker } = useBoardPicker();
@@ -203,6 +242,11 @@ function PinDetailContent({
   const [savePin] = useMutation<SavePinMutation, SavePinMutationVariables>(SavePinDocument);
   const [unsavePin] = useMutation<UnsavePinMutation, UnsavePinMutationVariables>(UnsavePinDocument);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [toggleReactionM] = useMutation(TogglePinReactionDocument);
+  const [followM] = useMutation(FollowDocument);
+  const [unfollowM] = useMutation(UnfollowDocument);
+  const [reactionBusy, setReactionBusy] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   const router = useRouter();
   const confirm = useConfirm();
   const meQuery = useQuery<MeQuery>(MeDocument, { skip: sessionStatus !== 'authenticated' });
@@ -316,7 +360,12 @@ function PinDetailContent({
 
   const isSaved = optimisticSaved ?? pin.isSavedByViewer ?? false;
   const isFollowed = optimisticFollow ?? pin.creator.isFollowedByViewer ?? false;
-  const currentReaction = optimisticReaction ?? pin.viewerReaction ?? null;
+  const currentReaction: ReactionType | null =
+    optimisticReaction === null
+      ? (pin.viewerReaction ?? null)
+      : optimisticReaction === 'NONE'
+        ? null
+        : optimisticReaction;
   const imgUrl = pickDetailImageUrl(pin);
   const title = pin.title || pin.description || 'Pin không tiêu đề';
   const description = pin.description ?? '';
@@ -374,6 +423,121 @@ function PinDetailContent({
       toast({ message: 'Không lưu được, thử lại sau.' });
     } finally {
       setSaveBusy(false);
+    }
+  };
+
+  /**
+   * FE-11 — hàng cảm xúc. Trước đợt này `onClick` chỉ `setOptimisticReaction`,
+   * nên MỌI cảm xúc trên toàn sản phẩm là trang trí: bấm đổi màu, F5 là mất.
+   *
+   * Ngữ nghĩa toggle nằm ở `pins.service.ts:435-469`, ba nhánh, unique
+   * `userId_pinId` ⇒ **mỗi người tối đa MỘT cảm xúc / pin**:
+   *   • chưa có          → ADDED   (+ Notification cho chủ pin)
+   *   • có, CÙNG loại    → REMOVED
+   *   • có, KHÁC loại    → UPDATED (không sinh bản ghi thứ hai)
+   *
+   * 🔴 Resolver `pins.resolver.ts:229-230` **vứt `{success,status}` và luôn trả
+   * `true`** ⇒ FE không đọc được nhánh nào đã chạy. Nên: suy nhánh ở client theo
+   * `currentReaction` (đủ, khớp đúng 3 nhánh trên) cho optimistic, rồi `refetchPin`
+   * lấy `viewerReaction` thật làm nguồn cuối — giống khuôn `toggleSave`.
+   *
+   * Thứ tự bắt buộc: optimistic → mutate → refetch → **rồi mới** xoá optimistic.
+   * Xoá sớm ⇒ nút nhấp nháy về trạng thái cũ trong khoảnh khắc chờ mạng.
+   */
+  const onReaction = async (r: ReactionType) => {
+    // `!== 'authenticated'` chứ không `=== 'unauthenticated'`: mutation có
+    // `GqlAuthGuard`, gửi khi phiên chưa rõ là chắc chắn ăn Unauthorized. Khuôn
+    // `runFollow` của profile-view. Hệ quả nghiệm thu được (T2.4): khách bấm ⇒
+    // KHÔNG có request `togglePinReaction` nào bay ra.
+    if (sessionStatus !== 'authenticated') {
+      openAuthPrompt('bày tỏ cảm xúc');
+      return;
+    }
+    // Bấm liên tiếp không có guard sẽ ĐUA NHAU: kết quả cuối phụ thuộc thứ tự
+    // response chứ không phải thứ tự bấm.
+    if (reactionBusy) return;
+    const removing = currentReaction === r;
+    setOptimisticReaction(removing ? 'NONE' : r);
+    setReactionBusy(true);
+    try {
+      await toggleReactionM({ variables: { pinId: pin.id, type: r } });
+      await refetchPin();
+      setOptimisticReaction(null);
+    } catch {
+      // Hoàn nguyên = bỏ optimistic để rơi về sự thật của server (không đổi).
+      setOptimisticReaction(null);
+      toast({ message: 'Không gửi được cảm xúc, thử lại sau.' });
+    } finally {
+      setReactionBusy(false);
+    }
+  };
+
+  // Theo dõi lại sau Hoàn tác — im lặng, khuôn `silentFollow` của profile-view.
+  const refollowQuiet = async () => {
+    setOptimisticFollow(true);
+    try {
+      await followM({ variables: { userId: pin.creator.id } });
+      await refetchPin();
+      setOptimisticFollow(null);
+    } catch {
+      setOptimisticFollow(null);
+    }
+  };
+
+  /**
+   * FE-11 — nút Theo dõi. Cùng nút này đã nối thật ở C1 (`profile-view`), C3
+   * (`follows-view`), D1 và B1; chỉ màn chi tiết pin còn giả (`setOptimisticFollow`).
+   *
+   * `refetchPin()` không phải cho riêng cái nút: `creator.followerCount` render
+   * ngay dòng trên (`formatFollowerCount`) nên thiếu refetch là chữ nút đổi mà số
+   * follower đứng im.
+   */
+  const toggleFollow = async () => {
+    if (sessionStatus !== 'authenticated') {
+      openAuthPrompt('theo dõi người này');
+      return;
+    }
+    if (followBusy) return;
+    const next = !isFollowed;
+    setOptimisticFollow(next);
+    setFollowBusy(true);
+    try {
+      if (next) {
+        await followM({ variables: { userId: pin.creator.id } });
+      } else {
+        await unfollowM({ variables: { userId: pin.creator.id } });
+      }
+      await refetchPin();
+      setOptimisticFollow(null);
+      toast(
+        next
+          ? { message: `Đang theo dõi ${authorName}` }
+          : {
+              message: `Đã bỏ theo dõi ${authorName}`,
+              action: { label: 'Hoàn tác', onClick: () => void refollowQuiet() },
+            },
+      );
+    } catch {
+      setOptimisticFollow(null);
+      toast({ message: 'Không theo dõi được, thử lại sau.' });
+    } finally {
+      setFollowBusy(false);
+    }
+  };
+
+  /**
+   * FE-11 — nút Chia sẻ (CHỈ có ở bản trang, xem `!isModal` ở headerRow).
+   * Khuôn `board-view.tsx:116-124`. `navigator.clipboard` cần secure context —
+   * `localhost` đạt nên nhánh `catch` khó chạm tay khi dev; vẫn giữ vì đó là
+   * đường sống trên HTTP thật (toast chính URL để người dùng tự chép).
+   */
+  const share = async () => {
+    const url = `${window.location.origin}/pin/${pin.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ message: 'Đã copy liên kết' });
+    } catch {
+      toast({ message: url });
     }
   };
 
@@ -500,6 +664,7 @@ function PinDetailContent({
           </div>
           <button
             type="button"
+            onClick={() => void share()}
             style={{
               padding: '10px 16px',
               borderRadius: 'var(--radius-button)',
@@ -572,7 +737,7 @@ function PinDetailContent({
             type="button"
             aria-pressed={active}
             title={REACTION_LABEL[r]}
-            onClick={() => setOptimisticReaction(active ? null : r)}
+            onClick={() => void onReaction(r)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -707,23 +872,33 @@ function PinDetailContent({
         )}
       </div>
       <div style={{ flex: 1 }} />
-      <button
-        type="button"
-        aria-pressed={isFollowed}
-        onClick={() => setOptimisticFollow(!isFollowed)}
-        style={{
-          padding: isModal ? '8px 16px' : '9px 18px',
-          borderRadius: 'var(--radius-button)',
-          border: isFollowed ? '1px solid var(--color-border)' : 'none',
-          background: isFollowed ? 'var(--color-surface)' : 'var(--color-foreground)',
-          color: isFollowed ? 'var(--color-foreground)' : 'var(--color-background)',
-          fontWeight: 700,
-          fontSize: 13,
-          cursor: 'pointer',
-        }}
-      >
-        {isFollowed ? 'Đang theo dõi' : 'Theo dõi'}
-      </button>
+      {/*
+        FE-11 — ẩn nút khi xem pin CỦA CHÍNH MÌNH. Backend chặn cứng
+        (`social.service.ts:26` → `Cannot follow yourself`) nên để nút ở đây là
+        một nút bảo đảm lỗi. Không phải bịa giao diện: bản vẽ Panacea chỉ vẽ pin
+        của người khác, không có trạng thái "pin của tôi", và tiền lệ trong app
+        là ẩn (C1a của `profile-view.tsx:323` đổi sang "Sửa hồ sơ" khi `isSelf`).
+        Cùng file này FE-10 cũng đã render menu ⋯ theo `isOwner`.
+      */}
+      {!isOwner && (
+        <button
+          type="button"
+          aria-pressed={isFollowed}
+          onClick={() => void toggleFollow()}
+          style={{
+            padding: isModal ? '8px 16px' : '9px 18px',
+            borderRadius: 'var(--radius-button)',
+            border: isFollowed ? '1px solid var(--color-border)' : 'none',
+            background: isFollowed ? 'var(--color-surface)' : 'var(--color-foreground)',
+            color: isFollowed ? 'var(--color-foreground)' : 'var(--color-background)',
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          {isFollowed ? 'Đang theo dõi' : 'Theo dõi'}
+        </button>
+      )}
     </div>
   );
 

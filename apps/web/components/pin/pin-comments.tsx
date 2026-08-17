@@ -1,21 +1,44 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useMutation } from '@apollo/client/react';
 import { usePinComments, useCommentReplies } from '@/lib/hooks/usePaginatedQuery';
-import type { PinCommentsQuery, CommentRepliesQuery } from '@/lib/gql/graphql';
+import {
+  CreateCommentDocument,
+  type PinCommentsQuery,
+  type CommentRepliesQuery,
+} from '@/lib/gql/graphql';
+import { useAuthPrompt } from '@/components/auth/auth-prompt';
+import { useToast } from '@/components/ui/toast';
 
 /**
- * FE-4 §4.5 — Cây bình luận 2 tầng, chỉ ĐỌC.
+ * FE-4 §4.5 — Cây bình luận 2 tầng. FE-11 nối GHI cho tầng 1.
  *
  * `pinComments(pinId)` chỉ trả comment gốc (bẫy 2 của PLAN_FRONTEND.md §4).
  * Reply gọi RIÊNG qua `commentReplies(commentId)`. Không có tầng thứ ba —
- * giới hạn cứng của backend, không phải thiếu sót.
- *
- * Đợt này KHÔNG dựng nút GỬI trả lời (mutation) — chỉ nút "Xem N trả lời" để
- * expand tầng 2. Nút "Trả lời" trong mockup được giữ HÌNH nhưng không nối
- * mutation, theo tiền lệ PinCard nút Lưu ở FE-3.
+ * giới hạn cứng của backend (`comments.service.ts:56-58`), không phải thiếu sót.
  *
  * `replyCount` từ backend đã tính chính xác (P1 Đợt 4 loader `replyCountByCommentIdLoader`).
+ *
+ * ─── FE-11 (17/08/2026) — ĐỌC TRƯỚC KHI TIN COMMENT CŨ ───────────────────────
+ * Bản FE-4 để ô soạn + nút Gửi + nút Trả lời ở trạng thái `disabled` với lý do
+ * ghi thẳng vào `title`: *"sẽ mở khi màn đăng nhập (FE-5) sẵn sàng"*. **FE-5 xanh
+ * 15/08** ⇒ lý do đó hết hạn 2 ngày mà không ai gỡ, và vì nó nằm trong `title`
+ * chứ trong mục "còn treo" của một plan nào, tra tài liệu không ra. Đợt FE-11
+ * quét toàn app mới lộ: `createComment`/`updateComment`/`deleteComment`/
+ * `toggleCommentReaction` — **cả 4 mutation đều 0 nơi dùng**.
+ *
+ * Nay đã nối: **`createComment` cho bình luận GỐC** (ô soạn + nút Gửi).
+ *
+ * CÒN TREO, cố ý — cả ba đều CHỜ BẢN VẼ (luật 19), không phải quên:
+ *   • **Trả lời** — nút có trong bản vẽ nhưng Ô NHẬP trả lời thì KHÔNG. Bấm nút
+ *     thì soạn ở đâu? (inline dưới comment / focus ô chung / modal riêng) —
+ *     `Panacea-v2.1.html` không trả lời câu đó. `parentId` của mutation đã sẵn
+ *     sàng, chỉ thiếu bề mặt.
+ *   • **Sửa / Xoá bình luận** — không có menu ⋯ nào được vẽ trên dòng bình luận.
+ *   • **Cảm xúc trên bình luận** — `reactionCount`/`isReactedByViewer` được
+ *     `CreateComment` chọn sẵn, nhưng không có nút nào được vẽ để bấm.
  */
 
 type Variant = 'modal' | 'page';
@@ -25,9 +48,118 @@ type Props = {
   variant: Variant;
 };
 
+/** Giới hạn cứng của backend: `@MaxLength(1000)` ở `create-comment.input.ts:23`. */
+const MAX_COMMENT_LENGTH = 1000;
+
 export function PinComments({ pinId, variant }: Props) {
   const isModal = variant === 'modal';
-  const { items, loading, loadingMore, hasNextPage, loadMore } = usePinComments({ pinId });
+  const { items, loading, loadingMore, hasNextPage, loadMore, refetch } = usePinComments({
+    pinId,
+  });
+  const { status: sessionStatus } = useSession();
+  const { openAuthPrompt } = useAuthPrompt();
+  const toast = useToast();
+  const [createComment] = useMutation(CreateCommentDocument);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const trimmed = text.trim();
+  const tooLong = trimmed.length > MAX_COMMENT_LENGTH;
+  const canSend = trimmed !== '' && !tooLong && !sending;
+
+  /**
+   * FE-11 — gửi bình luận GỐC (`parentId` bỏ trống). Khuôn `onSend` của
+   * `chat-panel.tsx`: guard phiên → chặn bấm đôi → mutate → `refetch()` → xoá ô.
+   *
+   * Vì sao `refetch()` chứ không chèn thẳng vào cache: danh sách này đi qua
+   * `useInfinitePagination` với hàm `merge` gộp-theo-trang của riêng nó; chèn tay
+   * một item vào giữa cấu trúc đó sẽ lệch `pageInfo.endCursor` và làm "Xem thêm
+   * bình luận" nhảy trang. Đọc lại trang đầu là đường an toàn.
+   *
+   * `MENTION` chạy ở backend: `comments.service.ts:89-111` parse `@username` và
+   * tạo Notification thật (tối đa 10 mention/bình luận). Không cần FE làm gì —
+   * nhưng đó là lý do gửi bình luận có thể sinh thông báo cho người thứ ba.
+   */
+  const onSend = async () => {
+    if (sessionStatus !== 'authenticated') {
+      openAuthPrompt('bình luận');
+      return;
+    }
+    if (!canSend) return;
+    setSending(true);
+    try {
+      await createComment({ variables: { input: { pinId, content: trimmed } } });
+      await refetch();
+      setText('');
+    } catch {
+      toast({ message: 'Không gửi được bình luận, thử lại sau.' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  /**
+   * Ô soạn CHỈ có ở bản trang (bản vẽ không vẽ nó trong modal — FE-4 §3.4 liệt nó
+   * vào 4 khối chỉ-có-ở-page). Tách ra biến riêng vì nó phải xuất hiện ở CẢ hai
+   * nhánh render: có bình luận và CHƯA có bình luận nào.
+   */
+  const composer =
+    variant !== 'page' ? null : (
+      <>
+        <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void onSend();
+              }
+            }}
+            placeholder="Bình luận công khai"
+            aria-label="Bình luận công khai"
+            aria-invalid={tooLong || undefined}
+            disabled={sending}
+            style={{
+              flex: 1,
+              padding: '11px 15px',
+              borderRadius: 'var(--radius-button)',
+              border: tooLong ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-foreground)',
+              fontSize: 13.5,
+              outline: 'none',
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => void onSend()}
+            disabled={!canSend}
+            style={{
+              padding: '11px 18px',
+              borderRadius: 'var(--radius-button)',
+              border: 'none',
+              background: 'var(--color-primary)',
+              color: 'var(--color-primary-foreground)',
+              fontWeight: 700,
+              fontSize: 13.5,
+              cursor: canSend ? 'pointer' : 'not-allowed',
+              opacity: canSend ? 1 : 0.6,
+            }}
+          >
+            {sending ? 'Đang gửi…' : 'Gửi'}
+          </button>
+        </div>
+        {tooLong && (
+          <div role="alert" style={{ fontSize: 11.5, color: 'var(--color-danger)', marginTop: 4 }}>
+            Bình luận tối đa {MAX_COMMENT_LENGTH} ký tự.
+          </div>
+        )}
+        <div style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 4 }}>
+          Bình luận chỉ 2 tầng — không trả lời vào một trả lời.
+        </div>
+      </>
+    );
 
   if (loading && items.length === 0) {
     return (
@@ -35,10 +167,17 @@ export function PinComments({ pinId, variant }: Props) {
     );
   }
 
+  /**
+   * 🔴 Bug FE-11 tự lộ khi nối: bản cũ `return` ở nhánh rỗng TRƯỚC khi tới khối
+   * composer, nên pin chưa có bình luận nào thì **không có ô soạn** — tức không
+   * viết được bình luận ĐẦU TIÊN. Khi ô soạn còn `disabled` thì không ai thấy;
+   * nối mutation vào là lộ ngay. Nhánh rỗng nay phải mang composer theo.
+   */
   if (items.length === 0) {
     return (
-      <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>
-        Chưa có bình luận nào.
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>Chưa có bình luận nào.</div>
+        {composer}
       </div>
     );
   }
@@ -67,62 +206,7 @@ export function PinComments({ pinId, variant }: Props) {
           {loadingMore ? 'Đang tải…' : 'Xem thêm bình luận'}
         </button>
       )}
-      {variant === 'page' && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 9,
-            marginTop: 16,
-          }}
-        >
-          <input
-            placeholder="Bình luận công khai"
-            disabled
-            aria-label="Bình luận (chưa mở ở đợt này)"
-            title="Ô soạn bình luận sẽ mở khi màn đăng nhập (FE-5) sẵn sàng"
-            style={{
-              flex: 1,
-              padding: '11px 15px',
-              borderRadius: 'var(--radius-button)',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-surface-muted)',
-              color: 'var(--color-muted)',
-              fontSize: 13.5,
-              outline: 'none',
-              cursor: 'not-allowed',
-            }}
-          />
-          <button
-            type="button"
-            disabled
-            title="Gửi bình luận sẽ nối ở đợt sau"
-            style={{
-              padding: '11px 18px',
-              borderRadius: 'var(--radius-button)',
-              border: 'none',
-              background: 'var(--color-primary)',
-              color: 'var(--color-primary-foreground)',
-              fontWeight: 700,
-              fontSize: 13.5,
-              cursor: 'not-allowed',
-              opacity: 0.6,
-            }}
-          >
-            Gửi
-          </button>
-        </div>
-      )}
-      {variant === 'page' && (
-        <div
-          style={{
-            fontSize: 11.5,
-            color: 'var(--color-muted)',
-            marginTop: 4,
-          }}
-        >
-          Bình luận chỉ 2 tầng — không trả lời vào một trả lời.
-        </div>
-      )}
+      {composer}
     </div>
   );
 }
@@ -203,10 +287,17 @@ function CommentRow({ comment, variant }: { comment: CommentItem; variant: Varia
             <div style={{ fontSize: metaSize, color: 'var(--color-muted)' }}>
               {formatRelative(comment.createdAt)}
             </div>
+            {/*
+              FE-11 — vẫn `disabled`, nhưng lý do đã đổi và phải ghi cho đúng:
+              KHÔNG phải "chưa nối mutation" (mutation `createComment` có sẵn
+              `parentId`, đã dùng ở ngay file này cho tầng 1). Thiếu là **bản vẽ
+              ô nhập trả lời** — bấm nút này thì soạn ở đâu, bản vẽ không nói.
+              Luật 19: không tự bịa. Đăng ký ở PLAN_FRONTEND.md §FE-11 "Còn treo".
+            */}
             <button
               type="button"
               disabled
-              title="Gửi trả lời sẽ nối ở đợt sau"
+              title="Chờ bản vẽ ô nhập trả lời — xem PLAN_FRONTEND.md §FE-11"
               style={{
                 background: 'none',
                 border: 'none',
