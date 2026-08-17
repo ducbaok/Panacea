@@ -25,6 +25,8 @@ import { CommentsModule } from './comments/comments.module';
 import { SearchModule } from './search/search.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MessagesModule } from './messages/messages.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { MaintenanceModule } from './maintenance/maintenance.module';
 
 @Module({
   imports: [
@@ -40,6 +42,12 @@ import { MessagesModule } from './messages/messages.module';
     ThrottlerModule.forRoot([
       { name: 'global', ttl: 60_000, limit: 100 },   // 100 req/min per IP
     ]),
+
+    // ── Lịch chạy nền (B-9) ──────────────────────────────────────────────────
+    // `forRoot()` chỉ bật bộ quét decorator `@Cron`. Bản thân nó không đăng ký
+    // job nào — job nằm ở `MaintenanceModule`. Thiếu dòng này thì `@Cron` trở
+    // thành decorator KHÔNG LÀM GÌ: build sạch, app chạy, job không bao giờ nổ.
+    ScheduleModule.forRoot(),
 
     // ── Core Infrastructure ──────────────────────────────────────────────────
     PrismaModule,
@@ -92,6 +100,7 @@ import { MessagesModule } from './messages/messages.module';
     NotificationsModule,
     MessagesModule,
     SearchModule,
+    MaintenanceModule,
   ],
   providers: [
     // Global rate limiting
