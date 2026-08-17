@@ -525,15 +525,23 @@ export default async function (h) {
   // GraphQL từ chối ngay với "Variable $t of type ReactionType! used in position
   // expecting type String!". Nói cách khác chính hai dòng này là phép kiểm
   // chứng minh SDL đã đổi thật.
+  //
+  // ─── B-19 (17/08/2026) — mutation trả `Pin!`, không còn `Boolean!` ───
+  //
+  // Selection set dưới đây là BẮT BUỘC, không phải để đọc thêm cho vui: với
+  // object type, `{ togglePinReaction(...) }` trần bị GraphQL từ chối ngay ở
+  // tầng validation ("must have a selection of subfields"). Ba phép này vì thế
+  // cũng là phép chứng minh SDL đã đổi thật — y hệt vai trò `$t:ReactionType!`
+  // đã làm cho Đợt 3d ở trên.
   await gql(
     'togglePinReaction (bật)',
-    `mutation($p:ID!,$t:ReactionType!){ togglePinReaction(pinId:$p, type:$t) }`,
+    `mutation($p:ID!,$t:ReactionType!){ togglePinReaction(pinId:$p, type:$t){ id reactionCount viewerReaction } }`,
     { p: state.PIN, t: 'HEART' },
     { token: state.T2 },
   );
   await gql(
     'togglePinReaction (tắt)',
-    `mutation($p:ID!,$t:ReactionType!){ togglePinReaction(pinId:$p, type:$t) }`,
+    `mutation($p:ID!,$t:ReactionType!){ togglePinReaction(pinId:$p, type:$t){ id reactionCount viewerReaction } }`,
     { p: state.PIN, t: 'HEART' },
     { token: state.T2 },
   );
@@ -544,7 +552,12 @@ export default async function (h) {
   // resolver chính là thứ bịt miệng tsc để chuyện đó qua được.
   await gql(
     'togglePinReaction (giá trị rác → GraphQL chặn ở TẦNG SCHEMA, không rơi xuống Prisma)',
-    `mutation($p:ID!,$t:ReactionType!){ togglePinReaction(pinId:$p, type:$t) }`,
+    // ⚠️ Selection set ở đây phải ĐÚNG, dù phép này cố tình đỏ. Thiếu nó thì
+    // GraphQL vẫn đỏ — nhưng đỏ vì "must have a selection of subfields", tức là
+    // phép kiểm sẽ *trông như* vẫn đạt trong khi năng lực nó canh (enum chặn giá
+    // trị rác trước khi chạm Prisma) không còn được đo nữa. Regex `expect` dưới
+    // đây cố ý KHÔNG khớp thông điệp subfields, nên nhánh đó sẽ hiện thành FAIL.
+    `mutation($p:ID!,$t:ReactionType!){ togglePinReaction(pinId:$p, type:$t){ id } }`,
     { p: state.PIN, t: 'NOPE' },
     { token: state.T2, expect: /ReactionType|not a valid|Expected type/ },
   );

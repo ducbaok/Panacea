@@ -1,5 +1,13 @@
+# B-19 — mutation trả `Pin!` (trước 17/08/2026 là `Boolean!`).
+# Ba field dưới đây là TOÀN BỘ lý do bỏ được `refetchPin`: Apollo chuẩn hoá
+# theo `id`, nên `reactionCount`/`viewerReaction` mới ghi đè thẳng vào cache
+# entry mà lưới, modal và trang chi tiết đang cùng đọc.
 mutation TogglePinReaction($pinId: ID!, $type: ReactionType!) {
-  togglePinReaction(pinId: $pinId, type: $type)
+  togglePinReaction(pinId: $pinId, type: $type) {
+    id
+    reactionCount
+    viewerReaction
+  }
 }
 
 mutation SavePin($input: SavePinInput!) {
@@ -56,8 +64,15 @@ mutation DeleteComment($id: String!) {
   }
 }
 
+# B-19 — trả `Comment!` (trước 17/08/2026 là `Boolean!`). Selection set là bắt
+# buộc kể từ đó; nó cũng chính là thứ làm §b3 (cảm xúc bình luận) không cần
+# optimistic Map + delta số đếm — Apollo chuẩn hoá theo `id` là đủ.
 mutation ToggleCommentReaction($input: ToggleCommentReactionInput!) {
-  toggleCommentReaction(input: $input)
+  toggleCommentReaction(input: $input) {
+    id
+    reactionCount
+    isReactedByViewer
+  }
 }
 
 mutation Follow($userId: String!) {

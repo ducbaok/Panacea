@@ -255,20 +255,23 @@ export class CommentsService {
     if (existingReaction) {
       if (existingReaction.type === type) {
         await this.prisma.commentReaction.delete({ where: { id: existingReaction.id } });
-        return { success: true, status: 'REMOVED' };
       } else {
         await this.prisma.commentReaction.update({
           where: { id: existingReaction.id },
           data: { type },
         });
-        return { success: true, status: 'UPDATED' };
       }
     } else {
       await this.prisma.commentReaction.create({
         data: { userId, commentId, type },
       });
-      return { success: true, status: 'ADDED' };
     }
+
+    // B-19 — trả chính comment đó thay cho `{ success, status }`. Reaction không
+    // sửa cột nào của `Comment`, nên `comment` đọc ở đầu hàm vẫn đúng; hai field
+    // đổi theo (`reactionCount`, `isReactedByViewer`) là ResolveField chạy SAU
+    // mutation trong cùng request nên chúng đọc trạng thái đã ghi xong.
+    return comment;
   }
 
   /**

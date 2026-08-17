@@ -294,7 +294,7 @@ type Mutation {
   createPin(input: CreatePinInput!): Pin!
   updatePin(input: UpdatePinInput!): Pin!
   deletePin(id: ID!): Pin!
-  togglePinReaction(pinId: ID!, type: ReactionType!): Boolean!
+  togglePinReaction(pinId: ID!, type: ReactionType!): Pin!
   trackPinView(pinId: ID!): Boolean!
   trackPinClick(pinId: ID!): Boolean!
   markNotificationRead(id: String!): Boolean!
@@ -320,7 +320,7 @@ type Mutation {
   createComment(input: CreateCommentInput!): Comment!
   updateComment(input: UpdateCommentInput!): Comment!
   deleteComment(id: String!): Comment!
-  toggleCommentReaction(input: ToggleCommentReactionInput!): Boolean!
+  toggleCommentReaction(input: ToggleCommentReactionInput!): Comment!
   createConversation(userId: String!): Conversation!
   sendMessage(input: SendMessageInput!): Message!
   markMessageRead(messageId: String!): Boolean!

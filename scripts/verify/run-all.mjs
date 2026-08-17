@@ -15,6 +15,7 @@
 import { readdirSync, writeFileSync } from 'node:fs';
 import { createHarness, API } from './lib/client.mjs';
 import { createQueryCounter } from './lib/query-count.mjs';
+import { assertVerifyLogAlive } from './lib/log-tripwire.mjs';
 
 const stepsDir = new URL('./steps/', import.meta.url);
 
@@ -36,6 +37,17 @@ h.counter = createQueryCounter(process.env.VERIFY_LOG);
 console.log(`API      : ${API}`);
 console.log(`VERIFY_LOG: ${process.env.VERIFY_LOG ?? '(không có ⇒ phép đếm query sẽ SKIP)'}`);
 console.log(`Các bước : ${stepFiles.join(', ')}\n`);
+
+// ─── Dây bẫy tầng CÔNG CỤ, chạy trước bước đầu tiên ─────────────────────────
+//
+// Đặt ở đây chứ không thành một file trong `steps/` là có chủ ý: nó không kiểm
+// tra một vùng tính năng nào cả, nó kiểm tra rằng **phép đo còn hoạt động**.
+// Đặt vào `steps/` sẽ phải bịa một tiền tố số nhỏ hơn `00`, và sẽ khiến nó
+// trông như một bước nghiệp vụ.
+//
+// KHÔNG dừng sớm khi nó đỏ: log chết không ngăn 282 phép còn lại chạy thật, và
+// một FAIL kèm 11 SKIP là bức tranh đầy đủ hơn một lần dừng ở dòng đầu.
+await assertVerifyLogAlive(h, h.counter);
 
 let stoppedAt = null;
 

@@ -431,6 +431,21 @@ export class PinsService {
    * 3. Nếu có và type giống nhau -> Xóa (Bỏ react).
    * 4. Nếu có và type khác nhau -> Update type mới.
    * 5. Nếu chưa có -> Tạo mới và gửi Notification.
+   *
+   * B-19 (17/08/2026) — trả **chính pin đó** thay cho `{ success, status }`.
+   * Hai lý do, cái sau mới là cái đáng kể:
+   *  • `success` luôn `true` (mọi nhánh hỏng đều ném exception) ⇒ nó không mang
+   *    tin gì.
+   *  • `status` là **nguồn sự thật thứ hai** cho đúng một việc: client phải tự
+   *    suy trạng thái mới từ chuỗi `'ADDED'|'UPDATED'|'REMOVED'`, trong khi
+   *    `viewerReaction` + `reactionCount` đã tả đúng trạng thái đó và tả bằng
+   *    dữ liệu thật. Trả pin ⇒ Apollo tự chuẩn hoá theo `id` ⇒ lưới, modal và
+   *    trang đang mở cùng pin đều đúng mà không cần `refetch`.
+   *
+   * Trả `pin` đọc từ đầu hàm là AN TOÀN: reaction không sửa cột nào của `Pin`.
+   * `reactionCount`/`viewerReaction` là ResolveField chạy SAU mutation trong
+   * cùng request, qua DataLoader chưa từng được nạp ở request này ⇒ chúng đọc
+   * trạng thái đã ghi xong, không phải trạng thái cũ.
    */
   async toggleReaction(userId: string, pinId: string, type: ReactionType) {
     const pin = await this.prisma.pin.findFirst({ where: { id: pinId } });
@@ -443,13 +458,11 @@ export class PinsService {
     if (existingReaction) {
       if (existingReaction.type === type) {
         await this.prisma.reaction.delete({ where: { id: existingReaction.id } });
-        return { success: true, status: 'REMOVED' };
       } else {
         await this.prisma.reaction.update({
           where: { id: existingReaction.id },
           data: { type },
         });
-        return { success: true, status: 'UPDATED' };
       }
     } else {
       await this.prisma.reaction.create({
@@ -463,9 +476,12 @@ export class PinsService {
         recipientId: pin.creatorId,
         pinId,
       });
-
-      return { success: true, status: 'ADDED' };
     }
+
+    // Nhánh REMOVED cũng trả pin (không trả `null`): "đã gỡ cảm xúc" vẫn là một
+    // pin hợp lệ, chỉ khác ở chỗ `viewerReaction` nay là `null`. Trả `null` ở
+    // đây sẽ buộc client phân biệt "gỡ xong" với "không tìm thấy pin".
+    return pin;
   }
 
   // ─── Explore Feed (Public) ───────────────────────────────────────────────────

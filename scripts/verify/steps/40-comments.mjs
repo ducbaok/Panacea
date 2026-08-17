@@ -95,7 +95,10 @@ export default async function (h) {
   );
   await gql(
     'toggleCommentReaction',
-    `mutation($i:ToggleCommentReactionInput!){ toggleCommentReaction(input:$i) }`,
+    // B-19 (17/08/2026) — mutation trả `Comment!` thay cho `Boolean!`, nên
+    // selection set là bắt buộc: `{ toggleCommentReaction(input:$i) }` trần bị
+    // GraphQL từ chối ở tầng validation.
+    `mutation($i:ToggleCommentReactionInput!){ toggleCommentReaction(input:$i){ id reactionCount isReactedByViewer } }`,
     { i: { commentId: CMT, type: 'HEART' } },
     { token: state.T1 },
   );

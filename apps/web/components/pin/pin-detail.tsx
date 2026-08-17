@@ -436,13 +436,19 @@ function PinDetailContent({
    *   • có, CÙNG loại    → REMOVED
    *   • có, KHÁC loại    → UPDATED (không sinh bản ghi thứ hai)
    *
-   * 🔴 Resolver `pins.resolver.ts:229-230` **vứt `{success,status}` và luôn trả
-   * `true`** ⇒ FE không đọc được nhánh nào đã chạy. Nên: suy nhánh ở client theo
-   * `currentReaction` (đủ, khớp đúng 3 nhánh trên) cho optimistic, rồi `refetchPin`
-   * lấy `viewerReaction` thật làm nguồn cuối — giống khuôn `toggleSave`.
+   * 🟢 **DEBT-1a / B-19 (17/08/2026) — `refetchPin()` đã gỡ.** Trước đó resolver
+   * vứt `{success,status}` và luôn trả `true`, nên FE không có cách nào biết con
+   * số mới ngoài việc hỏi lại cả pin ⇒ **2 request mỗi lần bấm**. Mutation nay
+   * trả `Pin!` kèm `{ id reactionCount viewerReaction }`, Apollo chuẩn hoá theo
+   * `id` ⇒ cache entry mà lưới + modal + trang chi tiết đang cùng đọc tự đúng.
    *
-   * Thứ tự bắt buộc: optimistic → mutate → refetch → **rồi mới** xoá optimistic.
-   * Xoá sớm ⇒ nút nhấp nháy về trạng thái cũ trong khoảnh khắc chờ mạng.
+   * Optimistic **giữ nguyên** và vẫn cần: nó phục vụ độ nhạy trong khoảnh khắc
+   * chờ mạng, không phải để bù dữ liệu thiếu. Sentinel `'NONE'` cũng giữ — `null`
+   * ở biến này nghĩa là "không có optimistic", khác hẳn "đã gỡ cảm xúc" (bug đã
+   * vá ở FE-11).
+   *
+   * Thứ tự bắt buộc: optimistic → mutate → **rồi mới** xoá optimistic. Xoá sớm
+   * ⇒ nút nhấp nháy về trạng thái cũ trong khoảnh khắc chờ mạng.
    */
   const onReaction = async (r: ReactionType) => {
     // `!== 'authenticated'` chứ không `=== 'unauthenticated'`: mutation có
@@ -461,7 +467,6 @@ function PinDetailContent({
     setReactionBusy(true);
     try {
       await toggleReactionM({ variables: { pinId: pin.id, type: r } });
-      await refetchPin();
       setOptimisticReaction(null);
     } catch {
       // Hoàn nguyên = bỏ optimistic để rơi về sự thật của server (không đổi).

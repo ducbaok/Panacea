@@ -66,18 +66,24 @@ export class CommentsResolver {
     return this.commentsService.deleteComment(user.userId, id);
   }
 
-  // TODO: Create a proper entity for toggle response if needed, for now just returning Boolean or JSON
-  // Let's create a wrapper or just return boolean. The return type in GraphQL needs an object.
-  // We'll use a small trick by returning the comment and letting client refetch, but typically we return a custom payload.
-  // Wait, the plan says `toggleCommentReaction(input)`.
+  /**
+   * B-19 (17/08/2026) — `Boolean!` → `Comment!`.
+   *
+   * Bốn dòng TODO trước đây ở đúng chỗ này ("let the client refetch") mô tả
+   * chính cái giá phải trả: FE không có cách nào biết `reactionCount` mới ngoài
+   * việc hỏi lại server. Trả `Comment` ⇒ Apollo chuẩn hoá theo `id` ⇒ cả danh
+   * sách bình luận lẫn cây trả lời tự đúng, không `refetch`, không `cache.modify`.
+   *
+   * 🔴 Đây là breaking change ở tầng validation — mọi call site đang viết
+   * `{ toggleCommentReaction(input:$i) }` phải thêm selection set.
+   */
   @UseGuards(GqlAuthGuard)
-  @Mutation(() => Boolean)
+  @Mutation(() => Comment)
   async toggleCommentReaction(
     @CurrentUser() user: AuthUser,
     @Args('input') input: ToggleCommentReactionInput,
   ) {
-    const res = await this.commentsService.toggleReaction(user.userId, input);
-    return res.success;
+    return this.commentsService.toggleReaction(user.userId, input);
   }
 
   // ─── Queries ──────────────────────────────────────────────────────────

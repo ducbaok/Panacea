@@ -212,8 +212,18 @@ export class PinsResolver {
 
   /**
    * Toggle Pin Reaction
+   *
+   * B-19 (17/08/2026) — `Boolean!` → `Pin!`. Cái `true` cũ không mang tin nào
+   * (mọi nhánh hỏng đều ném exception), nên FE phải `refetch` cả pin sau MỖI
+   * lần bấm chỉ để biết con số mới. Trả `Pin` ⇒ Apollo chuẩn hoá theo `id` ⇒
+   * lưới + modal + trang đang mở cùng pin đó tự đúng, 1 request thay vì 2.
+   *
+   * 🔴 Đổi kiểu trả về là **breaking change ở tầng validation**, không phải
+   * chuyện tương thích ngược: `{ togglePinReaction(...) }` (leaf selection) bị
+   * GraphQL từ chối thẳng với "must have a selection of subfields". Mọi call
+   * site phải thêm selection set — xem `scripts/verify/steps/10-pins.mjs`.
    */
-  @Mutation(() => Boolean)
+  @Mutation(() => Pin)
   @UseGuards(GqlAuthGuard)
   async togglePinReaction(
     @Args('pinId', { type: () => ID }) pinId: string,
@@ -226,8 +236,7 @@ export class PinsResolver {
     @Args('type', { type: () => ReactionType }) type: ReactionType,
     @CurrentUser() user: AuthUser,
   ) {
-    await this.pinsService.toggleReaction(user.userId, pinId, type);
-    return true;
+    return this.pinsService.toggleReaction(user.userId, pinId, type);
   }
 
   // ─── B-4: view / click tracking ──────────────────────────────────────────────
