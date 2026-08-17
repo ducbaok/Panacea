@@ -13,7 +13,9 @@ import {
   UnfollowDocument,
   BlockUserDocument,
   UnblockUserDocument,
+  CreateConversationDocument,
 } from '@/lib/gql/graphql';
+import { translateMessagingError } from '@/components/messages/chat-panel';
 import { useUserPins, useUserBoards } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -102,6 +104,7 @@ function ProfileContent({
   const [unfollowM] = useMutation(UnfollowDocument);
   const [blockM] = useMutation(BlockUserDocument);
   const [unblockM] = useMutation(UnblockUserDocument);
+  const [createConversationM] = useMutation(CreateConversationDocument);
 
   const isBlocked = !!profile.isBlockedByViewer;
   const iFollow = !!profile.isFollowedByViewer;
@@ -176,6 +179,33 @@ function ProfileContent({
       toast({ message: `Đã bỏ theo dõi ${dispName}`, action: { label: 'Hoàn tác', onClick: silentFollow } });
     } catch {
       toast({ message: 'Lỗi, thử lại sau.' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * FE-9 — nút "Tin nhắn" ở C1b. `createConversation` là **idempotent**: gọi lại
+   * với cùng người trả về hội thoại ĐANG CÓ chứ không tạo trùng (đo bằng request
+   * thật 17/08) ⇒ bấm nhiều lần vô hại, không cần tra trước xem đã có chưa.
+   *
+   * Nút đã bị `disabled` khi chưa mutual, nhưng vẫn bắt lỗi tử tế: `mutual` tính
+   * từ field viewer-aware, mà quan hệ có thể đổi ở tab khác giữa chừng — và
+   * backend mới là nơi quyết định (403 `Mutual follow is required…`).
+   */
+  async function runOpenConversation() {
+    if (status !== 'authenticated') {
+      openAuthPrompt('nhắn tin');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await createConversationM({ variables: { userId: profile.id } });
+      const id = res.data?.createConversation?.id;
+      if (id) router.push(`/messages/${id}`);
+      else toast({ message: 'Không mở được cuộc trò chuyện. Thử lại nhé.' });
+    } catch (e) {
+      toast({ message: translateMessagingError(e instanceof Error ? e.message : '') });
     } finally {
       setBusy(false);
     }
@@ -290,7 +320,9 @@ function ProfileContent({
           {isSelf ? (
             <>
               <OutlineButton onClick={() => router.push('/settings')}>Sửa hồ sơ</OutlineButton>
-              <OutlineButton onClick={() => toast({ message: 'Nhắn tin sẽ có ở bản sau.' })}>Tin nhắn</OutlineButton>
+              {/* C1a: nút này mở HỘP THƯ của mình (bản vẽ: c1Message → view messages),
+                  không phải mở DM với chính mình — backend chặn việc đó (400). */}
+              <OutlineButton onClick={() => router.push('/messages')}>Tin nhắn</OutlineButton>
             </>
           ) : (
             <>
@@ -323,10 +355,8 @@ function ProfileContent({
 
               <button
                 type="button"
-                disabled={!mutual}
-                onClick={() =>
-                  mutual ? toast({ message: 'Nhắn tin sẽ có ở bản sau.' }) : undefined
-                }
+                disabled={!mutual || busy}
+                onClick={() => (mutual ? void runOpenConversation() : undefined)}
                 style={{
                   padding: '10px 20px',
                   borderRadius: 999,

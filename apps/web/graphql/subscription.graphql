@@ -3,11 +3,13 @@ subscription NotificationReceived {
     id
     type
     isRead
-    # ⚠️ KHÔNG chọn `createdAt` (DateTime) ở đây. Payload subscription đi qua
-    # PubSub biến Date → chuỗi ISO, và scalar DateTime của backend serialize
-    # chuỗi thành null ⇒ CẢ subscription lỗi (và có thể làm sập API). Bug backend
-    # `notificationReceived` — xem debug_history §FE-8. Frontend gán createdAt
-    # xấp xỉ phía client khi chèn (tin vừa tới ⇒ "Vừa xong" là đúng).
+    # ✅ `createdAt` TRẢ LẠI 17/08/2026 (FE-9). FE-8 từng phải bỏ field này: payload
+    # qua PubSub biến `Date` → chuỗi ISO, scalar `DateTime` serialize chuỗi thành
+    # `null` ⇒ cả subscription lỗi. Luồng 2 đã vá ở TẦNG VẬN CHUYỂN
+    # (apps/api/src/redis/pubsub-serde.ts — gắn thẻ `$date` lúc publish thay vì
+    # đoán chuỗi ISO lúc nhận). Đo lại bằng WS client thật: chọn cả 4 field
+    # DateTime của Message đều ra ngày thật. Xem debug_history §FE-8 + §30.
+    createdAt
     actor {
       id
       name
@@ -27,6 +29,16 @@ subscription NotificationReceived {
   }
 }
 
+# FE-9 — tin mới trong hội thoại ĐANG MỞ. Khác `notificationReceived` ở chỗ có
+# THAM SỐ ⇒ mount trong khung chat theo `conversationId`, không mount app-wide.
+#
+# ⚠️ Tập field phải TRÙNG KHỚP query `Messages` (kể cả `imageWidth`/`imageHeight`
+# của `attachedPin` và `deletedAt`): `Message` và `Pin` đều được chuẩn hoá theo
+# `id`, nên nếu subscription ghi vào cache một entity THIẾU field mà query danh
+# sách cần, lần đọc cache kế của danh sách sẽ khuyết dữ liệu và Apollo phải bắn
+# lại query. Chọn thừa vài field rẻ hơn nhiều so với một vòng refetch mỗi tin.
+#
+# `deletedAt` luôn null ở đây (tin vừa gửi) nhưng vẫn chọn cho khớp hình dạng.
 subscription MessageReceived($conversationId: String!) {
   messageReceived(conversationId: $conversationId) {
     id
@@ -35,6 +47,7 @@ subscription MessageReceived($conversationId: String!) {
     conversationId
     senderId
     readAt
+    deletedAt
     createdAt
     sender {
       id
@@ -47,6 +60,8 @@ subscription MessageReceived($conversationId: String!) {
       imageUrl
       thumbnailUrl
       title
+      imageWidth
+      imageHeight
     }
   }
 }

@@ -19,6 +19,11 @@ import { auth } from '@/auth';
  *
  * FE-8 thêm '/notifications' CHÍNH (bare) cùng lý do trên: '/notifications/:path*'
  * chỉ khớp route con, không khớp chính '/notifications' — trang D2 cần đăng nhập.
+ *
+ * FE-9 thêm '/messages' CHÍNH (bare). Dòng '/messages/:path*' đã nằm đây từ
+ * trước — nhưng nó CHỈ khớp '/messages/<id>', nên trước đợt này khách vào thẳng
+ * '/messages' sẽ lọt lưới. Đây là lần thứ BA cùng một cái bẫy (pin/new ở FE-7,
+ * notifications ở FE-8): mẫu '/x/:path*' không bao gồm '/x'.
  */
 export default auth((req) => {
   if (!req.auth) {
@@ -36,6 +41,7 @@ export default auth((req) => {
 export const config = {
   matcher: [
     '/settings/:path*',
+    '/messages',
     '/messages/:path*',
     '/notifications',
     '/notifications/:path*',

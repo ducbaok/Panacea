@@ -22,12 +22,40 @@ query Conversations($first: Int! = 20, $after: String) {
   }
 }
 
+# FE-9 — tin nhắn cuối của MỘT hội thoại, cho dòng preview + chấm chưa đọc ở D3.
+#
+# ⚠️ VÌ SAO PHẢI CÓ QUERY RIÊNG: `Conversation` KHÔNG có `lastMessage` cũng
+# không có `unreadCount`, và field `messages` trên `Conversation` LUÔN trả
+# `null` — đo bằng request thật 17/08 (module messages không có `@ResolveField`
+# nào, `getConversations` chỉ `include: { members }`). Bản vẽ D3 lại có cả dòng
+# preview lẫn chấm chưa đọc ⇒ hướng đã chốt với user: gọi `messages(first: 1)`
+# cho từng hội thoại (≤20 query nhỏ/trang, mỗi query 1 dòng).
+#
+# Tập field là TẬP CON của query `Messages` bên dưới — cố ý, để hai query ghi
+# vào cùng một entity `Message` đã chuẩn hoá mà không đá nhau.
+query ConversationLastMessage($conversationId: String!) {
+  messages(conversationId: $conversationId, first: 1) {
+    items {
+      id
+      content
+      attachedPinId
+      senderId
+      readAt
+      createdAt
+    }
+  }
+}
+
 query Messages($conversationId: String!, $first: Int! = 20, $after: String) {
   messages(conversationId: $conversationId, first: $first, after: $after) {
     items {
       id
       content
       attachedPinId
+      # Chọn `conversationId` để hình dạng TRÙNG với subscription `MessageReceived`
+      # và mutation `SendMessage` — cả ba cùng ghi vào entity `Message` chuẩn hoá,
+      # lệch field thì lần đọc cache kế của danh sách bị khuyết và phải refetch.
+      conversationId
       senderId
       readAt
       deletedAt
@@ -52,4 +80,72 @@ query Messages($conversationId: String!, $first: Int! = 20, $after: String) {
       endCursor
     }
   }
+}
+
+# ── Mutation (FE-9) ──────────────────────────────────────────────────────────
+
+# Mở DM. Ném 403 `Mutual follow is required to send Direct Messages` khi hai
+# người chưa theo dõi nhau, 403 `Cannot start conversation due to block status`
+# khi có chặn, 400 `Cannot create conversation with yourself`. Gọi lại với cùng
+# người thì trả về hội thoại ĐANG CÓ (idempotent) — không tạo trùng.
+mutation CreateConversation($userId: String!) {
+  createConversation(userId: $userId) {
+    id
+    createdAt
+    updatedAt
+    members {
+      id
+      joinedAt
+      user {
+        id
+        name
+        username
+        avatarUrl
+      }
+    }
+  }
+}
+
+# `content` VÀ `attachedPinId` đều tuỳ chọn, nhưng thiếu cả hai ⇒ 400
+# `Message must have content or an attached pin`. Tập field khớp query Messages
+# để ghi thẳng vào cache danh sách được.
+mutation SendMessage($input: SendMessageInput!) {
+  sendMessage(input: $input) {
+    id
+    content
+    attachedPinId
+    conversationId
+    senderId
+    readAt
+    deletedAt
+    createdAt
+    sender {
+      id
+      name
+      username
+      avatarUrl
+    }
+    attachedPin {
+      id
+      imageUrl
+      thumbnailUrl
+      title
+      imageWidth
+      imageHeight
+    }
+  }
+}
+
+# Đánh dấu MỘT tin đã đọc. Tin của chính mình ⇒ trả `true` mà không làm gì
+# (messages.service.ts) ⇒ call-site phải tự lọc, đừng bắn thừa.
+mutation MarkMessageRead($messageId: String!) {
+  markMessageRead(messageId: $messageId)
+}
+
+# Thu hồi = soft delete. ⚠️ Sau đó tin BIẾN MẤT khỏi query `messages` (service
+# lọc `deletedAt: null`) ⇒ `deletedAt` ở query trên VĨNH VIỄN null. Bong bóng
+# "Tin nhắn đã thu hồi" là trạng thái CHỈ SỐNG TRONG PHIÊN (hướng đã chốt với
+# user 17/08) — F5 là mất hẳn.
+mutation DeleteMessage($messageId: String!) {
+  deleteMessage(messageId: $messageId)
 }
