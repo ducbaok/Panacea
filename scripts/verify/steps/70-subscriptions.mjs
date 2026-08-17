@@ -1,4 +1,4 @@
-// Bước 70 — Subscriptions qua WebSocket client THẬT (9 phép kiểm tra)
+// Bước 70 — Subscriptions qua WebSocket client THẬT (13 phép kiểm tra)
 //
 // VÌ SAO PHẢI LÀ WS CLIENT THẬT: GraphQL Playground KHÔNG gửi header qua
 // WebSocket, nên "thử trên Playground thấy chạy" không chứng minh được gì.
@@ -221,8 +221,99 @@ export default async function (h) {
     h.rec('john bị chặn khỏi hội thoại của bao↔alice', 'FAIL', e.message);
   }
 
+  // ═══════════ 6. DateTime đi qua PubSub (bug 17/08, FE-8 phát hiện) ═══════════
+  //
+  // VÌ SAO PHẢI CÓ MỤC RIÊNG: 5 mục trên đều CỐ Ý không chọn field ngày nào,
+  // nên chúng xanh suốt trong khi mọi client thật chọn `createdAt` đều nhận
+  // `data: null`. Payload qua Redis bị `JSON.stringify` ⇒ `Date` thành chuỗi
+  // ISO ⇒ `DateTime.serialize()` trả `null` ⇒ field non-null nổ. Bản vá nằm ở
+  // `apps/api/src/redis/pubsub-serde.ts`.
+  //
+  // Phép kiểm KHÔNG dừng ở "khác null": chuỗi ISO sai múi giờ / lệch mili-giây
+  // vẫn khác null. Nó đối chiếu với **chính bản ghi đó đọc qua query HTTP** —
+  // đường không đi qua PubSub — nên chỉ xanh khi giá trị bằng nhau tới mili-giây.
+  try {
+    const { sock, events } = await connect({ Authorization: `Bearer ${T2}` }); // alice
+    subscribe(sock, 'n3', `subscription{ notificationReceived{ id type createdAt } }`);
+    await sleep(1200);
+    await silent(`mutation($u:String!){ unfollow(userId:$u) }`, { u: ME2 }, T1);
+    await sleep(300);
+    await silent(`mutation($u:String!){ follow(userId:$u) }`, { u: ME2 }, T1);
+
+    const got = await waitFor(events, (m) => m.type === 'next' && m.id === 'n3');
+    const n = got?.payload?.data?.notificationReceived;
+    h.rec(
+      'notificationReceived CHỌN createdAt → có data (không lỗi serialize)',
+      n ? 'OK' : 'FAIL',
+      n
+        ? `createdAt=${n.createdAt}`
+        : `payload=${JSON.stringify(got?.payload ?? events.find((m) => m.type === 'error')?.payload ?? 'không có frame nào').slice(0, 200)}`,
+    );
+
+    // đối chiếu với giá trị đọc qua HTTP cho ĐÚNG bản ghi đó
+    const viaHttp = await silent(
+      `query($f:Int!){ notifications(first:$f){ items{ id createdAt } } }`,
+      { f: 10 },
+      T2,
+    );
+    const row = viaHttp?.data?.notifications?.items?.find((i) => i.id === n?.id);
+    h.assert(
+      'createdAt qua WS === createdAt qua HTTP (cùng notification)',
+      !!n && !!row && n.createdAt === row.createdAt,
+      `ws=${n?.createdAt} http=${row?.createdAt}`,
+    );
+    sock.close();
+  } catch (e) {
+    h.rec('notificationReceived CHỌN createdAt → có data (không lỗi serialize)', 'FAIL', e.message);
+  }
+
+  let MSG_ID_DT = null;
+  try {
+    const { sock, events } = await connect({ Authorization: `Bearer ${T2}` }); // alice
+    subscribe(
+      sock,
+      'm3',
+      `subscription($c:String!){ messageReceived(conversationId:$c){ id content createdAt } }`,
+      { c: CONV },
+    );
+    await sleep(1200);
+
+    const sent = await silent(
+      `mutation($i:SendMessageInput!){ sendMessage(input:$i){ id } }`,
+      { i: { conversationId: CONV, content: `dt probe ${Date.now()}` } },
+      T1,
+    );
+    MSG_ID_DT = sent?.data?.sendMessage?.id;
+
+    const got = await waitFor(events, (m) => m.type === 'next' && m.id === 'm3');
+    const msg = got?.payload?.data?.messageReceived;
+    h.rec(
+      'messageReceived CHỌN createdAt → có data (cùng bệnh, cùng bản vá)',
+      msg ? 'OK' : 'FAIL',
+      msg
+        ? `createdAt=${msg.createdAt}`
+        : `payload=${JSON.stringify(got?.payload ?? events.find((m) => m.type === 'error')?.payload ?? 'không có frame nào').slice(0, 200)}`,
+    );
+
+    const viaHttp = await silent(
+      `query($c:String!,$f:Int!){ messages(conversationId:$c, first:$f){ items{ id createdAt } } }`,
+      { c: CONV, f: 5 },
+      T2,
+    );
+    const row = viaHttp?.data?.messages?.items?.find((i) => i.id === msg?.id);
+    h.assert(
+      'createdAt qua WS === createdAt qua HTTP (cùng message)',
+      !!msg && !!row && msg.createdAt === row.createdAt,
+      `ws=${msg?.createdAt} http=${row?.createdAt}`,
+    );
+    sock.close();
+  } catch (e) {
+    h.rec('messageReceived CHỌN createdAt → có data (cùng bệnh, cùng bản vá)', 'FAIL', e.message);
+  }
+
   // dọn tin nhắn do bước này sinh ra
   if (MSG_ID) await silent(`mutation($m:String!){ deleteMessage(messageId:$m) }`, { m: MSG_ID }, T1);
+  if (MSG_ID_DT) await silent(`mutation($m:String!){ deleteMessage(messageId:$m) }`, { m: MSG_ID_DT }, T1);
 
   // LUÔN trả true: subscription không phải tiền đề của bước 90, mà bước 90 mới
   // là chỗ xoá tài khoản probe. Dừng ở đây sẽ để rác lại cho lần chạy sau.

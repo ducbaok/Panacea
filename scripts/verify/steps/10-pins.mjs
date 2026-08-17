@@ -324,6 +324,60 @@ export default async function (h) {
   const FEED_SAVED_Q = `query($f:Int!){ exploreFeed(first:$f){ items{ id isSavedByViewer viewerReaction } } }`;
   const PIN_SAVED_Q = `query($id:ID!){ pin(id:$id){ id isSavedByViewer viewerReaction } }`;
 
+  // ╔═══════════════════════════════════════════════════════════════════════════╗
+  // ║  ĐỀ KHÁNG RESIDUE — dọn `SavedPin` ngoài seed TRƯỚC khi đo (17/08/2026)  ║
+  // ║                                                                          ║
+  // ║  VÌ SAO CÓ KHỐI NÀY: phép kiểm ngay bên dưới đối chiếu với bảng kỳ vọng  ║
+  // ║  của seed — bao chỉ được lưu ĐÚNG một pin. Nhưng `savePin` là mutation   ║
+  // ║  công khai: **một cú "Lưu nhanh" trên trình duyệt** (FE dùng chính tài   ║
+  // ║  khoản bao để thử tay) là `savePin(boardId: null)`, và nó đủ làm đỏ phép ║
+  // ║  kiểm này ở một pin chẳng liên quan. Đó chính xác là cái FAIL "trôi" đã   ║
+  // ║  quan sát sau FE-7 (`pin_20_id`, `boardId=null`) — tái lập lại được      ║
+  // ║  17/08 bằng đúng một lời gọi `savePin`, xem `docs/debug_history.md §30`. ║
+  // ║                                                                          ║
+  // ║  VÌ SAO DỌN CHỨ KHÔNG NỚI PHÉP KIỂM: nới ra ("miễn là pin_5 saved") sẽ   ║
+  // ║  giết mất nhánh-false của phép kiểm — thứ DUY NHẤT phân biệt loader      ║
+  // ║  đúng với loader gán chung một giá trị cho mọi item (bài học §13).       ║
+  // ║                                                                          ║
+  // ║  VÌ SAO DỌN QUA API CHỨ KHÔNG QUA SQL: bộ verify cố ý không có client    ║
+  // ║  Postgres — nó là bằng chứng "API chạy được", không phải công cụ quản    ║
+  // ║  trị DB. `unsavePin(pinId, boardId: null)` xoá đúng dòng không-board,     ║
+  // ║  tức đúng hình dạng mà "Lưu nhanh" và các run verify đứt gánh để lại.    ║
+  // ║                                                                          ║
+  // ║  Việc dọn được GHI LẠI (không im lặng): residue là tín hiệu vận hành —   ║
+  // ║  im lặng dọn tức là im lặng che một nguồn nhiễu đang tồn tại thật.       ║
+  // ╚═══════════════════════════════════════════════════════════════════════════╝
+  {
+    const before = await h.silent(FEED_SAVED_Q, { f: 20 }, state.T1);
+    const residue = (before?.data?.exploreFeed?.items ?? [])
+      .filter((p) => isSeedPinId(p.id) && p.isSavedByViewer === true && p.id !== SEED.baoSavedAndReactedPinId)
+      .map((p) => p.id);
+
+    for (const pinId of residue) {
+      await h.silent(`mutation($p:ID!,$b:ID){ unsavePin(pinId:$p, boardId:$b) }`, { p: pinId, b: null }, state.T1);
+    }
+
+    // Đọc lại: residue có `boardId` (lưu vào board thật qua trình duyệt) KHÔNG
+    // bị `boardId: null` chạm tới. Trường hợp đó phép này đỏ và nói rõ pin nào —
+    // đúng ý đồ: nó là dữ liệu người thật tạo ra, bộ verify không được tự xoá.
+    const after = await h.silent(FEED_SAVED_Q, { f: 20 }, state.T1);
+    const left = (after?.data?.exploreFeed?.items ?? [])
+      .filter((p) => isSeedPinId(p.id) && p.isSavedByViewer === true && p.id !== SEED.baoSavedAndReactedPinId)
+      .map((p) => p.id);
+
+    h.assert(
+      'dọn được SavedPin ngoài seed của bao trước khi đo (đề kháng residue)',
+      left.length === 0,
+      residue.length === 0
+        ? 'không có residue'
+        : `đã dọn ${residue.length}: ${residue.join(',')}` +
+            (left.length
+              ? ` · CÒN SÓT sau khi dọn: ${left.join(',')} — dòng SavedPin có boardId thật, ` +
+                `bộ verify KHÔNG tự xoá (dữ liệu người dùng); dọn tay rồi chạy lại`
+              : ''),
+    );
+  }
+
   {
     const d = await h.silent(FEED_SAVED_Q, { f: 20 }, state.T1);
     // Chỉ đối chiếu pin seed: bảng kỳ vọng dưới đây là bảng của seed. Một pin

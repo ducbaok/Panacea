@@ -21,7 +21,6 @@
 // (pins.resolver.ts:93) — truyền `String!` là query bị từ chối, trông y hệt một
 // bộ lọc hoàn hảo.
 
-import { statSync, readFileSync, existsSync } from 'node:fs';
 import { USERS } from '../lib/seedrefs.mjs';
 import { assertBatched } from '../lib/query-count.mjs';
 
@@ -38,15 +37,17 @@ import { assertBatched } from '../lib/query-count.mjs';
  * select cộng thêm mệnh đề FROM và WHERE — một query duy nhất của
  * `getBlockedUserIds` cho ra 7 lần khớp. Đếm chuỗi trần khiến bản đo đầu tiên
  * của đợt này báo "7 query" cho đúng 1 query (xem debug_history §16).
+ *
+ * ⚠️ 17/08/2026 — DÙNG LẠI `counter.measure` THAY CHO BẢN ĐẾM RIÊNG. Bản cũ
+ * chờ stdout bằng `sleep(250)` cứng; nay `measure()` chờ tới khi file log
+ * NGỪNG LỚN. Đây là ứng viên số một cho hình dạng FAIL "trôi" đo được sau FE-6
+ * (phép này ra **0** thay vì 1): 0 query BlockedUser là chuyện không thể xảy ra
+ * khi query trả về dữ liệu, nên nó là lỗi ĐO chứ không phải lỗi memo. Xem thêm
+ * nhánh chống-xanh-giả mới trong `assertBatched`.
  */
-async function countBlockedUserQueries(fn) {
-  const p = process.env.VERIFY_LOG;
-  if (!p || !existsSync(p)) return { result: await fn(), n: null };
-  const before = statSync(p).size;
-  const result = await fn();
-  await new Promise((r) => setTimeout(r, 250)); // chờ stdout flush
-  const buf = readFileSync(p).subarray(before);
-  return { result, n: (buf.toString('utf8').match(/FROM "public"\."BlockedUser"/g) ?? []).length };
+async function countBlockedUserQueries(h, fn) {
+  const { result, queries } = await h.counter.measure(fn, /FROM "public"\."BlockedUser"/g);
+  return { result, n: queries };
 }
 
 /** 4 pin của mỗi user trong seed — liền khối, kiểm bằng truy vấn thẳng vào DB. */
@@ -226,11 +227,23 @@ export default async function (h) {
     pin(id:$p){ id }
   }`;
   await h.silent(COMBINED, { f: 5, u: USERS.alice.id, p: ALICE_PIN }, state.T1); // nạp cache/JIT
-  const combined = await countBlockedUserQueries(() =>
+  const combined = await countBlockedUserQueries(h, () =>
     h.silent(COMBINED, { f: 5, u: USERS.alice.id, p: ALICE_PIN }, state.T1),
   );
   if (combined.n === null) {
     h.rec('memo: 1 query BlockedUser cho CẢ request (3 call-site)', 'SKIP', 'không có VERIFY_LOG ⇒ không đo được');
+  } else if (combined.n === 0 && !combined.result?.errors) {
+    // 0 là BẤT KHẢ THI khi query trả về dữ liệu: cả ba call-site đều gọi
+    // `getBlockedUserIds`. Đọc ra 0 ⇒ cửa sổ đo không hứng được log (VERIFY_LOG
+    // trỏ sai file / API đang chạy là tiến trình khác). Ghi SKIP chứ KHÔNG ghi
+    // FAIL: báo bug vào đường code memo là báo nhầm chỗ, và đó chính là cái
+    // FAIL "trôi" đã tốn hai đợt để truy (xem debug_history §30).
+    h.rec(
+      'memo: 1 query BlockedUser cho CẢ request (3 call-site chung một document)',
+      'SKIP',
+      'đọc ra 0 query BlockedUser — bất khả thi khi query trả dữ liệu ⇒ log không hứng được. ' +
+        'Kiểm VERIFY_LOG có đúng file API đang ghi, và API :4000 có phải tiến trình đó không',
+    );
   } else {
     h.assert(
       'memo: 1 query BlockedUser cho CẢ request (3 call-site chung một document)',

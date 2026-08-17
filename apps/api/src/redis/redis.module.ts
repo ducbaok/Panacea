@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { RedisPubSub } from 'graphql-redis-subscriptions';
+import { serializePubSubPayload, deserializePubSubPayload } from './pubsub-serde';
 
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 export const PUB_SUB = 'PUB_SUB';
@@ -128,6 +129,12 @@ const REDIS_COMMAND_TIMEOUT_MS = 500;
           publisher: redisClient,
           // Subscriber được MIỄN commandTimeout — xem khối giải thích bên trên.
           subscriber: redisClient.duplicate({ commandTimeout: undefined }),
+          // Vận chuyển GIỮ KIỂU `Date` thay vì `JSON.stringify`/`JSON.parse`
+          // trần. Thiếu cặp này thì MỌI subscription chọn một field `DateTime`
+          // đều trả `data: null` + lỗi serialize. Nguyên nhân gốc + vì sao
+          // không dùng `reviver`: `pubsub-serde.ts`.
+          serializer: serializePubSubPayload,
+          deserializer: deserializePubSubPayload,
         });
       },
       inject: [REDIS_CLIENT],
