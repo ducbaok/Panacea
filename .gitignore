@@ -65,3 +65,14 @@ graphify-out/
 # người dùng muốn giữ ngoài repo. ⚠️ Nhóm này không có lịch sử git, không có đường lùi
 # — 6 brief PROMPT_DOT* đã mất vĩnh viễn vì thế. Muốn giữ lâu dài: backup thủ công.
 PROMPT_*.md
+
+# ─── Terraform (infra/) ───────────────────────────────────────────────────────
+# terraform.tfvars chứa mật khẩu DB + 4 secret ứng dụng.
+# *.tfstate chứa giá trị sensitive ở dạng ĐỌC ĐƯỢC — tuyệt đối không commit.
+infra/**/.terraform/*
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/terraform.tfvars
+infra/**/*.tfplan
+# .terraform.lock.hcl thi NGUOC LAI — PHAI commit: no ghim hash provider de
+# lan init sau tren may khac ra dung phien ban. Dung them vao danh sach nay.

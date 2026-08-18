@@ -1,0 +1,27 @@
+# Chép thành `terraform.tfvars` rồi điền. File thật KHÔNG được commit
+# (.gitignore đã chặn) — nó chứa mật khẩu DB và 4 secret ứng dụng.
+#
+# Sinh secret đủ dài (≥32 ký tự) bằng:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+
+region  = "ap-southeast-1"
+env     = "prod"
+project = "antigravity"
+
+# ─── Bí mật ───────────────────────────────────────────────────────────────────
+db_password          = "DIEN_VAO_DAY"
+backend_jwt_secret   = "DIEN_VAO_DAY_it_nhat_32_ky_tu"
+refresh_token_secret = "DIEN_VAO_DAY_it_nhat_32_ky_tu"
+
+# 🔴 AUTH_SECRET phải GIỐNG HỆT giá trị trong apps/web. Lệch là /auth/exchange
+#    từ chối mọi request và đăng nhập OAuth chết câm.
+auth_secret = "DIEN_VAO_DAY_it_nhat_32_ky_tu"
+
+internal_api_secret = "DIEN_VAO_DAY_it_nhat_16_ky_tu"
+
+# ─── Điền sau lần apply đầu (xem README §4) ───────────────────────────────────
+# web_url        = "http://<IP_CONG_KHAI_CUA_WEB>:3000"
+# api_public_url = "http://<IP_CONG_KHAI_CUA_API>:4000"
+
+# ─── Tuỳ chọn ─────────────────────────────────────────────────────────────────
+# google_client_id = "....apps.googleusercontent.com"
