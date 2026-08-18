@@ -79,3 +79,9 @@ infra/**/*.tfplan
 
 # Log cua terraform apply/destroy — dau vet chay, khong phai ma nguon.
 infra/**/*.log
+
+# Bundle mockup HTML (Panacea*.html) — CỐ Ý ngoài git (chốt 18/08/2026).
+# File 600–733 KB/bản, là bundle tự giải nén dùng để tra thiết kế, không phải mã nguồn.
+# ⚠️ Cùng cảnh báo như PROMPT_*.md: ngoài git = KHÔNG có đường lùi. Muốn giữ thì backup tay.
+# Cần đưa một file .html cụ thể vào repo: dùng `git add -f <file>`.
+*.html
