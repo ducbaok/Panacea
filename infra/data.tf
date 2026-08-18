@@ -59,23 +59,35 @@ resource "aws_elasticache_subnet_group" "main" {
   subnet_ids = data.aws_subnets.default.ids
 }
 
-resource "aws_elasticache_cluster" "main" {
-  cluster_id = "${var.project}-redis"
+# 🔴 PHẢI dùng `aws_elasticache_replication_group`, KHÔNG dùng
+# `aws_elasticache_cluster` — đo được 18/08/2026 bằng một lần apply hỏng:
+#   InvalidParameterValue: This API doesn't support Valkey engine.
+#   Please use CreateReplicationGroup API for Valkey cluster creation.
+# `aws_elasticache_cluster` gọi CreateCacheCluster, mà API đó không nhận Valkey.
+# ⚠️ `terraform validate` VÀ `terraform plan` đều xanh với bản sai — ràng buộc
+#    này chỉ sống ở tầng API của AWS, không có trong schema provider.
+resource "aws_elasticache_replication_group" "main" {
+  replication_group_id = "${var.project}-redis"
+  description          = "Antigravity - pubsub, khoa brute-force, debounce tracking"
 
   # Valkey thay Redis OSS: tương thích giao thức, rẻ hơn ~20% (đòn bẩy giá §7.4).
-  # ioredis của app nói chuyện bình thường, không cần đổi dòng code nào.
+  # ioredis của app nói chuyện bình thường, không đổi dòng code nào.
   engine         = "valkey"
   engine_version = "7.2"
   node_type      = var.redis_node_type
+  port           = 6379
 
-  num_cache_nodes = 1
-  port            = 6379
+  # Một node duy nhất ⇒ không bật failover (bật là đòi ≥2 node = gấp đôi tiền).
+  num_cache_clusters         = 1
+  automatic_failover_enabled = false
 
   subnet_group_name  = aws_elasticache_subnet_group.main.name
   security_group_ids = [aws_security_group.redis.id]
 
-  # ⚠️ KHÔNG bật AUTH/TLS ở nấc này: bật là phải sửa REDIS_URL thành rediss://
-  # và thêm credential vào cả 3 chỗ app dùng Redis. Để dành một đợt riêng.
+  # ⚠️ KHÔNG bật transit encryption: bật là REDIS_URL phải đổi sang `rediss://`
+  # và phải sửa cả 3 chỗ app dùng Redis. Để dành một đợt riêng.
+  transit_encryption_enabled = false
+  at_rest_encryption_enabled = true
 }
 
 # ─── S3: ảnh gốc ──────────────────────────────────────────────────────────────

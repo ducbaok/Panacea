@@ -87,7 +87,7 @@ locals {
     AUTH_SECRET          = var.auth_secret
     INTERNAL_API_SECRET  = var.internal_api_secret
     DATABASE_URL         = "postgresql://${aws_db_instance.main.username}:${urlencode(var.db_password)}@${aws_db_instance.main.address}:5432/${aws_db_instance.main.db_name}"
-    REDIS_URL            = "redis://${aws_elasticache_cluster.main.cache_nodes[0].address}:6379"
+    REDIS_URL            = "redis://${aws_elasticache_replication_group.main.primary_endpoint_address}:6379"
   }
 }
 
