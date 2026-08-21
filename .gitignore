@@ -60,11 +60,14 @@ graphify-out/
 # Claude Code — local machine permissions (personal, not team)
 .claude/settings.local.json
 
-# Prompt/brief của agent — CỐ Ý ngoài git (chốt 17/08/2026, thay dòng `*.md` cũ 11/08).
-# Mọi .md khác (hiến chương, spec, plan, docs) nay được track; riêng PROMPT_*.md
-# người dùng muốn giữ ngoài repo. ⚠️ Nhóm này không có lịch sử git, không có đường lùi
-# — 6 brief PROMPT_DOT* đã mất vĩnh viễn vì thế. Muốn giữ lâu dài: backup thủ công.
-PROMPT_*.md
+# ─── Toàn bộ tài liệu .md — CỐ Ý ngoài git (chốt 21/08/2026) ─────────────────
+# Mọi file .md (hiến chương AGENT_HANDOFF, LEARNING_NOTES, PLAN_*, docs/, README)
+# đều nằm ngoài repo và đã bị xoá khỏi TOÀN BỘ lịch sử git ngày 21/08/2026.
+# File vẫn nằm nguyên trên ổ đĩa để đọc/sửa như thường — chỉ git là không thấy.
+# ⚠️ Ngoài git = KHÔNG có đường lùi, không có lịch sử, máy khác clone về sẽ trống
+# tai lieu. Ban sao luu truoc khi purge: thu muc E:/Panacea-backup-2026-08-21
+# Can dua mot .md cu the vao repo tro lai: dung `git add -f <file>`.
+*.md
 
 # ─── Terraform (infra/) ───────────────────────────────────────────────────────
 # terraform.tfvars chứa mật khẩu DB + 4 secret ứng dụng.
