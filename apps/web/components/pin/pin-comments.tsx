@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { usePinComments, useCommentReplies } from '@/lib/hooks/usePaginatedQuery';
@@ -74,15 +74,58 @@ const MAX_COMMENT_LENGTH = 1000;
  * dạng dữ liệu. Hai state riêng sẽ cho phép trạng thái vô nghĩa "đang sửa
  * comment A trong lúc đang trả lời comment A".
  */
-type OpenEditor = { id: string; mode: 'reply' | 'edit' } | null;
+type OpenEditor = {
+  id: string;
+  mode: 'reply' | 'edit';
+  /**
+   * Chữ điền sẵn cho ô trả lời — REVIEW-1 (#9). Trả lời một TRẢ LỜI thì ô mở ra
+   * ở comment gốc, nên nếu không nói rõ đang đáp ai thì người đọc mất dấu.
+   */
+  prefill?: string;
+} | null;
 
 /**
  * Thông điệp lỗi của backend khi cố trả lời vào một trả lời
- * (`comments.service.ts:56-58`). Từ UI hiện tại **không có đường nào** chạm tới
- * nhánh này — chỉ comment gốc có nút "Trả lời" — nhưng map sẵn vì cây có thể đổi
- * ở đợt khác, và một chuỗi tiếng Anh lọt ra toast là hỏng thấy được.
+ * (`comments.service.ts` — `Cannot reply to a reply`).
+ *
+ * REVIEW-1 (#9): UI nay CÓ nút "Trả lời" ở tầng 2, nhưng nó vẫn gửi
+ * `parentId` = comment GỐC (kèm "@tên" trong nội dung), nên nhánh lỗi này vẫn
+ * không chạm tới được. Giữ map làm lưới an toàn.
  */
 const REPLY_TO_REPLY = /Cannot reply to a reply/i;
+
+/**
+ * Regex nhận diện mention — chép ĐÚNG biểu thức backend dùng để bắn thông báo
+ * MENTION (`comments.service.ts`). Hai bên phải khớp nhau: chỗ nào FE tô đậm
+ * mà backend không nhận ra thì người được nhắc không nhận được thông báo, và
+ * ngược lại. Sửa một bên phải sửa cả bên kia.
+ */
+const MENTION_RE = /@([a-z0-9_]{3,20})/gi;
+
+/**
+ * Tô đậm các token `@username` trong nội dung bình luận (REVIEW-1 #9).
+ * Trả về mảng ReactNode để React tự escape — KHÔNG dùng dangerouslySetInnerHTML,
+ * nội dung này do người dùng nhập.
+ */
+function renderWithMentions(text: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  let lastIndex = 0;
+  // `matchAll` cần cờ /g; regex là hằng module nên phải reset lastIndex —
+  // biểu thức có /g giữ trạng thái giữa các lần gọi.
+  MENTION_RE.lastIndex = 0;
+  for (const m of text.matchAll(MENTION_RE)) {
+    const at = m.index ?? 0;
+    if (at > lastIndex) out.push(text.slice(lastIndex, at));
+    out.push(
+      <b key={`${at}-${m[1]}`} style={{ color: 'var(--color-primary-strong)' }}>
+        {m[0]}
+      </b>,
+    );
+    lastIndex = at + m[0].length;
+  }
+  if (lastIndex < text.length) out.push(text.slice(lastIndex));
+  return out;
+}
 
 function messageOf(e: unknown): string {
   return e instanceof Error ? e.message : String(e ?? '');
@@ -825,7 +868,7 @@ function CommentRow({
               color: 'var(--color-foreground)',
             }}
           >
-            <b>{authorName}</b> {comment.content}
+            <b>{authorName}</b> {renderWithMentions(comment.content)}
           </div>
           <div
             style={{
@@ -916,7 +959,12 @@ function CommentRow({
           )}
           {replying && (
             <InlineEditor
-              initial=""
+              // REVIEW-1 (#9) — `key` ép remount khi đổi người được trả lời:
+              // `InlineEditor` chỉ đọc `initial` lúc mount (useState(initial)),
+              // nên không có key thì bấm "Trả lời" ở một reply khác sẽ giữ
+              // nguyên "@tên" cũ.
+              key={actions.openEditor?.prefill ?? ''}
+              initial={actions.openEditor?.prefill ?? ''}
               placeholder={`Trả lời ${authorName}`}
               submitLabel="Gửi"
               fontSize={textSize}
@@ -1017,7 +1065,7 @@ function CommentRepliesList({
                   color: 'var(--color-foreground)',
                 }}
               >
-                <b>{author}</b> {r.content}
+                <b>{author}</b> {renderWithMentions(r.content)}
               </div>
               <div
                 style={{
@@ -1038,10 +1086,41 @@ function CommentRepliesList({
                   onToggle={() => void actions.toggleReaction(r.id)}
                 />
                 {/*
-                  KHÔNG có nút "Trả lời" ở tầng này — cây chỉ 2 tầng
-                  (`comments.service.ts:56-58`). Đây là chỗ luật đó được thi hành
-                  ở FE: không vẽ đường nào dẫn tới lỗi đã biết trước.
+                  REVIEW-1 (#9) — nút "Trả lời" ở tầng 2, kiểu Facebook.
+                  Trước đợt này chỗ này CỐ Ý bỏ trống vì backend chặn cứng
+                  "trả lời vào một trả lời". Người dùng muốn trả lời tiếp được
+                  mà KHÔNG thụt sâu thêm — đúng hình dạng backend đang cho phép.
+                  Nên nút này gửi `parentId` = comment GỐC (`commentId`, không
+                  phải `r.id`) và điền sẵn "@username" để người đọc biết dòng
+                  này đáp ai. Cây vẫn 2 tầng, luật backend không phải đổi.
                 */}
+                <button
+                  type="button"
+                  data-testid="reply-to-reply"
+                  onClick={() => {
+                    // Cùng khuôn guard với nút "Trả lời" ở tầng 1 ngay trên.
+                    if (actions.meId == null) {
+                      actions.promptLogin('trả lời bình luận');
+                      return;
+                    }
+                    actions.setOpenEditor({
+                      id: commentId,
+                      mode: 'reply',
+                      prefill: ru?.username ? `@${ru.username} ` : '',
+                    });
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 0,
+                    fontSize: metaSize,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: 'var(--color-muted)',
+                  }}
+                >
+                  Trả lời
+                </button>
                 {mine && (
                   <OwnerMenu
                     fontSize={metaSize + 2}

@@ -1,144 +1,24 @@
-'use client';
-
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useQuery } from '@apollo/client/react';
-import {
-  CategoriesDocument,
-  type CategoriesQuery,
-} from '@/lib/gql/graphql';
-import { useExploreFeed } from '@/lib/hooks/usePaginatedQuery';
-import { PinGrid } from '@/components/pin/pin-grid';
+import { redirect } from 'next/navigation';
 
 /**
- * FE-4 — B2 Khám phá.
+ * REVIEW-1 (#2, 18/08/2026) — `/explore` nay chỉ còn là đường chuyển hướng.
  *
- * Cấu tạo theo mockup `Panacea.html` §3.1:
- *   • h1 "Khám phá" — Varela Round 24px, margin 0 0 14px.
- *   • Dải chip category — cuộn ngang (`overflow-x:auto`), gap 8px, padding-bottom
- *     16px. Chip đầu "Tất cả" reset filter về `null`.
- *   • Lưới bên dưới — dùng `PinGrid` (FE-3) qua `useExploreFeed({ categorySlug })`.
+ * Trước đợt này đây là màn B2 riêng: h1 "Khám phá" + dải chip chủ đề + lưới
+ * `exploreFeed`. Người dùng báo lại rằng trang chủ đã có tab "Khám phá" rồi mà
+ * nav vẫn còn một mục "Khám phá" nữa dẫn tới màn trông y hệt.
  *
- * ⚠️ `categorySlug` phải là **slug của Category** (backend so khớp CHÍNH XÁC —
- * B-5). Lấy giá trị từ query `categories`, ĐỪNG nhét chữ người dùng gõ (nhắc
- * `PLAN_FRONTEND.md` §6).
+ * Họ đúng, và lý do lệch nằm ở chỗ khác: `docs/khung-ui-ux.md` §QĐ-1 chấp nhận
+ * hai màn cùng nội dung với điều kiện trang chủ có dải gợi ý riêng để phân biệt
+ * — nhưng dải đó thuộc đợt FE-ONBOARDING chưa làm, nên điều kiện chưa bao giờ
+ * thành hiện thực. Người dùng chốt (18/08): bỏ mục nav, chuyển dải chip chủ đề
+ * vào tab "Khám phá" của trang chủ. Đây là ĐẢO một quyết định thiết kế cũ.
  *
- * Category rỗng ⇒ backend trả tập rỗng, PinGrid hiện trạng thái "chưa có pin
- * nào" — không màn trắng (T2.4).
+ * Giữ lại route thay vì xoá hẳn: link cũ, bookmark và mục "Khám phá" trong
+ * lịch sử trình duyệt vẫn còn ngoài kia — xoá file này là chúng thành 404.
+ * `redirect` trong server component ⇒ 307, không tốn một lượt render client.
  *
- * Bấm pin ⇒ `router.push('/pin/'+id)` ⇒ intercepting route
- * `@modal/(.)pin/[id]` chặn ⇒ modal đè lưới, URL đổi (T2.1).
+ * Nội dung cũ của màn nay sống ở `components/home/explore-section.tsx`.
  */
-
 export default function ExplorePage() {
-  const router = useRouter();
-  const [categorySlug, setCategorySlug] = useState<string | null>(null);
-
-  const catsQuery = useQuery<CategoriesQuery>(CategoriesDocument);
-  const categories = catsQuery.data?.categories ?? [];
-
-  const exploreVars = useMemo(
-    () => (categorySlug ? { categorySlug } : {}),
-    [categorySlug],
-  );
-  const feed = useExploreFeed(exploreVars);
-
-  return (
-    <div style={{ padding: '24px 0 0' }}>
-      <div style={{ padding: '0 16px' }}>
-        <h1
-          style={{
-            fontFamily: 'var(--font-display), var(--font-be-vietnam-pro), sans-serif',
-            fontSize: 24,
-            margin: '0 0 14px',
-            color: 'var(--color-foreground)',
-          }}
-        >
-          Khám phá
-        </h1>
-        <div
-          role="tablist"
-          aria-label="Bộ lọc category"
-          style={{
-            display: 'flex',
-            gap: 8,
-            overflowX: 'auto',
-            paddingBottom: 16,
-            marginBottom: 4,
-          }}
-        >
-          <CategoryChip
-            label="Tất cả"
-            active={categorySlug === null}
-            onClick={() => setCategorySlug(null)}
-          />
-          {categories.map((c) => (
-            <CategoryChip
-              key={c.id}
-              label={c.icon ? `${c.icon} ${c.name}` : c.name}
-              active={categorySlug === c.slug}
-              onClick={() => setCategorySlug(c.slug)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <PinGrid
-        items={feed.items}
-        loading={feed.loading}
-        loadingMore={feed.loadingMore}
-        hasNextPage={feed.hasNextPage}
-        loadMore={feed.loadMore}
-        onOpen={(id) => router.push(`/pin/${id}`)}
-      />
-
-      {!feed.loading && feed.items.length === 0 && (
-        <div
-          role="status"
-          data-state="empty"
-          style={{
-            padding: '48px 16px',
-            textAlign: 'center',
-            color: 'var(--color-muted)',
-            fontSize: 14,
-          }}
-        >
-          Chưa có pin nào ở mục này.
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CategoryChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      style={{
-        flex: 'none',
-        padding: '8px 14px',
-        borderRadius: 'var(--radius-button)',
-        border: active ? '1px solid var(--color-primary-strong)' : '1px solid var(--color-border)',
-        background: active ? 'var(--color-primary-soft)' : 'var(--color-surface)',
-        color: active ? 'var(--color-primary-strong)' : 'var(--color-foreground)',
-        fontWeight: 600,
-        fontSize: 13,
-        cursor: 'pointer',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {label}
-    </button>
-  );
+  redirect('/');
 }

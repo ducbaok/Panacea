@@ -12,6 +12,7 @@ import { useMessages } from '@/lib/hooks/usePaginatedQuery';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { MessageBubble, type MessageItem } from './message-bubble';
+import { PaneHeader } from './pane-header';
 import { insertMessage, markReadInCache, removeMessage, MSG_PAGE_SIZE } from './message-cache';
 
 /**
@@ -175,18 +176,13 @@ export function ChatPanel({
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <div
-        style={{
-          padding: '14px 18px',
-          borderBottom: '1px solid var(--color-border)',
-          fontWeight: 700,
-          fontSize: 14.5,
-          color: 'var(--color-foreground)',
-        }}
-      >
-        {title}
-      </div>
+    // REVIEW-1 (#4) — `minHeight: 0` bắt buộc trên flex column: thiếu nó thì
+    // vùng tin nhắn (`flex:1`) không co được dưới chiều cao nội dung, và
+    // composer ở đáy bị đẩy tụt khỏi khung 600px (`overflow:hidden` của grid
+    // cha cắt mất) — vạch `borderTop` của nó biến mất trong khi vạch cột trái
+    // vẫn còn.
+    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
+      <PaneHeader>{title}</PaneHeader>
 
       <div
         ref={scrollerRef}

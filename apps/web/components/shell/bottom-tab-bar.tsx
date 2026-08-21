@@ -59,8 +59,10 @@ export function BottomTabBar() {
         const href = resolveHref(item, username);
         const active = isActive(pathname, href);
         const { Icon, label } = item;
+        // REVIEW-1 (#3): xem chú thích `hardNav` ở `nav-items.ts`.
+        const Anchor = item.hardNav ? 'a' : Link;
         return (
-          <Link
+          <Anchor
             key={item.key}
             href={href}
             aria-current={active ? 'page' : undefined}
@@ -75,7 +77,7 @@ export function BottomTabBar() {
           >
             <Icon />
             <span>{label}</span>
-          </Link>
+          </Anchor>
         );
       })}
     </nav>

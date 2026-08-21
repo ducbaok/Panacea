@@ -39,6 +39,29 @@ export function PinModal({ id }: { id: string }) {
     router.back();
   }, [router]);
 
+  /**
+   * 🔴 REVIEW-1 (#3) — LƯỚI AN TOÀN cho `/pin/new`.
+   *
+   * Slot `@modal` resolve độc lập với cây `children`, nên MỌI soft-nav tới
+   * `/pin/new` đều rơi vào `(.)pin/[id]` với `id="new"` ⇒ người dùng thấy
+   * "Không tìm thấy pin này." đè lên trang cũ thay vì form tạo pin (đo được
+   * trên trình duyệt 18/08/2026).
+   *
+   * Đường sửa chính là cờ `hardNav` ở `components/shell/nav-items.ts` (nút
+   * "Tạo" dùng thẻ `<a>` thường). Effect này là lưới thứ hai: nếu sau này có
+   * đường vào mới quên đặt cờ, nó tự chuyển sang điều hướng cứng thay vì để
+   * người dùng nhìn thông báo sai. `replace` chứ không `assign` — không để
+   * lại một history entry chết giữa đường lùi.
+   *
+   * Đặt TRƯỚC mọi effect khác và return sớm ngay dưới: modal này không bao
+   * giờ được phép render cho `id === 'new'`.
+   */
+  useEffect(() => {
+    if (id === 'new' && typeof window !== 'undefined') {
+      window.location.replace('/pin/new');
+    }
+  }, [id]);
+
   // matchMedia — đọc trong effect để tránh lệch hydration.
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -70,6 +93,9 @@ export function PinModal({ id }: { id: string }) {
 
   const onBackdropClick = () => close();
   const onFrameClick = (e: React.MouseEvent) => e.stopPropagation();
+
+  // REVIEW-1 (#3) — không render gì trong lúc effect trên đang chuyển trang.
+  if (id === 'new') return null;
 
   // Mobile: bỏ nền mờ, chiếm trọn màn, render variant='page' (hướng A §5.4).
   if (isMobile) {

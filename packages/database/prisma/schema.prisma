@@ -47,6 +47,9 @@ model User {
   bio           String?
   website       String?
   avatarUrl     String?
+  // REVIEW-1 (18/08/2026) — ảnh bìa hồ sơ. Nullable: hồ sơ chưa đặt bìa thì FE
+  // vẽ gradient placeholder như trước, không cần backfill.
+  coverUrl      String?
   isOnboarded   Boolean   @default(false)
   locale        String    @default("vi")
   deletedAt     DateTime?

@@ -40,11 +40,18 @@ export function ConversationRow({
   meId,
   active,
   onOpen,
+  isLastRow = false,
 }: {
   conversation: Conversation;
   meId: string | null;
   active: boolean;
   onOpen: () => void;
+  /**
+   * Dòng cuối danh sách (và không còn trang sau) ⇒ bỏ vạch dưới — REVIEW-1 #4.
+   * Tên `isLastRow` chứ không `last`: trong thân component `last` đã là tin
+   * nhắn mới nhất của hội thoại.
+   */
+  isLastRow?: boolean;
 }) {
   const other = otherMember(conversation, meId);
   const name = other?.name ?? other?.username ?? 'Người dùng';
@@ -70,7 +77,9 @@ export function ConversationRow({
         textAlign: 'left',
         cursor: 'pointer',
         border: 'none',
-        borderBottom: '1px solid var(--color-border)',
+        // REVIEW-1 (#4) — dòng CUỐI không kẻ vạch: danh sách ngắn thì vạch cuối
+        // lơ lửng giữa khoảng trắng, không ngăn cách gì cả.
+        borderBottom: isLastRow ? 'none' : '1px solid var(--color-border)',
         background: active ? 'var(--color-primary-soft)' : 'transparent',
         color: 'var(--color-foreground)',
       }}

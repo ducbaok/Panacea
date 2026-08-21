@@ -36,6 +36,15 @@ export class User {
   @Field({ nullable: true })
   avatarUrl?: string;
 
+  /**
+   * REVIEW-1 (#6) — ảnh bìa hồ sơ. Trước đợt này dải bìa ở trang cá nhân là
+   * gradient trang trí cứng, không có đường nào đặt ảnh thật (bản vẽ C1b ghi
+   * thẳng "không có ảnh bìa thật"); người dùng yêu cầu đổi được ⇒ thêm cột.
+   * Null = FE vẽ lại gradient cũ làm fallback.
+   */
+  @Field({ nullable: true })
+  coverUrl?: string;
+
   @Field({ nullable: true })
   bio?: string;
 

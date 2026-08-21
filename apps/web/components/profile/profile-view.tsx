@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useMutation } from '@apollo/client/react';
@@ -16,7 +16,7 @@ import {
   CreateConversationDocument,
 } from '@/lib/gql/graphql';
 import { translateMessagingError } from '@/components/messages/chat-panel';
-import { useUserPins, useUserBoards } from '@/lib/hooks/usePaginatedQuery';
+import { useUserPins, useUserBoards, useSavedPins } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
@@ -96,7 +96,9 @@ function ProfileContent({
   const toast = useToast();
   const { status } = useSession();
   const { openAuthPrompt } = useAuthPrompt();
-  const [tab, setTab] = useState<'pin' | 'board'>('pin');
+  // REVIEW-1 (#7) — thêm tab 'saved'. Trước đợt này pin lưu bằng nút "Lưu" mặc
+  // định (không chọn board) không hiện ở BẤT KỲ màn nào.
+  const [tab, setTab] = useState<'pin' | 'board' | 'saved'>('pin');
   const [hoverFollow, setHoverFollow] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -116,6 +118,28 @@ function ProfileContent({
 
   const pinsTab = useUserPins({ userId: profile.id }, { skip: tab !== 'pin' || isBlocked });
   const boardsTab = useUserBoards({ userId: profile.id }, { skip: tab !== 'board' || isBlocked });
+  const savedTab = useSavedPins({ userId: profile.id }, { skip: tab !== 'saved' || isBlocked });
+
+  /**
+   * REVIEW-1 (#7) — gộp theo `pin.id`.
+   *
+   * Server trả về từng dòng `SavedPin`, và một pin lưu vào nhiều board là nhiều
+   * dòng (`@@unique([userId, pinId, boardId])`). Không gộp thì cùng một pin
+   * hiện lặp trong lưới. Gộp ở FE chứ không ở server vì dedupe server-side đòi
+   * `DISTINCT ON` raw SQL, phá khuôn keyset dùng chung toàn dự án — đánh đổi:
+   * một trang có thể hiển thị ít hơn `first` thẻ (đã ghi ở B-21).
+   */
+  const savedPinItems = useMemo(() => {
+    const seen = new Set<string>();
+    const out: NonNullable<(typeof savedTab.items)[number]['pin']>[] = [];
+    for (const sp of savedTab.items) {
+      const pin = sp.pin;
+      if (!pin || seen.has(pin.id)) continue;
+      seen.add(pin.id);
+      out.push(pin);
+    }
+    return out;
+  }, [savedTab.items]);
 
   // ─── C1b blocked (§3 c1Blocked): bar gọn "Đã chặn @…" + Bỏ chặn ───
   if (isBlocked) {
@@ -254,15 +278,9 @@ function ProfileContent({
 
   return (
     <div data-screen="C1" data-state={stateName} style={{ maxWidth: 940, margin: '0 auto', padding: '24px 16px 0' }}>
-      {/* Ảnh bìa 150px + avatar 92px đè lên */}
-      <div
-        style={{
-          height: 150,
-          borderRadius: 20,
-          background:
-            'repeating-linear-gradient(135deg, var(--color-placeholder-a1) 0 16px, var(--color-placeholder-b1) 16px 32px)',
-        }}
-      />
+      {/* Ảnh bìa 150px + avatar 92px đè lên. REVIEW-1 (#6): trước đợt này dải
+          bìa CHỈ là gradient trang trí, không có đường nào đặt ảnh thật. */}
+      <CoverBand url={profile.coverUrl} editable={isSelf} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: -46 }}>
         <HeaderAvatar name={dispName} url={profile.avatarUrl} editable={isSelf} />
         <h1 style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 25, margin: '12px 0 2px', color: 'var(--color-foreground)' }}>
@@ -447,10 +465,14 @@ function ProfileContent({
           </div>
         )}
 
-        {/* 2 tab Pin | Board */}
+        {/* 3 tab Pin | Board | Đã lưu.
+            REVIEW-1 (#7): bản vẽ C1 chốt 2 tab, tab thứ ba thêm theo yêu cầu
+            người dùng — pin lưu bằng nút "Lưu" mặc định trước nay không có chỗ
+            nào hiển thị. */}
         <div style={{ display: 'flex', gap: 4, margin: '24px 0 18px', background: 'var(--color-surface-muted)', borderRadius: 999, padding: 4 }}>
           <TabButton label="Pin" active={tab === 'pin'} onClick={() => setTab('pin')} />
           <TabButton label="Board" active={tab === 'board'} onClick={() => setTab('board')} />
+          <TabButton label="Đã lưu" active={tab === 'saved'} onClick={() => setTab('saved')} />
         </div>
       </div>
 
@@ -467,11 +489,24 @@ function ProfileContent({
             onOpen={(id) => router.push(`/pin/${id}`)}
           />
         )
-      ) : (
+      ) : tab === 'board' ? (
         <BoardsGrid
           boards={boardsTab.items}
           loading={boardsTab.loading}
           onOpen={(id) => router.push(`/board/${id}`)}
+        />
+      ) : savedPinItems.length === 0 && !savedTab.loading ? (
+        <EmptyTab>
+          {isSelf ? 'Bạn chưa lưu pin nào' : 'Chưa lưu pin nào'}
+        </EmptyTab>
+      ) : (
+        <PinGrid
+          items={savedPinItems}
+          loading={savedTab.loading}
+          loadingMore={savedTab.loadingMore}
+          hasNextPage={savedTab.hasNextPage}
+          loadMore={savedTab.loadMore}
+          onOpen={(id) => router.push(`/pin/${id}`)}
         />
       )}
     </div>
@@ -553,6 +588,76 @@ function BoardsGrid({
  * 32×32 đè góc phải-dưới — bản vẽ C1a của `Panacea-v2.1.html`, không nhãn chữ,
  * `title="Đổi ảnh đại diện"`.
  */
+/**
+ * REVIEW-1 (#6) — dải bìa hồ sơ: ảnh thật nếu có, gradient cũ nếu chưa đặt.
+ *
+ * Bản vẽ C1b ghi thẳng "không có ảnh bìa thật", nên dải này vốn chỉ là
+ * `repeating-linear-gradient` trang trí và KHÔNG có đường nào đổi được — đúng
+ * thứ người dùng báo thiếu (18/08/2026). Nay `User.coverUrl` đã tồn tại ở mọi
+ * tầng; gradient cũ trở thành fallback khi chưa đặt ảnh, nên hồ sơ chưa có bìa
+ * trông y hệt trước, không cần backfill dữ liệu.
+ *
+ * Dùng lại `useAvatarUpload('coverUrl')` — cùng luồng upload với ảnh đại diện.
+ */
+function CoverBand({ url, editable }: { url?: string | null; editable?: boolean }) {
+  const coverUpload = useAvatarUpload('coverUrl');
+
+  const band = url ? (
+    <img
+      src={url}
+      alt=""
+      style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 20, display: 'block' }}
+    />
+  ) : (
+    <div
+      aria-hidden
+      style={{
+        height: 150,
+        borderRadius: 20,
+        background:
+          'repeating-linear-gradient(135deg, var(--color-placeholder-a1) 0 16px, var(--color-placeholder-b1) 16px 32px)',
+      }}
+    />
+  );
+
+  if (!editable) return band;
+
+  return (
+    <div style={{ position: 'relative' }}>
+      {band}
+      <input {...coverUpload.inputProps} />
+      <button
+        type="button"
+        onClick={coverUpload.pick}
+        disabled={coverUpload.phase === 'working'}
+        title="Đổi ảnh bìa"
+        aria-label="Đổi ảnh bìa"
+        data-testid="change-cover"
+        style={{
+          position: 'absolute',
+          right: 12,
+          bottom: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '7px 12px',
+          borderRadius: 999,
+          border: '1px solid var(--color-border)',
+          background: 'var(--color-surface)',
+          color: 'var(--color-foreground)',
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: coverUpload.phase === 'working' ? 'wait' : 'pointer',
+          boxShadow: 'var(--shadow-card)',
+        }}
+      >
+        <CameraIcon />
+        {coverUpload.phase === 'working' ? 'Đang tải…' : 'Đổi ảnh bìa'}
+      </button>
+    </div>
+  );
+}
+
 function HeaderAvatar({
   name,
   url,

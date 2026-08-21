@@ -3261,6 +3261,7 @@ export namespace Prisma {
     bio: string | null
     website: string | null
     avatarUrl: string | null
+    coverUrl: string | null
     isOnboarded: boolean | null
     locale: string | null
     deletedAt: Date | null
@@ -3279,6 +3280,7 @@ export namespace Prisma {
     bio: string | null
     website: string | null
     avatarUrl: string | null
+    coverUrl: string | null
     isOnboarded: boolean | null
     locale: string | null
     deletedAt: Date | null
@@ -3297,6 +3299,7 @@ export namespace Prisma {
     bio: number
     website: number
     avatarUrl: number
+    coverUrl: number
     isOnboarded: number
     locale: number
     deletedAt: number
@@ -3317,6 +3320,7 @@ export namespace Prisma {
     bio?: true
     website?: true
     avatarUrl?: true
+    coverUrl?: true
     isOnboarded?: true
     locale?: true
     deletedAt?: true
@@ -3335,6 +3339,7 @@ export namespace Prisma {
     bio?: true
     website?: true
     avatarUrl?: true
+    coverUrl?: true
     isOnboarded?: true
     locale?: true
     deletedAt?: true
@@ -3353,6 +3358,7 @@ export namespace Prisma {
     bio?: true
     website?: true
     avatarUrl?: true
+    coverUrl?: true
     isOnboarded?: true
     locale?: true
     deletedAt?: true
@@ -3444,6 +3450,7 @@ export namespace Prisma {
     bio: string | null
     website: string | null
     avatarUrl: string | null
+    coverUrl: string | null
     isOnboarded: boolean
     locale: string
     deletedAt: Date | null
@@ -3479,6 +3486,7 @@ export namespace Prisma {
     bio?: boolean
     website?: boolean
     avatarUrl?: boolean
+    coverUrl?: boolean
     isOnboarded?: boolean
     locale?: boolean
     deletedAt?: boolean
@@ -3519,6 +3527,7 @@ export namespace Prisma {
     bio?: boolean
     website?: boolean
     avatarUrl?: boolean
+    coverUrl?: boolean
     isOnboarded?: boolean
     locale?: boolean
     deletedAt?: boolean
@@ -3537,6 +3546,7 @@ export namespace Prisma {
     bio?: boolean
     website?: boolean
     avatarUrl?: boolean
+    coverUrl?: boolean
     isOnboarded?: boolean
     locale?: boolean
     deletedAt?: boolean
@@ -3606,6 +3616,7 @@ export namespace Prisma {
       bio: string | null
       website: string | null
       avatarUrl: string | null
+      coverUrl: string | null
       isOnboarded: boolean
       locale: string
       deletedAt: Date | null
@@ -4035,6 +4046,7 @@ export namespace Prisma {
     readonly bio: FieldRef<"User", 'String'>
     readonly website: FieldRef<"User", 'String'>
     readonly avatarUrl: FieldRef<"User", 'String'>
+    readonly coverUrl: FieldRef<"User", 'String'>
     readonly isOnboarded: FieldRef<"User", 'Boolean'>
     readonly locale: FieldRef<"User", 'String'>
     readonly deletedAt: FieldRef<"User", 'DateTime'>
@@ -25537,6 +25549,7 @@ export namespace Prisma {
     bio: 'bio',
     website: 'website',
     avatarUrl: 'avatarUrl',
+    coverUrl: 'coverUrl',
     isOnboarded: 'isOnboarded',
     locale: 'locale',
     deletedAt: 'deletedAt',
@@ -25954,6 +25967,7 @@ export namespace Prisma {
     bio?: StringNullableFilter<"User"> | string | null
     website?: StringNullableFilter<"User"> | string | null
     avatarUrl?: StringNullableFilter<"User"> | string | null
+    coverUrl?: StringNullableFilter<"User"> | string | null
     isOnboarded?: BoolFilter<"User"> | boolean
     locale?: StringFilter<"User"> | string
     deletedAt?: DateTimeNullableFilter<"User"> | Date | string | null
@@ -25993,6 +26007,7 @@ export namespace Prisma {
     bio?: SortOrderInput | SortOrder
     website?: SortOrderInput | SortOrder
     avatarUrl?: SortOrderInput | SortOrder
+    coverUrl?: SortOrderInput | SortOrder
     isOnboarded?: SortOrder
     locale?: SortOrder
     deletedAt?: SortOrderInput | SortOrder
@@ -26035,6 +26050,7 @@ export namespace Prisma {
     bio?: StringNullableFilter<"User"> | string | null
     website?: StringNullableFilter<"User"> | string | null
     avatarUrl?: StringNullableFilter<"User"> | string | null
+    coverUrl?: StringNullableFilter<"User"> | string | null
     isOnboarded?: BoolFilter<"User"> | boolean
     locale?: StringFilter<"User"> | string
     deletedAt?: DateTimeNullableFilter<"User"> | Date | string | null
@@ -26074,6 +26090,7 @@ export namespace Prisma {
     bio?: SortOrderInput | SortOrder
     website?: SortOrderInput | SortOrder
     avatarUrl?: SortOrderInput | SortOrder
+    coverUrl?: SortOrderInput | SortOrder
     isOnboarded?: SortOrder
     locale?: SortOrder
     deletedAt?: SortOrderInput | SortOrder
@@ -26098,6 +26115,7 @@ export namespace Prisma {
     bio?: StringNullableWithAggregatesFilter<"User"> | string | null
     website?: StringNullableWithAggregatesFilter<"User"> | string | null
     avatarUrl?: StringNullableWithAggregatesFilter<"User"> | string | null
+    coverUrl?: StringNullableWithAggregatesFilter<"User"> | string | null
     isOnboarded?: BoolWithAggregatesFilter<"User"> | boolean
     locale?: StringWithAggregatesFilter<"User"> | string
     deletedAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
@@ -27515,6 +27533,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -27554,6 +27573,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -27593,6 +27613,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -27632,6 +27653,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -27671,6 +27693,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -27689,6 +27712,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -27707,6 +27731,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -29363,6 +29388,7 @@ export namespace Prisma {
     bio?: SortOrder
     website?: SortOrder
     avatarUrl?: SortOrder
+    coverUrl?: SortOrder
     isOnboarded?: SortOrder
     locale?: SortOrder
     deletedAt?: SortOrder
@@ -29381,6 +29407,7 @@ export namespace Prisma {
     bio?: SortOrder
     website?: SortOrder
     avatarUrl?: SortOrder
+    coverUrl?: SortOrder
     isOnboarded?: SortOrder
     locale?: SortOrder
     deletedAt?: SortOrder
@@ -29399,6 +29426,7 @@ export namespace Prisma {
     bio?: SortOrder
     website?: SortOrder
     avatarUrl?: SortOrder
+    coverUrl?: SortOrder
     isOnboarded?: SortOrder
     locale?: SortOrder
     deletedAt?: SortOrder
@@ -33996,6 +34024,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34034,6 +34063,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34088,6 +34118,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34126,6 +34157,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34164,6 +34196,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34202,6 +34235,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34256,6 +34290,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34294,6 +34329,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34332,6 +34368,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34370,6 +34407,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34424,6 +34462,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34462,6 +34501,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34500,6 +34540,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34538,6 +34579,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34592,6 +34634,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34630,6 +34673,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34668,6 +34712,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34706,6 +34751,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34760,6 +34806,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34798,6 +34845,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -34836,6 +34884,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34874,6 +34923,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34917,6 +34967,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -34955,6 +35006,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35009,6 +35061,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35047,6 +35100,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35096,6 +35150,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35134,6 +35189,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35172,6 +35228,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35210,6 +35267,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35253,6 +35311,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35291,6 +35350,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35345,6 +35405,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35383,6 +35444,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35432,6 +35494,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35470,6 +35533,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -35565,6 +35629,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35603,6 +35668,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35681,6 +35747,7 @@ export namespace Prisma {
     bio?: StringNullableFilter<"User"> | string | null
     website?: StringNullableFilter<"User"> | string | null
     avatarUrl?: StringNullableFilter<"User"> | string | null
+    coverUrl?: StringNullableFilter<"User"> | string | null
     isOnboarded?: BoolFilter<"User"> | boolean
     locale?: StringFilter<"User"> | string
     deletedAt?: DateTimeNullableFilter<"User"> | Date | string | null
@@ -35772,6 +35839,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -35810,6 +35878,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -36090,6 +36159,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -36128,6 +36198,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -36302,6 +36373,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -36340,6 +36412,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -36531,6 +36604,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -36569,6 +36643,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -36880,6 +36955,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -36918,6 +36994,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -37011,6 +37088,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37049,6 +37127,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37087,6 +37166,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -37125,6 +37205,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -37290,6 +37371,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37328,6 +37410,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37495,6 +37578,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -37533,6 +37617,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -37644,6 +37729,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37682,6 +37768,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -37840,6 +37927,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -37878,6 +37966,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -38116,6 +38205,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38154,6 +38244,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38277,6 +38368,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -38315,6 +38407,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -38400,6 +38493,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38438,6 +38532,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38618,6 +38713,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -38656,6 +38752,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -38735,6 +38832,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38773,6 +38871,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -38830,6 +38929,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -38868,6 +38968,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -39004,6 +39105,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39042,6 +39144,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39143,6 +39246,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -39181,6 +39285,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -39224,6 +39329,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -39262,6 +39368,7 @@ export namespace Prisma {
     bio?: string | null
     website?: string | null
     avatarUrl?: string | null
+    coverUrl?: string | null
     isOnboarded?: boolean
     locale?: string
     deletedAt?: Date | string | null
@@ -39404,6 +39511,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39442,6 +39550,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39491,6 +39600,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -39529,6 +39639,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -40473,6 +40584,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -40511,6 +40623,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -40549,6 +40662,7 @@ export namespace Prisma {
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     website?: NullableStringFieldUpdateOperationsInput | string | null
     avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isOnboarded?: BoolFieldUpdateOperationsInput | boolean
     locale?: StringFieldUpdateOperationsInput | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

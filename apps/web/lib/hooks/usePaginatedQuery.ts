@@ -42,6 +42,9 @@ import {
   BoardPinsDocument,
   type BoardPinsQuery,
   type BoardPinsQueryVariables,
+  SavedPinsDocument,
+  type SavedPinsQuery,
+  type SavedPinsQueryVariables,
   PinCommentsDocument,
   type PinCommentsQuery,
   type PinCommentsQueryVariables,
@@ -344,6 +347,41 @@ export function useBoardPins(
     variables,
     pickPage: (d) =>
       d.boardPins as PaginatedShape<BoardPinsQuery['boardPins']['items'][number]>,
+    merge,
+    skip: opts.skip,
+  });
+}
+
+/**
+ * REVIEW-1 (#7) — pin ĐÃ LƯU của một người dùng (tab "Đã lưu" ở trang cá nhân).
+ *
+ * ⚠️ Server KHÔNG dedupe: một pin lưu vào N board trả về N dòng `SavedPin`
+ * (`@@unique([userId, pinId, boardId])`). Nơi hiển thị phải gộp theo `pin.id`
+ * trước khi đổ vào lưới, nếu không cùng một pin hiện nhiều lần.
+ */
+export function useSavedPins(
+  variables: Omit<SavedPinsQueryVariables, 'after'>,
+  opts: { skip?: boolean } = {},
+): UseInfinitePaginationResult<SavedPinsQuery['savedPins']['items'][number]> {
+  const merge = useCallback(
+    (previous: SavedPinsQuery, incoming: SavedPinsQuery): SavedPinsQuery => ({
+      ...previous,
+      savedPins: {
+        ...incoming.savedPins,
+        items: [...previous.savedPins.items, ...incoming.savedPins.items],
+      },
+    }),
+    [],
+  );
+  return useInfinitePagination<
+    SavedPinsQuery,
+    SavedPinsQueryVariables,
+    SavedPinsQuery['savedPins']['items'][number]
+  >({
+    query: SavedPinsDocument,
+    variables,
+    pickPage: (d) =>
+      d.savedPins as PaginatedShape<SavedPinsQuery['savedPins']['items'][number]>,
     merge,
     skip: opts.skip,
   });

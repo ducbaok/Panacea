@@ -43,6 +43,12 @@ export class UpdateProfileInput {
   @IsString()
   avatarUrl?: string;
 
+  /** REVIEW-1 (#6) — ảnh bìa hồ sơ; cùng khuôn `avatarUrl`. */
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  coverUrl?: string;
+
   @Field({ nullable: true })
   @IsOptional()
   @IsString()

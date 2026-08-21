@@ -90,14 +90,22 @@ export class CommentsResolver {
 
   // GqlOptionalAuthGuard cần thiết để ResolveField `isReactedByViewer` biết
   // viewer là ai. Không có guard → @CurrentUser() luôn null → luôn trả false.
+  //
+  // 🔴 REVIEW-1 (18/08/2026) — hai query này là bề mặt RÒ RỈ lớn nhất của việc
+  // chặn người dùng: `@CurrentUser()` vốn đọc được (guard đã có sẵn từ trước)
+  // nhưng không ai lấy, nên bình luận của người đã chặn/bị chặn vẫn hiện đủ
+  // tên + avatar + nội dung, kể cả khi feed và hồ sơ của họ đã bị ẩn sạch.
+  // BR-17 gọi đây là "mutual invisibility" ⇒ bình luận phải theo cùng luật.
   @Query(() => PaginatedComments)
   @UseGuards(GqlOptionalAuthGuard)
   async pinComments(
     @Args('pinId') pinId: string,
     @Args('first', { type: () => Int, defaultValue: 20 }) limit: number,
     @Args('after', { nullable: true }) cursor?: string,
+    @CurrentUser() user?: AuthUser | null,
   ) {
-    return this.commentsService.getPinComments(pinId, limit, cursor);
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.commentsService.getPinComments(pinId, limit, cursor, blockedIds);
   }
 
   @Query(() => PaginatedComments)
@@ -106,8 +114,10 @@ export class CommentsResolver {
     @Args('commentId') commentId: string,
     @Args('first', { type: () => Int, defaultValue: 20 }) limit: number,
     @Args('after', { nullable: true }) cursor?: string,
+    @CurrentUser() user?: AuthUser | null,
   ) {
-    return this.commentsService.getCommentReplies(commentId, limit, cursor);
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.commentsService.getCommentReplies(commentId, limit, cursor, blockedIds);
   }
 
   // ─── ResolveFields ────────────────────────────────────────────────────

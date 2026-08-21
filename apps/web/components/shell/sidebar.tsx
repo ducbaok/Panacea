@@ -115,8 +115,12 @@ type NavItemRowProps = {
 
 function NavItemRow({ item, href, collapsed, active, badge }: NavItemRowProps) {
   const { Icon, label } = item;
+  // REVIEW-1 (#3): mục mang `hardNav` phải là thẻ <a> thường — soft-nav tới
+  // /pin/new bị slot @modal chặn thành modal "Không tìm thấy pin". Lý do đầy
+  // đủ + hai hướng sửa gốc đã đo và trượt: xem `nav-items.ts` field `hardNav`.
+  const Anchor = item.hardNav ? 'a' : Link;
   return (
-    <Link
+    <Anchor
       href={href}
       title={collapsed ? label : undefined}
       aria-current={active ? 'page' : undefined}
@@ -152,7 +156,7 @@ function NavItemRow({ item, href, collapsed, active, badge }: NavItemRowProps) {
           )}
         </>
       )}
-    </Link>
+    </Anchor>
   );
 }
 

@@ -278,13 +278,24 @@ export class CommentsService {
    * Root comments của 1 pin — mới nhất trước.
    * Keyset pagination trên (createdAt DESC, id DESC). Xem giải thích đầy đủ
    * trong `common/pagination/cursor-pagination.ts`.
+   *
+   * `blockedIds` (REVIEW-1): danh sách HAI CHIỀU từ `getBlockedUserIds` —
+   * người viewer chặn VÀ người đã chặn viewer. Guard `.length` để request của
+   * viewer không chặn ai giữ nguyên hình dạng SQL cũ (bộ verify có phép đếm
+   * số query, thêm mệnh đề thừa là đổi trạng thái phép cũ).
+   *
+   * ⚠️ `replyCount` CỐ Ý không lọc theo `blockedIds` — nó là DataLoader dùng
+   * chung mọi viewer (`dataloader.service.ts`), làm nó viewer-aware phải đổi
+   * sang khuôn `perViewer`. Hệ quả nhìn thấy được: nút "Xem 2 trả lời" có thể
+   * mở ra ít hơn 2. Đã đăng ký `PLAN_HOAN_THIEN.md` B-21.
    */
-  async getPinComments(pinId: string, limit: number, cursor?: string) {
+  async getPinComments(pinId: string, limit: number, cursor?: string, blockedIds: string[] = []) {
     const comments = await this.prisma.comment.findMany({
       where: {
         pinId,
         parentId: null,
         deletedAt: null,
+        ...(blockedIds.length ? { userId: { notIn: blockedIds } } : {}),
         ...buildCursorFilter(cursor, 'desc'),
       },
       take: limit + 1,
@@ -298,12 +309,20 @@ export class CommentsService {
    * Replies của 1 comment — cũ nhất trước (đọc thread theo thứ tự thời gian).
    * Vì `orderBy` là ASC nên cursor filter phải dùng `gt` — `'asc'` truyền vào
    * helper lo việc đó; truyền lệch hướng sẽ khiến trang 2 trả về rỗng.
+   *
+   * `blockedIds`: xem `getPinComments`.
    */
-  async getCommentReplies(commentId: string, limit: number, cursor?: string) {
+  async getCommentReplies(
+    commentId: string,
+    limit: number,
+    cursor?: string,
+    blockedIds: string[] = [],
+  ) {
     const comments = await this.prisma.comment.findMany({
       where: {
         parentId: commentId,
         deletedAt: null,
+        ...(blockedIds.length ? { userId: { notIn: blockedIds } } : {}),
         ...buildCursorFilter(cursor, 'asc'),
       },
       take: limit + 1,

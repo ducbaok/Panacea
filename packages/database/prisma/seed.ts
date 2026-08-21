@@ -169,7 +169,10 @@ async function seedData(prisma: PrismaClient) {
       id: 'pin_3_id',
       title: 'TypeScript Types Guide',
       description: 'Advanced types, generics, mapped types, and conditional types in TypeScript.',
-      imageUrl: 'https://images.unsplash.com/photo-1516116211223-5c359a36298a?w=800',
+      // REVIEW-1 (18/08/2026) — URL cũ `photo-1516116211223` đã bị Unsplash gỡ
+      // (curl trả 404). Ảnh chết ở seed đọc y hệt bug ảnh không tải, nên thay
+      // bằng URL đã kiểm 200 tại thời điểm sửa.
+      imageUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800',
       imageWidth: 800,
       imageHeight: 533,
       creatorId: 'user_1_id',
@@ -215,7 +218,8 @@ async function seedData(prisma: PrismaClient) {
       id: 'pin_8_id',
       title: 'Abstract Fluid 3D Render',
       description: 'Stunning 3D wallpaper with organic shapes and iridescent colors.',
-      imageUrl: 'https://images.unsplash.com/photo-1618005198143-d36674c0f3df?w=800',
+      // REVIEW-1 — URL cũ `photo-1618005198143` trả 404 (xem ghi chú pin_3_id).
+      imageUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800',
       imageWidth: 800,
       imageHeight: 1200,
       creatorId: 'user_2_id',
@@ -281,7 +285,8 @@ async function seedData(prisma: PrismaClient) {
       id: 'pin_15_id',
       title: 'Matcha Mille Crepe Cake',
       description: 'Over 20 layers of paper-thin crepes stacked with light matcha green tea cream.',
-      imageUrl: 'https://images.unsplash.com/photo-1536680465769-2365207b035e?w=800',
+      // REVIEW-1 — URL cũ `photo-1536680465769` trả 404 (xem ghi chú pin_3_id).
+      imageUrl: 'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=800',
       imageWidth: 800,
       imageHeight: 1000,
       creatorId: 'user_4_id',

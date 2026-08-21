@@ -164,6 +164,46 @@ mutation SetBoardCover($boardId: ID!, $pinId: ID!) {
   setBoardCover(boardId: $boardId, pinId: $pinId)
 }
 
+# REVIEW-1 (#7) — Pin ĐÃ LƯU của một người dùng (tab "Đã lưu" ở trang cá nhân).
+#
+# Khác `BoardPins` ở chỗ không đi qua board, nên gồm cả pin lưu bằng nút "Lưu"
+# mặc định (`boardId = null`) — nhóm trước nay không màn nào đọc được.
+#
+# ⚠️ Một pin lưu vào nhiều board = nhiều dòng `SavedPin`; server KHÔNG dedupe
+# (xem `boards.service.ts#getUserSavedPins`). Nơi dùng phải gộp theo `pin.id`.
+query SavedPins($userId: ID!, $first: Int! = 20, $after: String) {
+  savedPins(userId: $userId, first: $first, after: $after) {
+    items {
+      id
+      note
+      createdAt
+      pin {
+        id
+        title
+        imageUrl
+        thumbnailUrl
+        mediumUrl
+        imageWidth
+        imageHeight
+        savedCount
+        commentCount
+        creator {
+          id
+          username
+          name
+          avatarUrl
+        }
+        isSavedByViewer
+        viewerReaction
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
 query BoardPins($boardId: ID!, $sectionId: ID, $first: Int! = 20, $after: String) {
   boardPins(boardId: $boardId, sectionId: $sectionId, first: $first, after: $after) {
     items {

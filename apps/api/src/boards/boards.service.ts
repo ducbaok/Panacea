@@ -52,13 +52,18 @@ export class BoardsService {
   /**
    * Lấy chi tiết board (kèm check quyền cho secret board).
    */
-  async getBoardById(boardId: string, currentUserId?: string) {
+  async getBoardById(boardId: string, currentUserId?: string, blockedIds: string[] = []) {
     const board = await this.prisma.board.findFirst({
       where: { id: boardId, deletedAt: null },
       include: { collaborators: true },
     });
 
     if (!board) throw new NotFoundException('Board not found');
+
+    // REVIEW-1 — board của người đã chặn (hai chiều) phải trông như KHÔNG TỒN
+    // TẠI, không phải "bị cấm". Dùng đúng 404 như `pins.service.findById`:
+    // 403 tự nó là một tín hiệu rò rỉ ("có board thật ở đây, bạn không được xem").
+    if (blockedIds.includes(board.userId)) throw new NotFoundException('Board not found');
 
     if (board.isSecret && board.userId !== currentUserId) {
       const isCollab = board.collaborators.some(c => c.userId === currentUserId);
@@ -76,9 +81,21 @@ export class BoardsService {
    * cursor cũ vẫn giải mã đúng. Thay `cursor+skip:1` (offset) bằng WHERE
    * keyset — loại luôn cùng bẫy đã bịt ở Comments/Search P0 #6.
    */
-  async getUserBoards(userId: string, pagination: CursorPaginationArgs, currentUserId?: string) {
+  async getUserBoards(
+    userId: string,
+    pagination: CursorPaginationArgs,
+    currentUserId?: string,
+    blockedIds: string[] = [],
+  ) {
     const isOwner = userId === currentUserId;
     const { first, after } = pagination;
+
+    // REVIEW-1 — chặn hai chiều: trang RỖNG, không phải 403. Cùng hình dạng
+    // `pins.service.getUserPins` đã chọn từ Đợt 3e, để hai tab của cùng một hồ
+    // sơ không mâu thuẫn nhau (tab Pin rỗng còn tab Board đầy là bug cũ).
+    if (blockedIds.includes(userId)) {
+      return keysetPage(CREATED_DESC as any, [], first);
+    }
 
     const base = {
       userId,
@@ -112,13 +129,17 @@ export class BoardsService {
    * trang mà người khác reorder sẽ thấy lặp/thiếu. Cố hữu của keyset trên
    * khoá mutable, không sửa được — ghi tài liệu chứ đừng cố workaround.
    */
-  async getBoardPins(boardId: string, sectionId: string | null | undefined, pagination: CursorPaginationArgs, currentUserId?: string) {
+  async getBoardPins(boardId: string, sectionId: string | null | undefined, pagination: CursorPaginationArgs, currentUserId?: string, blockedIds: string[] = []) {
     await this.checkBoardAccess(boardId, currentUserId);
 
     const { first, after } = pagination;
     const base = {
       boardId,
       ...(sectionId ? { sectionId } : {}),
+      // REVIEW-1 — board là một đường vòng để pin của người đã chặn lọt vào
+      // mắt viewer (ai cũng lưu được pin của bất kỳ ai vào board của mình).
+      // Lọc theo creator của pin, không phải theo chủ board.
+      ...(blockedIds.length ? { pin: { creatorId: { notIn: blockedIds } } } : {}),
     };
 
     const savedPins = await this.prisma.savedPin.findMany({
@@ -128,6 +149,64 @@ export class BoardsService {
     });
 
     return keysetPage(BOARD_PINS_KEYSET as any, savedPins as any, first);
+  }
+
+  /**
+   * REVIEW-1 (#7) — Pin ĐÃ LƯU của một người dùng, mới nhất trước.
+   *
+   * Khác `getBoardPins` ở chỗ **không đi qua board**: nó đọc thẳng `SavedPin`
+   * theo `userId`, nên bao gồm cả những dòng `boardId = null` do nút "Lưu"
+   * mặc định sinh ra — nhóm dòng trước nay không màn nào đọc được.
+   *
+   * Bốn mệnh đề lọc, mỗi cái chặn một thứ khác nhau:
+   *   1. `pin.deletedAt: null` — phải ghi TƯỜNG MINH. Middleware soft-delete
+   *      của Prisma không đi vào relation filter, nên thiếu dòng này thì pin
+   *      đã xoá vẫn hiện qua đường `SavedPin` (cùng bẫy đã ghi ở
+   *      `dataloader.service.ts` cho `replyCountByCommentIdLoader`).
+   *   2. `pin.creatorId notIn blockedIds` — BR-17, hai chiều.
+   *   3. `boardId: null` HOẶC board còn sống và (chủ xem / board không bí mật)
+   *      — người khác không được nhìn thấy pin bạn lưu vào board bí mật, còn
+   *      chính bạn thì phải thấy đủ.
+   *   4. Chủ hồ sơ bị chặn ⇒ trang rỗng (khuôn `getUserBoards`).
+   *
+   * ⚠️ KHÔNG dedupe ở đây: một pin lưu vào N board là N dòng `SavedPin`
+   * (`@@unique([userId, pinId, boardId])`). Dedupe server-side đòi `DISTINCT
+   * ON` raw SQL, phá khuôn keyset dùng chung toàn dự án. FE gộp theo `pin.id`
+   * — hệ quả: một trang có thể hiển thị ít hơn `first` thẻ. Ghi ở B-21.
+   */
+  async getUserSavedPins(
+    userId: string,
+    pagination: CursorPaginationArgs,
+    currentUserId?: string,
+    blockedIds: string[] = [],
+  ) {
+    const { first, after } = pagination;
+
+    if (blockedIds.includes(userId)) {
+      return keysetPage(CREATED_DESC as any, [], first);
+    }
+
+    const isOwner = userId === currentUserId;
+
+    const base = {
+      userId,
+      pin: {
+        deletedAt: null,
+        ...(blockedIds.length ? { creatorId: { notIn: blockedIds } } : {}),
+      },
+      OR: [
+        { boardId: null },
+        { board: { deletedAt: null, ...(isOwner ? {} : { isSecret: false }) } },
+      ],
+    };
+
+    const savedPins = await this.prisma.savedPin.findMany({
+      where: keysetWhere(CREATED_DESC, after, base) as any,
+      take: first + 1,
+      orderBy: keysetOrderBy(CREATED_DESC),
+    });
+
+    return keysetPage(CREATED_DESC as any, savedPins as any, first);
   }
 
   /**

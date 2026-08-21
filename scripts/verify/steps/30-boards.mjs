@@ -101,6 +101,94 @@ export default async function (h) {
     { i: { pinId: state.PIN, boardId: BOARD, sectionId: SEC, note: 'saved by probe' } },
     { token: state.T1 },
   );
+  // ═══ REVIEW-1 (#7) — query `savedPins` MỚI ════════════════════════════════
+  //
+  // Vì sao query này tồn tại: nút "Lưu" mặc định (thẻ pin và màn chi tiết) ghi
+  // `SavedPin` với `boardId = null`, mà `boardPins` bắt buộc `boardId: ID!` ⇒
+  // trước REVIEW-1 nhóm dòng đó KHÔNG có màn nào đọc được. Người dùng bấm Lưu,
+  // nút đổi trạng thái, rồi không tìm thấy pin ở đâu cả.
+  //
+  // ⚠️ Khẳng định TẬP-CHỨA, không phải số tuyệt đối: các bước khác cũng lưu/bỏ
+  // lưu pin của bao, nên số dòng không cố định giữa các lần chạy.
+  {
+    const Q_SAVED = `query($u:ID!){ savedPins(userId:$u, first:50){ items{ id boardId pin{ id } } } }`;
+
+    // (a) Lưu KHÔNG board — đúng đường mà nút "Lưu" mặc định đi.
+    const noBoardPin = 'pin_9_id';
+    await h.silent(
+      `mutation($i:SavePinInput!){ savePin(input:$i){ id } }`,
+      { i: { pinId: noBoardPin } },
+      state.T1,
+    );
+
+    const mine = await h.silent(Q_SAVED, { u: USERS.bao.id }, state.T1);
+    const rows = mine?.data?.savedPins?.items ?? [];
+    h.assert(
+      'REVIEW-1 savedPins: thấy dòng lưu KHÔNG board (nhóm trước nay không màn nào đọc được)',
+      !mine?.errors && rows.some((r) => r.pin?.id === noBoardPin && r.boardId === null),
+      mine?.errors
+        ? `LỖI: ${mine.errors[0].message}`
+        : `${rows.length} dòng · dòng boardId=null cho ${noBoardPin}: ${rows.some((r) => r.pin?.id === noBoardPin && r.boardId === null) ? 'có' : 'KHÔNG THẤY'}`,
+    );
+
+    h.assert(
+      'REVIEW-1 savedPins: cũng gồm dòng lưu CÓ board (không chỉ nhóm boardId=null)',
+      rows.some((r) => r.pin?.id === state.PIN && r.boardId === BOARD),
+      `dòng ${state.PIN} trong board ${BOARD}: ${rows.some((r) => r.pin?.id === state.PIN && r.boardId === BOARD) ? 'có' : 'KHÔNG THẤY'}`,
+    );
+
+    // (b) Board BÍ MẬT: chủ thấy, người khác không. Đây là chỗ dễ rò nhất —
+    // `savedPins` đi thẳng vào bảng SavedPin, không qua `checkBoardAccess`.
+    const sb = await h.silent(
+      `mutation($i:CreateBoardInput!){ createBoard(input:$i){ id } }`,
+      { i: { name: 'r1 secret board', isSecret: true } },
+      state.T1,
+    );
+    const secretBoard = sb?.data?.createBoard?.id ?? null;
+    const secretPin = 'pin_10_id';
+    if (secretBoard) {
+      await h.silent(
+        `mutation($i:SavePinInput!){ savePin(input:$i){ id } }`,
+        { i: { pinId: secretPin, boardId: secretBoard } },
+        state.T1,
+      );
+    }
+
+    const asOwner = await h.silent(Q_SAVED, { u: USERS.bao.id }, state.T1);
+    const asOther = await h.silent(Q_SAVED, { u: USERS.bao.id }, state.T2);
+    const ownerSees = (asOwner?.data?.savedPins?.items ?? []).some((r) => r.boardId === secretBoard);
+    const otherSees = (asOther?.data?.savedPins?.items ?? []).some((r) => r.boardId === secretBoard);
+
+    h.assert(
+      'REVIEW-1 savedPins: dòng lưu vào board BÍ MẬT — chủ thấy, người khác KHÔNG',
+      !asOther?.errors && ownerSees && !otherSees,
+      asOther?.errors
+        ? `LỖI: ${asOther.errors[0].message}`
+        : `chủ thấy=${ownerSees} · người khác thấy=${otherSees} (phải true/false)`,
+    );
+
+    // (c) Người chưa lưu gì ⇒ trang rỗng, KHÔNG lỗi.
+    const emptyOne = await h.silent(Q_SAVED, { u: USERS.bob?.id ?? 'user_5_id' }, state.T1);
+    h.assert(
+      'REVIEW-1 savedPins: người chưa lưu pin nào ⇒ trang rỗng, không ném lỗi',
+      !emptyOne?.errors && Array.isArray(emptyOne?.data?.savedPins?.items),
+      emptyOne?.errors
+        ? `LỖI: ${emptyOne.errors[0].message}`
+        : `${(emptyOne?.data?.savedPins?.items ?? []).length} dòng`,
+    );
+
+    // Dọn phần (a) + (b) ngay — bước này tự dọn tài nguyên của mình.
+    await h.silent(`mutation($p:ID!,$b:ID){ unsavePin(pinId:$p, boardId:$b) }`, { p: noBoardPin, b: null }, state.T1);
+    if (secretBoard) {
+      await h.silent(
+        `mutation($p:ID!,$b:ID){ unsavePin(pinId:$p, boardId:$b) }`,
+        { p: secretPin, b: secretBoard },
+        state.T1,
+      );
+      await h.silent(`mutation($id:ID!){ deleteBoard(id:$id) }`, { id: secretBoard }, state.T1);
+    }
+  }
+
   await gql(
     'reorderPins',
     `mutation($b:ID!,$p:[ID!]!){ reorderPins(boardId:$b, pinIds:$p) }`,

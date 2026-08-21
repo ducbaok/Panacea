@@ -8,6 +8,7 @@ import {
   buildCursorOrderBy,
   toPaginatedResult,
 } from '../common/pagination';
+import { getBlockedUserIds } from '../common/blocking';
 
 @Injectable()
 export class NotificationsService {
@@ -99,9 +100,30 @@ export class NotificationsService {
     // ║  Nay dùng chung helper keyset với phần còn lại của app ⇒ một contract  ║
     // ║  duy nhất: `endCursor` LUÔN là Base64 của (createdAt, id).            ║
     // ╚═══════════════════════════════════════════════════════════════════════╝
+    //
+    // 🔴 REVIEW-1 (18/08/2026) — lọc theo `actorId`.
+    //
+    // Trước đợt này chỉ MENTION được lọc, và chỉ ở đường GHI. Mọi loại còn lại
+    // (FOLLOW/COMMENT/REPLY/REACTION) vẫn nằm nguyên trong danh sách sau khi
+    // chặn, kèm tên + avatar người đã chặn — đúng thứ người dùng chặn để không
+    // phải nhìn thấy nữa.
+    //
+    // Chọn lọc ở đường ĐỌC (không phải đường ghi) có chủ đích: đường đọc là một
+    // chỗ duy nhất và tự đúng khi bỏ chặn (thông báo cũ hiện lại), còn chặn tại
+    // nguồn phải rà 6 loại ở 4 service và mất dữ liệu vĩnh viễn nếu sau đó bỏ
+    // chặn. Cái giá: hàng vẫn nằm trong DB. Ghi ở `PLAN_HOAN_THIEN.md` B-21.
+    //
+    // Gọi thẳng `getBlockedUserIds` chứ KHÔNG inject `DataloaderService`:
+    // resolver này mang Subscription, kéo `Scope.REQUEST` vào là đúng cái bẫy
+    // vòng đời đã ghi trong `pins.service.ts`. Giá: `notifications` +
+    // `unreadNotificationCount` trong cùng một request tốn 2 query `BlockedUser`
+    // (không memo) — cố ý, nên phép verify KHÔNG assert batching cho nhóm này.
+    const blockedIds = await getBlockedUserIds(this.prisma, userId);
+
     const notifications = await this.prisma.notification.findMany({
       where: {
         recipientId: userId,
+        ...(blockedIds.length ? { actorId: { notIn: blockedIds } } : {}),
         ...buildCursorFilter(after, 'desc'),
       },
       take: first + 1,
@@ -151,10 +173,17 @@ export class NotificationsService {
    * Get unread notification count.
    */
   async getUnreadCount(userId: string) {
-    // 1. Đếm số Notification của recipientId = userId và isRead = false.
-    // Count notifications for userId where isRead=false.
+    // REVIEW-1 — phải lọc CÙNG điều kiện với `getNotifications`, nếu không
+    // badge đếm 3 mà mở ra chỉ thấy 1: một con số không bao giờ về 0 được vì
+    // thông báo sinh ra nó không hiển thị để bấm vào.
+    const blockedIds = await getBlockedUserIds(this.prisma, userId);
+
     return this.prisma.notification.count({
-      where: { recipientId: userId, isRead: false },
+      where: {
+        recipientId: userId,
+        isRead: false,
+        ...(blockedIds.length ? { actorId: { notIn: blockedIds } } : {}),
+      },
     });
   }
 

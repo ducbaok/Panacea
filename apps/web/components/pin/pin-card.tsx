@@ -221,7 +221,24 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
           />
         )}
 
-        {/* Ảnh — chỉ render khi chưa error để giải phóng request/handle */}
+        {/*
+          Ảnh — chỉ render khi chưa error để giải phóng request/handle.
+
+          🔴 REVIEW-1 (#1) — `display` KHÔNG được phụ thuộc `imageStatus`.
+          Bản cũ đặt `display: imageStatus === 'loaded' ? 'block' : 'none'`,
+          tạo ra một bế tắc kín: trạng thái đầu là 'loading' ⇒ `display:none`
+          ⇒ phần tử không có layout box (rect 0×0) ⇒ với `loading="lazy"` trình
+          duyệt hoãn fetch tới khi phần tử giao viewport, mà một phần tử 0×0
+          KHÔNG BAO GIỜ giao ⇒ không fetch ⇒ `onLoad` không chạy ⇒ trạng thái
+          kẹt 'loading' vĩnh viễn. Toàn bộ lưới pin chỉ hiện vân placeholder,
+          và vì `onError` cũng không chạy nên không có cả thông báo lỗi.
+          Đo 18/08/2026: 20/20 ảnh ở trang chủ `complete:false, naturalWidth:0,
+          display:none, rect 0×0`.
+          Ảnh vẫn được che trong lúc tải: lớp vân khai ngay TRÊN trong file là
+          `position:absolute; inset:0`, còn ảnh nằm trong flow (static) — phần
+          tử positioned vẽ sau phần tử static bất kể thứ tự DOM, nên vân phủ
+          kín ảnh chưa tải xong rồi tự gỡ khi `imageStatus === 'loaded'`.
+        */}
         {imageStatus !== 'error' && (
           <img
             ref={imgRef}
@@ -231,7 +248,7 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
             onLoad={() => setImageStatus('loaded')}
             onError={() => setImageStatus('error')}
             style={{
-              display: imageStatus === 'loaded' ? 'block' : 'none',
+              display: 'block',
               width: '100%',
               height: '100%',
               objectFit: 'cover',

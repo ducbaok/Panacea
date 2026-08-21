@@ -47,6 +47,9 @@ model User {
   bio               String?
   website           String?
   avatarUrl         String?
+  // REVIEW-1 (18/08/2026) — ảnh bìa hồ sơ. Nullable: hồ sơ chưa đặt bìa thì FE
+  // vẽ gradient placeholder như trước, không cần backfill.
+  coverUrl          String?
   isOnboarded       Boolean   @default(false)
   locale            String    @default("vi")
   deletedAt         DateTime?
@@ -402,7 +405,21 @@ model Message {
   sender       User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
   attachedPin  Pin?         @relation(fields: [attachedPinId], references: [id], onDelete: SetNull)
 
-  @@index([conversationId, createdAt(sort: Asc)])
+  // B-14 (17/08/2026) — hướng index phải KHỚP hướng đọc.
+  //
+  // Bản cũ `([conversationId, createdAt(sort: Asc)])` không phục vụ ai:
+  // `getMessages` (messages.service.ts) là đường đọc DUY NHẤT của bảng này và
+  // nó luôn đọc mới-nhất-trước qua keyset `CREATED_DESC` = `(createdAt desc,
+  // id desc)`. Postgres quét ngược được btree nên nó vẫn dùng index, NHƯNG
+  // `id` không có trong index ⇒ planner phải chèn một node **Incremental
+  // Sort** để xử lý khoá phụ. Đo được (EXPLAIN, 5.000 dòng, 17/08):
+  //   trước: Incremental Sort → Index Scan Backward … (cả trang 1 lẫn trang 2)
+  //   sau  : Index Scan … , KHÔNG còn node Sort nào
+  //
+  // ⚠️ Thêm `id` vào index KHÔNG phải trang trí: nó là tie-breaker BẮT BUỘC của
+  // keyset (hai tin nhắn cùng mili-giây mà không có tie-breaker ⇒ phân trang
+  // lặp/thiếu item). Index không chứa nó thì mỗi trang đều phải sort lại.
+  @@index([conversationId, createdAt(sort: Desc), id(sort: Desc)])
   @@map("Message")
 }
 

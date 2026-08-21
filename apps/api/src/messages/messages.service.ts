@@ -154,6 +154,25 @@ export class MessagesService {
 
     await this.assertConversationMember(senderId, conversationId);
 
+    // 🔴 REVIEW-1 (18/08/2026) — chặn người dùng phải có hiệu lực ở ĐÂY, không
+    // chỉ ở `createConversation`.
+    //
+    // Lỗ hổng cũ: block chỉ được kiểm lúc TẠO hội thoại. Hai người đã nhắn tin
+    // với nhau từ trước rồi mới chặn nhau thì hội thoại cũ vẫn gửi/nhận/subscribe
+    // bình thường — tức nút "Chặn" không làm được đúng việc người dùng nghĩ nó làm.
+    //
+    // Người dùng chốt hình dạng (18/08): CẤM GỬI MỚI, GIỮ LỊCH SỬ ĐỌC ĐƯỢC —
+    // giống Messenger. Nên chỗ này ném lỗi, còn `getMessages`/`conversations`
+    // KHÔNG lọc: hội thoại cũ vẫn nằm trong hộp thư và đọc lại được.
+    //
+    // `getMemberIds` dời lên TRƯỚC transaction để dùng lại cho cả phép kiểm này
+    // lẫn publish bên dưới ⇒ 0 query phát sinh thêm.
+    const memberIds = await this.getMemberIds(conversationId);
+    const otherId = memberIds.find((id) => id !== senderId);
+    if (otherId && (await this.socialService.isBlocked(senderId, otherId))) {
+      throw new ForbiddenException('Cannot message this user (blocked)');
+    }
+
     // Create message and update conversation updatedAt
     const [message] = await this.prisma.$transaction([
       this.prisma.message.create({
@@ -179,7 +198,8 @@ export class MessagesService {
     //
     // `await` chứ không fire-and-forget: publish lỗi (Redis rớt) mà nuốt im
     // thì client mất tin nhắn realtime mà server vẫn báo thành công.
-    const memberIds = await this.getMemberIds(conversationId);
+    //
+    // `memberIds` lấy ở đầu hàm (xem phép kiểm chặn) — cùng một giá trị.
     await this.pubSub.publish('messageReceived', { messageReceived: message, memberIds });
 
     return message;

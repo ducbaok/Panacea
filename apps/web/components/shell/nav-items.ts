@@ -24,13 +24,17 @@ import {
  * (brief FE-2 §4.3).
  *
  * ⚠️ Route đích:
- *   • /pin/new · /notifications · /settings CHƯA có màn (thuộc FE-4/FE-5/FE-6+).
- *     Bấm sẽ lên 404 mặc định của Next — chấp nhận được ở FE-2, KHÔNG được
- *     dựng màn thay.
  *   • Mục "Hồ sơ" trỏ tới `/@${username}`; nếu chưa đăng nhập KHÔNG hiện mục
- *     này (guest sidebar không có phần phụ này). FE-6 sẽ dựng route [handle].
+ *     này (guest sidebar không có phần phụ này).
  *   • "Tin nhắn" trên Sidebar desktop; BottomTabBar mobile CỐ Ý thay bằng
  *     "Hồ sơ" (QĐ-4, khung-ui-ux.md dòng 79).
+ *   • 🔴 REVIEW-1 (18/08/2026) — mục "Khám phá" ĐÃ BỎ khỏi cả ba danh mục.
+ *     Người dùng chốt: dải chip chủ đề chuyển vào tab "Khám phá" của trang
+ *     chủ, `/explore` chỉ còn là redirect. Đây là ĐẢO một quyết định thiết kế
+ *     cũ (`docs/khung-ui-ux.md` §QĐ-1 từng ghi "dải gợi ý là thứ duy nhất
+ *     phân biệt hai màn — đừng bỏ"); lý do đảo: dải gợi ý đó thuộc đợt
+ *     FE-ONBOARDING chưa làm, nên trên sản phẩm thật hai màn trông y hệt nhau.
+ *   • `/pin/new` mang cờ `hardNav` — xem chú thích của field đó.
  */
 
 export type NavIcon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -45,13 +49,34 @@ export type NavItem = {
    * true = ẩn hoàn toàn khi khách; false hoặc undefined = luôn hiện.
    */
   authRequired?: boolean;
+  /**
+   * Bắt buộc điều hướng CỨNG (thẻ `<a>` thường, full page load) thay vì
+   * `<Link>` soft-nav.
+   *
+   * 🔴 REVIEW-1 (#3) — chỉ dùng cho `/pin/new`, và đây là một cách NÉ chứ
+   * không phải cách sửa gốc. Bệnh: slot `@modal` resolve độc lập với cây
+   * `children`, nên soft-nav tới `/pin/new` bị ứng viên duy nhất trong slot
+   * là `(.)pin/[id]` khớp với `id="new"` ⇒ modal "Không tìm thấy pin này."
+   * đè lên trang chủ. Đã ĐO trên trình duyệt 18/08/2026, và đã đo cả hai
+   * hướng sửa gốc — **cả hai đều trượt**:
+   *   • `@modal/pin/new/page.tsx` (route thường, KHÔNG marker): interception
+   *     vẫn thắng ⇒ vẫn "Không tìm thấy pin này."
+   *   • `(.)pin/[id]` trả `null` khi `id === 'new'`: modal biến mất nhưng
+   *     `children` ĐÓNG BĂNG ở trang cũ ⇒ bấm "Tạo" **không có gì xảy ra**.
+   * Doc Next xác nhận lý do: interception là hành vi của soft navigation —
+   * "when navigating … by refreshing the page … No route interception should
+   * occur". Nên đường thoát chắc chắn duy nhất là KHÔNG soft-nav.
+   *
+   * Lưới an toàn thứ hai nằm ở `@modal/(.)pin/[id]/pin-modal.tsx` (tự thoát
+   * khi `id === 'new'`), phòng đường vào nào khác quên cờ này.
+   */
+  hardNav?: boolean;
 };
 
-/** Nav chính của Sidebar desktop khi ĐÃ đăng nhập (5 mục). */
+/** Nav chính của Sidebar desktop khi ĐÃ đăng nhập (4 mục). */
 export const MAIN_NAV_AUTH: ReadonlyArray<NavItem> = [
   { key: 'home', label: 'Trang chủ', href: '/', Icon: HomeIcon },
-  { key: 'explore', label: 'Khám phá', href: '/explore', Icon: CompassIcon },
-  { key: 'create', label: 'Tạo', href: '/pin/new', Icon: PlusIcon, authRequired: true },
+  { key: 'create', label: 'Tạo', href: '/pin/new', Icon: PlusIcon, authRequired: true, hardNav: true },
   {
     key: 'notifications',
     label: 'Thông báo',
@@ -98,8 +123,7 @@ export const SUB_NAV_GUEST: ReadonlyArray<NavItem> = [
  */
 export const BOTTOM_TABS_AUTH: ReadonlyArray<NavItem> = [
   { key: 'home', label: 'Trang chủ', href: '/', Icon: HomeIcon },
-  { key: 'explore', label: 'Khám phá', href: '/explore', Icon: CompassIcon },
-  { key: 'create', label: 'Tạo', href: '/pin/new', Icon: PlusIcon, authRequired: true },
+  { key: 'create', label: 'Tạo', href: '/pin/new', Icon: PlusIcon, authRequired: true, hardNav: true },
   {
     key: 'notifications',
     label: 'Thông báo',
@@ -117,6 +141,5 @@ export const BOTTOM_TABS_AUTH: ReadonlyArray<NavItem> = [
  */
 export const BOTTOM_TABS_GUEST: ReadonlyArray<NavItem> = [
   { key: 'home', label: 'Trang chủ', href: '/', Icon: HomeIcon },
-  { key: 'explore', label: 'Khám phá', href: '/explore', Icon: CompassIcon },
   { key: 'login', label: 'Đăng nhập', href: '/login', Icon: LoginIcon },
 ];

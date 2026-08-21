@@ -4,6 +4,7 @@ query UserByUsername($username: String!) {
     name
     username
     avatarUrl
+    coverUrl
     bio
     website
     followerCount

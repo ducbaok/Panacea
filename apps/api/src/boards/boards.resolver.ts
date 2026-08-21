@@ -15,7 +15,7 @@ import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { DataloaderService } from '../common/dataloader/dataloader.service';
 import { User } from '../users/entities/user.entity';
 import { Pin } from '../pins/entities/pin.entity';
-import { BoardPinsArgs, UserBoardsArgs } from './dto/board-queries.args';
+import { BoardPinsArgs, UserBoardsArgs, UserSavedPinsArgs } from './dto/board-queries.args';
 
 @Resolver(() => Board)
 export class BoardsResolver {
@@ -26,10 +26,16 @@ export class BoardsResolver {
 
   // ─── Queries ─────────────────────────────────────────────────────────────
 
+  // 🔴 REVIEW-1 (18/08/2026) — ba query dưới đây trước nay KHÔNG lọc người đã
+  // chặn, tạo ra một mâu thuẫn quan sát được ngay trên MỘT màn hình: vào hồ sơ
+  // người đã chặn thì tab "Pin" rỗng (đã lọc từ Đợt 3e) còn tab "Board" vẫn
+  // đầy đủ. `blockedUserIds` là memo theo request nên ba call-site này cộng lại
+  // vẫn chỉ tốn một query `BlockedUser` (phép đếm ở `65-blocking.mjs` canh việc đó).
   @Query(() => Board, { nullable: true })
   @UseGuards(GqlOptionalAuthGuard)
   async board(@Args('id', { type: () => ID }) id: string, @CurrentUser() user: AuthUser | null) {
-    return this.boardsService.getBoardById(id, user?.userId);
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.boardsService.getBoardById(id, user?.userId, blockedIds);
   }
 
   @Query(() => PaginatedBoards)
@@ -41,7 +47,8 @@ export class BoardsResolver {
     @Args() { userId, ...pagination }: UserBoardsArgs,
     @CurrentUser() user: AuthUser | null,
   ) {
-    return this.boardsService.getUserBoards(userId, pagination, user?.userId);
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.boardsService.getUserBoards(userId, pagination, user?.userId, blockedIds);
   }
 
   @Query(() => PaginatedSavedPins)
@@ -50,7 +57,28 @@ export class BoardsResolver {
     @Args() { boardId, sectionId, ...pagination }: BoardPinsArgs,
     @CurrentUser() user: AuthUser | null,
   ) {
-    return this.boardsService.getBoardPins(boardId, sectionId, pagination, user?.userId);
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.boardsService.getBoardPins(boardId, sectionId, pagination, user?.userId, blockedIds);
+  }
+
+  /**
+   * REVIEW-1 (#7) — Pin ĐÃ LƯU của một người dùng.
+   *
+   * Vì sao query này phải sinh ra: nút "Lưu" mặc định ở thẻ pin và ở màn chi
+   * tiết đều ghi `SavedPin` với `boardId = null` ("lưu vào hồ sơ"), nhưng
+   * `boardPins` bắt buộc `boardId: ID!` ⇒ **mọi dòng lưu-không-board không có
+   * màn nào đọc được**. Người dùng bấm Lưu, thấy nút đổi trạng thái, rồi không
+   * tìm thấy pin đó ở bất kỳ đâu. Index `SavedPin @@index([userId, createdAt
+   * desc])` đã có sẵn từ trước cho đúng hình dạng đọc này mà chưa ai dùng.
+   */
+  @Query(() => PaginatedSavedPins)
+  @UseGuards(GqlOptionalAuthGuard)
+  async savedPins(
+    @Args() { userId, ...pagination }: UserSavedPinsArgs,
+    @CurrentUser() user: AuthUser | null,
+  ) {
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    return this.boardsService.getUserSavedPins(userId, pagination, user?.userId, blockedIds);
   }
 
   // ─── Mutations ────────────────────────────────────────────────────────────

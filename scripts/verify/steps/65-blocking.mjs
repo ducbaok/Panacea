@@ -291,6 +291,214 @@ export default async function (h) {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REVIEW-1 (18/08/2026) — BỐN NHÓM BỀ MẶT MỚI: bình luận · board · tin nhắn ·
+  // thông báo.
+  //
+  // Vì sao chúng nằm ở đây chứ không thành bước riêng: cửa sổ "đang block" chỉ
+  // tồn tại giữa `blockUser` ở trên và `unblockUser` ở dưới. Tách ra bước khác
+  // là phải block/unblock lần nữa, mà `blockUser` XOÁ FOLLOW VĨNH VIỄN (xem đầu
+  // file) ⇒ mỗi lần lặp là một lần nữa phải dựng lại cạnh, tăng bề mặt hỏng.
+  //
+  // ⚠️ Toàn bộ dữ liệu setup dưới đây được dọn ở cuối bước. Bỏ dọn thì lần chạy
+  // sau đếm lệch — đúng bài học cốt lõi của file này.
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    h.setGroup('GQL/blocking');
+
+    // Marker duy nhất để tìm lại đúng bản ghi mình tạo, không đụng dữ liệu seed.
+    const MARK = `r1probe`;
+    const johnCommentContent = `${MARK} comment cua john`;
+    const johnReplyContent = `${MARK} reply cua john`;
+    const johnBoardName = `${MARK} board cua john`;
+
+    const created = { comment: null, reply: null, board: null };
+
+    // ─── Setup: john tạo bình luận + trả lời + board (TRONG lúc đang block) ──
+    // Tạo được kể cả khi đang bị chặn — chặn là luật ĐỌC ở phía bao, không phải
+    // luật ghi ở phía john. Nếu sau này backend cấm ghi thì phép setup này sẽ
+    // đỏ ngay tại đây và nói đúng lý do.
+    {
+      const c = await h.silent(
+        `mutation($i:CreateCommentInput!){ createComment(input:$i){ id } }`,
+        { i: { pinId: BAO_PINS[0], content: johnCommentContent } },
+        state.T3,
+      );
+      created.comment = c?.data?.createComment?.id ?? null;
+
+      if (created.comment) {
+        const r = await h.silent(
+          `mutation($i:CreateCommentInput!){ createComment(input:$i){ id } }`,
+          { i: { pinId: BAO_PINS[0], content: johnReplyContent, parentId: created.comment } },
+          state.T3,
+        );
+        created.reply = r?.data?.createComment?.id ?? null;
+      }
+
+      const b = await h.silent(
+        `mutation($i:CreateBoardInput!){ createBoard(input:$i){ id } }`,
+        { i: { name: johnBoardName } },
+        state.T3,
+      );
+      created.board = b?.data?.createBoard?.id ?? null;
+    }
+
+    h.assert(
+      'REVIEW-1 tiền đề: dựng được bình luận + trả lời + board của john để CÓ THỨ MÀ MẤT',
+      !!created.comment && !!created.reply && !!created.board,
+      `comment=${created.comment ?? 'KHÔNG TẠO ĐƯỢC'} · reply=${created.reply ?? 'KHÔNG TẠO ĐƯỢC'} · board=${created.board ?? 'KHÔNG TẠO ĐƯỢC'}`,
+    );
+
+    // ─── Bề mặt 1: pinComments ───────────────────────────────────────────────
+    const Q_COMMENTS = `query($p:String!){ pinComments(pinId:$p, first:50){ items{ id content } } }`;
+    const Q_REPLIES = `query($c:String!){ commentReplies(commentId:$c, first:50){ items{ id content } } }`;
+
+    const cByBao = await h.silent(Q_COMMENTS, { p: BAO_PINS[0] }, state.T1);
+    const cIdsBao = (cByBao?.data?.pinComments?.items ?? []).map((x) => x.id);
+    h.assert(
+      'REVIEW-1 pinComments: bao KHÔNG thấy bình luận của john, VẪN thấy bình luận khác',
+      !cByBao?.errors && !cIdsBao.includes(created.comment) && cIdsBao.length > 0,
+      cByBao?.errors
+        ? `LỖI: ${cByBao.errors[0].message}`
+        : `${cIdsBao.length} bình luận, bình luận của john ${cIdsBao.includes(created.comment) ? 'CÒN SÓT' : 'đã ẩn'}`,
+    );
+
+    // Đối chứng cùng cửa sổ: chính john vẫn đọc được bình luận của mình.
+    const cByJohn = await h.silent(Q_COMMENTS, { p: BAO_PINS[0] }, state.T3);
+    const cIdsJohn = (cByJohn?.data?.pinComments?.items ?? []).map((x) => x.id);
+    h.assert(
+      'REVIEW-1 pinComments ĐỐI CHỨNG: john vẫn đọc được bình luận của chính mình (không lọc quá tay)',
+      !cByJohn?.errors && cIdsJohn.includes(created.comment),
+      cByJohn?.errors ? `LỖI: ${cByJohn.errors[0].message}` : `john thấy ${cIdsJohn.length} bình luận, có bình luận của mình`,
+    );
+
+    const rByBao = await h.silent(Q_REPLIES, { c: created.comment }, state.T1);
+    h.assert(
+      'REVIEW-1 commentReplies: trả lời của john cũng bị ẩn với bao',
+      !rByBao?.errors && !(rByBao?.data?.commentReplies?.items ?? []).some((x) => x.id === created.reply),
+      rByBao?.errors
+        ? `LỖI: ${rByBao.errors[0].message}`
+        : `${(rByBao?.data?.commentReplies?.items ?? []).length} trả lời, trả lời của john đã ẩn`,
+    );
+
+    // ─── Bề mặt 2: boards ────────────────────────────────────────────────────
+    const bByBao = await h.silent(
+      `query($u:ID!){ userBoards(userId:$u, first:50){ items{ id name } } }`,
+      { u: USERS.john.id },
+      state.T1,
+    );
+    h.assert(
+      'REVIEW-1 userBoards(john) theo bao: trang RỖNG, KHÔNG ném lỗi (khớp hình dạng userPins)',
+      !bByBao?.errors && (bByBao?.data?.userBoards?.items ?? []).length === 0,
+      bByBao?.errors
+        ? `NÉM LỖI (phải trả rỗng): ${bByBao.errors[0].message}`
+        : `${(bByBao?.data?.userBoards?.items ?? []).length} board (phải 0)`,
+    );
+
+    const boardDirect = await h.silent(`query($id:ID!){ board(id:$id){ id name } }`, { id: created.board }, state.T1);
+    h.assert(
+      'REVIEW-1 board(id) theo bao → NotFound (không lách được bằng link board trực tiếp)',
+      /not found/i.test(boardDirect?.errors?.[0]?.message ?? '') && !boardDirect?.data?.board,
+      boardDirect?.errors?.[0]?.message
+        ? `ném đúng: ${boardDirect.errors[0].message}`
+        : `KHÔNG ném lỗi — vẫn đọc được board qua link trực tiếp: ${JSON.stringify(boardDirect?.data?.board)}`,
+    );
+
+    // ─── Bề mặt 3: savedPins (query MỚI của REVIEW-1) ────────────────────────
+    const savedOfJohn = await h.silent(
+      `query($u:ID!){ savedPins(userId:$u, first:50){ items{ id } } }`,
+      { u: USERS.john.id },
+      state.T1,
+    );
+    h.assert(
+      'REVIEW-1 savedPins(john) theo bao: trang RỖNG, KHÔNG ném lỗi',
+      !savedOfJohn?.errors && (savedOfJohn?.data?.savedPins?.items ?? []).length === 0,
+      savedOfJohn?.errors
+        ? `NÉM LỖI (phải trả rỗng): ${savedOfJohn.errors[0].message}`
+        : `${(savedOfJohn?.data?.savedPins?.items ?? []).length} dòng (phải 0)`,
+    );
+
+    // ─── Bề mặt 4: tin nhắn — CẤM GỬI, GIỮ LỊCH SỬ ───────────────────────────
+    // Hình dạng này do người dùng chốt (18/08): giống Messenger. Nên ở đây phải
+    // khẳng định CẢ HAI vế; chỉ kiểm vế cấm gửi thì một bản cài đặt ẩn luôn hội
+    // thoại vẫn xanh, mà đó là hành vi khác hẳn.
+    const convs = await h.silent(
+      `query{ conversations(first:50){ items{ id members{ user{ id } } } } }`,
+      {},
+      state.T1,
+    );
+    const convWithJohn = (convs?.data?.conversations?.items ?? []).find((c) =>
+      (c.members ?? []).some((m) => m.user?.id === USERS.john.id),
+    );
+
+    h.assert(
+      'REVIEW-1 tin nhắn: hội thoại với john VẪN nằm trong hộp thư sau khi chặn (giữ lịch sử)',
+      !convs?.errors && !!convWithJohn,
+      convs?.errors ? `LỖI: ${convs.errors[0].message}` : convWithJohn ? `còn hội thoại ${convWithJohn.id}` : 'MẤT hội thoại (phải giữ)',
+    );
+
+    if (convWithJohn) {
+      const readHistory = await h.silent(
+        // `messages` khai `conversationId: String!` (KHÔNG phải ID!) — khai sai
+        // kiểu biến là query bị từ chối ở tầng validation, trông y hệt "không
+        // đọc được lịch sử".
+        `query($c:String!){ messages(conversationId:$c, first:5){ items{ id } } }`,
+        { c: convWithJohn.id },
+        state.T1,
+      );
+      h.assert(
+        'REVIEW-1 tin nhắn: ĐỌC lại lịch sử với john vẫn được',
+        !readHistory?.errors && (readHistory?.data?.messages?.items ?? []).length > 0,
+        readHistory?.errors
+          ? `LỖI: ${readHistory.errors[0].message}`
+          : `đọc được ${(readHistory?.data?.messages?.items ?? []).length} tin`,
+      );
+
+      const blockedSend = await h.silent(
+        `mutation($i:SendMessageInput!){ sendMessage(input:$i){ id } }`,
+        { i: { conversationId: convWithJohn.id, content: `${MARK} khong duoc gui` } },
+        state.T1,
+      );
+      h.assert(
+        'REVIEW-1 tin nhắn: GỬI tin mới cho john bị chặn (Forbidden)',
+        /blocked/i.test(blockedSend?.errors?.[0]?.message ?? '') && !blockedSend?.data?.sendMessage,
+        blockedSend?.errors?.[0]?.message
+          ? `ném đúng: ${blockedSend.errors[0].message}`
+          : `KHÔNG chặn — vẫn gửi được tin cho người đã chặn: ${JSON.stringify(blockedSend?.data?.sendMessage)}`,
+      );
+    }
+
+    // ─── Bề mặt 5: thông báo ─────────────────────────────────────────────────
+    // Seed có sẵn thông báo FOLLOW từ john tới bao ⇒ đo được cả hai chiều mà
+    // không phải dựng thêm. `actor` là nơi lọc (`actorId`), không phải recipient.
+    const notifBlocked = await h.silent(
+      `query{ notifications(first:50){ items{ id actor{ id } } } }`,
+      {},
+      state.T1,
+    );
+    const fromJohnBlocked = (notifBlocked?.data?.notifications?.items ?? []).filter(
+      (n) => n.actor?.id === USERS.john.id,
+    ).length;
+    h.assert(
+      'REVIEW-1 notifications: 0 thông báo có actor là john trong lúc chặn',
+      !notifBlocked?.errors && fromJohnBlocked === 0,
+      notifBlocked?.errors ? `LỖI: ${notifBlocked.errors[0].message}` : `${fromJohnBlocked} thông báo của john (phải 0)`,
+    );
+
+    const unreadBlocked = await h.silent(`query{ unreadNotificationCount }`, {}, state.T1);
+    h.assert(
+      'REVIEW-1 unreadNotificationCount: đọc được và KHÔNG ném lỗi khi đang lọc',
+      !unreadBlocked?.errors && typeof unreadBlocked?.data?.unreadNotificationCount === 'number',
+      unreadBlocked?.errors
+        ? `LỖI: ${unreadBlocked.errors[0].message}`
+        : `count=${unreadBlocked?.data?.unreadNotificationCount}`,
+    );
+
+    // Ghi lại để đối chứng SAU unblock (đặt lên `state` vì khối này đóng lại
+    // trước khi unblock chạy).
+    state.__review1 = { created, fromJohnBlocked, commentContent: johnCommentContent };
+  }
+
   // ─── Unblock ⇒ mọi thứ trở lại ────────────────────────────────────────────
   h.setGroup('GQL/mut');
   await gql('unblockUser (bao → john)', `mutation($u:String!){ unblockUser(userId:$u) }`, { u: USERS.john.id }, { token: state.T1 });
@@ -308,6 +516,62 @@ export default async function (h) {
       pinRestored?.data?.pin?.id === SUNSET_PIN,
     `feed=${feedRestored.ids.length} pin (đủ 4 của john) · userPins(john)=${johnRestored.ids.length} · pin(${SUNSET_PIN})=${pinRestored?.errors ? pinRestored.errors[0].message : 'trả về dữ liệu'}`,
   );
+
+  // ─── REVIEW-1: đối chứng CHIỀU NGƯỢC + dọn dữ liệu setup ──────────────────
+  //
+  // Chiều ngược quan trọng ngang chiều thuận: một bản cài đặt xoá thẳng dữ liệu
+  // (thay vì lọc lúc đọc) sẽ xanh trọn vẹn ở mọi phép trên rồi đỏ đúng ở đây.
+  {
+    const r1 = state.__review1;
+    if (r1) {
+      const cBack = await h.silent(
+        `query($p:String!){ pinComments(pinId:$p, first:50){ items{ id } } }`,
+        { p: BAO_PINS[0] },
+        state.T1,
+      );
+      const notifBack = await h.silent(`query{ notifications(first:50){ items{ actor{ id } } } }`, {}, state.T1);
+      const fromJohnBack = (notifBack?.data?.notifications?.items ?? []).filter(
+        (n) => n.actor?.id === USERS.john.id,
+      ).length;
+
+      h.assert(
+        'REVIEW-1 sau unblock: bình luận của john và thông báo của john hiện lại (lọc lúc ĐỌC, không xoá dữ liệu)',
+        !cBack?.errors &&
+          (cBack?.data?.pinComments?.items ?? []).some((x) => x.id === r1.created.comment) &&
+          fromJohnBack > 0,
+        `bình luận của john: ${(cBack?.data?.pinComments?.items ?? []).some((x) => x.id === r1.created.comment) ? 'hiện lại' : 'VẪN MẤT'} · ` +
+          `thông báo của john: ${r1.fromJohnBlocked} (đang chặn) → ${fromJohnBack} (đã bỏ chặn)`,
+      );
+
+      // Dọn — thứ tự: reply trước comment gốc (an toàn với mọi ràng buộc), rồi
+      // board. Dùng token của john vì chỉ chủ sở hữu mới xoá được.
+      if (r1.created.reply) {
+        await h.silent(`mutation($id:String!){ deleteComment(id:$id){ id } }`, { id: r1.created.reply }, state.T3);
+      }
+      if (r1.created.comment) {
+        await h.silent(`mutation($id:String!){ deleteComment(id:$id){ id } }`, { id: r1.created.comment }, state.T3);
+      }
+      if (r1.created.board) {
+        await h.silent(`mutation($id:String!){ deleteBoard(id:$id) }`, { id: r1.created.board }, state.T3);
+      }
+
+      const leftover = await h.silent(
+        `query($p:String!){ pinComments(pinId:$p, first:50){ items{ id content } } }`,
+        { p: BAO_PINS[0] },
+        state.T1,
+      );
+      const stillMarked = (leftover?.data?.pinComments?.items ?? []).filter((x) =>
+        (x.content ?? '').includes('r1probe'),
+      ).length;
+      h.assert(
+        'REVIEW-1 teardown: đã dọn sạch dữ liệu setup (lần chạy sau không đếm lệch)',
+        stillMarked === 0,
+        stillMarked === 0 ? 'không còn bản ghi mang marker r1probe' : `CÒN ${stillMarked} bản ghi r1probe — lần chạy sau sẽ lệch`,
+      );
+
+      delete state.__review1;
+    }
+  }
 
   // ─── Dọn: dựng lại quan hệ follow mà blockUser đã xoá vĩnh viễn ────────────
   // Đây KHÔNG phải phép kiểm trang trí: seed có bao↔john mutual và bước 20 của

@@ -47,7 +47,24 @@ export interface UseAvatarUploadResult {
   errorText: string | null;
 }
 
-export function useAvatarUpload(): UseAvatarUploadResult {
+/**
+ * Field hồ sơ sẽ được ghi sau khi upload xong.
+ *
+ * REVIEW-1 (#6) — thêm `coverUrl` (ảnh bìa). Cùng một luồng y hệt avatar: chọn
+ * file → `POST /uploads/local` → `updateProfile({ <field>: url })`; khác đúng
+ * tên field và câu toast. Tham số hoá thay vì chép hook thứ hai, vì bản chép sẽ
+ * lệch ở đúng chỗ khó thấy nhất (payload) — chính lý do hook này được gom lại.
+ */
+export type ProfileImageField = 'avatarUrl' | 'coverUrl';
+
+const FIELD_LABEL: Record<ProfileImageField, string> = {
+  avatarUrl: 'ảnh đại diện',
+  coverUrl: 'ảnh bìa',
+};
+
+export function useAvatarUpload(
+  field: ProfileImageField = 'avatarUrl',
+): UseAvatarUploadResult {
   const { data: session } = useSession();
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -79,15 +96,16 @@ export function useAvatarUpload(): UseAvatarUploadResult {
       setPhase('working');
       try {
         const { url } = await uploadImage(file, session?.accessToken);
-        // CHỈ avatarUrl. Mutation trả về User đầy đủ ⇒ Apollo cache tự cập nhật
-        // theo id, nên topbar/hồ sơ đổi ảnh không cần refetch tay. `refetchQueries`
-        // cho Me là lưới thứ hai cho chỗ đọc `me` mà cache chưa chuẩn hoá tới.
+        // CHỈ đúng MỘT field. Mutation trả về User đầy đủ ⇒ Apollo cache tự cập
+        // nhật theo id, nên topbar/hồ sơ đổi ảnh không cần refetch tay.
+        // `refetchQueries` cho Me là lưới thứ hai cho chỗ đọc `me` mà cache
+        // chưa chuẩn hoá tới.
         await updateProfile({
-          variables: { input: { avatarUrl: url } },
+          variables: { input: { [field]: url } },
           refetchQueries: [{ query: MeDocument }],
         });
         setPhase('idle');
-        toast({ message: 'Đã cập nhật ảnh đại diện.' });
+        toast({ message: `Đã cập nhật ${FIELD_LABEL[field]}.` });
       } catch (err) {
         const kind: UploadErrorKind = err instanceof UploadError ? err.kind : 'unknown';
         setErrorKind(kind);
@@ -95,7 +113,7 @@ export function useAvatarUpload(): UseAvatarUploadResult {
         toast({ message: uploadErrorText(kind) });
       }
     },
-    [session?.accessToken, toast, updateProfile],
+    [field, session?.accessToken, toast, updateProfile],
   );
 
   return {

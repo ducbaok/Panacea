@@ -7,6 +7,7 @@ type User {
   name: String
   username: String
   avatarUrl: String
+  coverUrl: String
   bio: String
   email: String
   website: String
@@ -273,6 +274,7 @@ type Query {
   board(id: ID!): Board
   userBoards(first: Int! = 20, after: String, userId: ID!): PaginatedBoards!
   boardPins(first: Int! = 20, after: String, boardId: ID!, sectionId: ID): PaginatedSavedPins!
+  savedPins(first: Int! = 20, after: String, userId: ID!): PaginatedSavedPins!
   pinComments(pinId: String!, first: Int! = 20, after: String): PaginatedComments!
   commentReplies(commentId: String!, first: Int! = 20, after: String): PaginatedComments!
   conversations(first: Int! = 20, after: String): PaginatedConversations!
@@ -333,6 +335,7 @@ input UpdateProfileInput {
   bio: String
   website: String
   avatarUrl: String
+  coverUrl: String
   locale: String
 }
 

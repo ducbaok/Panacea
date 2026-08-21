@@ -5,6 +5,7 @@ query Me {
     email
     name
     avatarUrl
+    coverUrl
     bio
     website
     isOnboarded
@@ -13,7 +14,8 @@ query Me {
 }
 
 # C2 — cập nhật hồ sơ. Backend: UpdateProfileInput (name/username/bio/website/
-# avatarUrl/locale); username regex ^[a-z0-9_]{3,20}$, đổi 1 lần / 30 ngày.
+# avatarUrl/coverUrl/locale); username regex ^[a-z0-9_]{3,20}$, đổi 1 lần / 30 ngày.
+# `coverUrl` thêm ở REVIEW-1 (#6) — ảnh bìa hồ sơ.
 mutation UpdateProfile($input: UpdateProfileInput!) {
   updateProfile(input: $input) {
     id
@@ -21,6 +23,7 @@ mutation UpdateProfile($input: UpdateProfileInput!) {
     email
     name
     avatarUrl
+    coverUrl
     bio
     website
     isOnboarded

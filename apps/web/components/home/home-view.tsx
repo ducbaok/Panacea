@@ -12,8 +12,9 @@ import {
   type FollowMutation,
   type FollowMutationVariables,
 } from '@/lib/gql/graphql';
-import { useHomeFeed, useExploreFeed } from '@/lib/hooks/usePaginatedQuery';
+import { useHomeFeed } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
+import { ExploreSection } from '@/components/home/explore-section';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
 
@@ -38,44 +39,88 @@ export function HomeView() {
 }
 
 function GuestHome() {
-  const router = useRouter();
-  const { items, loading, loadingMore, hasNextPage, loadMore } = useExploreFeed();
+  // REVIEW-1 (#2) — khách cũng cần dải chip chủ đề: `/explore` đã bỏ khỏi nav
+  // nên đây là đường duy nhất còn lại để lọc theo chủ đề.
   return (
-    <div className="py-6">
-      <PinGrid
-        items={items}
-        loading={loading}
-        loadingMore={loadingMore}
-        hasNextPage={hasNextPage}
-        loadMore={loadMore}
-        onOpen={(id) => router.push(`/pin/${id}`)}
-      />
+    <div style={{ padding: '24px 0 0' }}>
+      <div style={{ padding: '0 16px' }}>
+        <ExploreSection />
+      </div>
     </div>
   );
+}
+
+/**
+ * Khoá localStorage cho việc đóng banner gợi ý (#5).
+ * Đặt tên có tiền tố màn để sau này còn phân biệt được với các dismiss khác.
+ */
+const SUGGEST_DISMISS_KEY = 'home:suggest-dismissed';
+
+function readDismissed(): boolean {
+  // try/catch: Safari chế độ riêng tư ném ngay ở bước ĐỌC localStorage.
+  // Đọc trong lazy initializer của useState — AuthHome chỉ mount sau khi phiên
+  // đã resolve (client-only) nên không có nguy cơ lệch hydration.
+  try {
+    return window.localStorage.getItem(SUGGEST_DISMISS_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 function AuthHome() {
   const router = useRouter();
   const toast = useToast();
-  // undefined = để backend tự chọn (auto); có giá trị = client ép nguồn (§6b.1).
-  const [forcedSource, setForcedSource] = useState<FeedSource | undefined>(undefined);
 
-  const feed = useHomeFeed(forcedSource ? { source: forcedSource } : {});
-  const source = feed.source; // nguồn THỰC backend trả về (có thể khác forced)
+  /**
+   * REVIEW-1 (#2) — `tab` thay cho `forcedSource` cũ.
+   *   null      = chưa chọn, để backend tự quyết nguồn (giữ QĐ-1).
+   *   'following' / 'explore' = người dùng đã chọn tường minh.
+   *
+   * Phải phân biệt "explore vì backend fallback (chưa follow ai)" với "explore
+   * vì người dùng bấm chip" — bản cũ gộp cả hai vào `source === EXPLORE`, nên
+   * bấm chip Khám phá là banner "Bạn chưa theo dõi ai" hiện lại dù người dùng
+   * đang theo dõi cả chục người.
+   */
+  const [tab, setTab] = useState<'following' | 'explore' | null>(null);
 
-  const isExplore = source === FeedSource.Explore;
+  const feed = useHomeFeed(tab === 'following' ? { source: FeedSource.Following } : {}, {
+    skip: tab === 'explore',
+  });
+
+  // Nguồn THỰC backend trả về. Chỉ có nghĩa khi không ở tab explore (lúc đó
+  // homeFeed bị skip nên `feed.source` là giá trị cũ).
+  const source = feed.source;
+
+  // `fallback` = backend tự chọn EXPLORE vì người dùng chưa theo dõi ai. Đây
+  // mới là điều kiện đúng cho banner, không phải "đang xem explore".
+  const isFallbackExplore = tab === null && source === FeedSource.Explore;
+  const effectiveTab: 'following' | 'explore' = tab ?? (isFallbackExplore ? 'explore' : 'following');
+
+  const [dismissed, setDismissed] = useState<boolean>(readDismissed);
+
+  const dismissBanner = () => {
+    setDismissed(true);
+    try {
+      window.localStorage.setItem(SUGGEST_DISMISS_KEY, '1');
+    } catch {
+      // Không ghi được thì banner sẽ hiện lại ở lần tải sau — chấp nhận,
+      // đóng trong phiên vẫn có tác dụng.
+    }
+  };
+
   const showFollowingEmpty =
-    source === FeedSource.Following && !feed.loading && feed.items.length === 0;
+    effectiveTab === 'following' && !feed.loading && feed.items.length === 0;
 
   return (
     <div style={{ padding: '24px 0 0' }}>
       <div style={{ padding: '0 16px' }}>
-        {/* Banner — chỉ hiện ở nhánh EXPLORE (đã đăng nhập) */}
-        {isExplore && (
+        {/* Banner gợi ý — chỉ khi backend FALLBACK sang explore VÀ chưa bị đóng */}
+        {isFallbackExplore && !dismissed && (
           <div
             data-screen="home"
             data-state="explore-banner"
             style={{
+              position: 'relative', // mốc cho nút ✕ (#5)
               display: 'flex',
               flexWrap: 'wrap',
               gap: 16,
@@ -84,7 +129,7 @@ function AuthHome() {
               background: 'var(--color-primary-soft)',
               border: '1px solid var(--color-border)',
               borderRadius: 18,
-              padding: '16px 20px',
+              padding: '16px 44px 16px 20px', // chừa chỗ nút ✕ bên phải
               marginBottom: 16,
             }}
           >
@@ -97,6 +142,33 @@ function AuthHome() {
               </div>
             </div>
             <SuggestionBlock />
+            {/* REVIEW-1 (#5) — nút đóng; ghi nhớ qua localStorage nên F5 không hiện lại */}
+            <button
+              type="button"
+              aria-label="Đóng gợi ý"
+              title="Đóng gợi ý"
+              data-testid="dismiss-suggest"
+              onClick={dismissBanner}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 10,
+                width: 28,
+                height: 28,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 999,
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--color-muted)',
+                fontSize: 18,
+                lineHeight: 1,
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
           </div>
         )}
 
@@ -115,19 +187,29 @@ function AuthHome() {
         >
           <SourceChip
             label="Đang theo dõi"
-            active={source === FeedSource.Following}
-            onClick={() => setForcedSource(FeedSource.Following)}
+            active={effectiveTab === 'following'}
+            onClick={() => setTab('following')}
           />
           <SourceChip
             label="Khám phá"
-            active={source === FeedSource.Explore}
-            onClick={() => setForcedSource(FeedSource.Explore)}
+            active={effectiveTab === 'explore'}
+            onClick={() => setTab('explore')}
           />
         </div>
+
       </div>
 
-      {showFollowingEmpty ? (
-        <FollowingEmptyCard onExplore={() => setForcedSource(FeedSource.Explore)} />
+      {/* REVIEW-1 (#2) — dải chip chủ đề + lưới của tab Khám phá.
+          Đặt NGOÀI khối padding: `ExploreSection` tự thụt lề cho dải chip, còn
+          lưới masonry phải chạm mép để tính đúng số cột.
+          Mount cả khi đang ở tab kia nhưng `skip` ⇒ không bắn query thừa, mà
+          chủ đề đang chọn vẫn không mất khi đổi qua lại tab. */}
+      <div style={{ display: effectiveTab === 'explore' ? 'block' : 'none' }}>
+        <ExploreSection skip={effectiveTab !== 'explore'} />
+      </div>
+
+      {effectiveTab === 'explore' ? null : showFollowingEmpty ? (
+        <FollowingEmptyCard onExplore={() => setTab('explore')} />
       ) : (
         <PinGrid
           items={feed.items}

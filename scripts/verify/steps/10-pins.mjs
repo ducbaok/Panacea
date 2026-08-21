@@ -4,7 +4,7 @@
 
 import { assertBatched } from '../lib/query-count.mjs';
 import { readApiEnv } from '../lib/client.mjs';
-import { SEED, isSeedPinId } from '../lib/seedrefs.mjs';
+import { SEED, USERS, isSeedPinId } from '../lib/seedrefs.mjs';
 
 export default async function (h) {
   const { gql, state } = h;
@@ -478,6 +478,38 @@ export default async function (h) {
     { i: { bio: `verified ${new Date().toISOString()}` } },
     { token: state.T1 },
   );
+
+  // ─── REVIEW-1 (#6) — cột `User.coverUrl` mới ───────────────────────────────
+  // Hai phép, không phải một: mutation trả về đúng giá trị mới CHƯA chứng minh
+  // nó được ghi xuống DB (resolver có thể vọng lại input). Phép thứ hai đọc lại
+  // bằng một query KHÁC, của một đường code khác.
+  {
+    const COVER = `http://localhost:4000/uploads/r1-cover-probe.jpg`;
+    const setCover = await gql(
+      'updateProfile(coverUrl) — REVIEW-1 #6',
+      `mutation($i:UpdateProfileInput!){ updateProfile(input:$i){ id coverUrl } }`,
+      { i: { coverUrl: COVER } },
+      { token: state.T1 },
+    );
+    // `gql()` trả thẳng phần `data`, KHÔNG bọc `{data}` như `h.silent()`.
+    const readBack = await h.silent(
+      `query($u:String!){ userByUsername(username:$u){ id coverUrl } }`,
+      { u: USERS.bao.username },
+      state.T1,
+    );
+    h.assert(
+      'REVIEW-1 coverUrl: đọc lại qua userByUsername ra ĐÚNG giá trị vừa ghi',
+      setCover?.updateProfile?.coverUrl === COVER &&
+        readBack?.data?.userByUsername?.coverUrl === COVER,
+      `mutation trả: ${setCover?.updateProfile?.coverUrl ?? 'null'} · đọc lại: ${readBack?.data?.userByUsername?.coverUrl ?? 'null'}`,
+    );
+    // Trả về null để hồ sơ seed không mang URL ảnh không tồn tại sang lần sau.
+    await h.silent(
+      `mutation($i:UpdateProfileInput!){ updateProfile(input:$i){ id coverUrl } }`,
+      { i: { coverUrl: null } },
+      state.T1,
+    );
+  }
 
   // Whitelist domain chống SSRF (pins.service.ts) chỉ cho localhost/S3/GCS/Cloudinary
   const imageUrl =

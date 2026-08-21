@@ -8,6 +8,7 @@ import { MeDocument } from '@/lib/gql/graphql';
 import { useConversations } from '@/lib/hooks/usePaginatedQuery';
 import { useWsStatus } from '@/lib/apollo/ws-status';
 import { ChatPanel } from './chat-panel';
+import { PaneHeader } from './pane-header';
 import { ConversationRow, otherMember } from './conversation-row';
 import { CONV_PAGE_SIZE } from './message-cache';
 
@@ -99,22 +100,24 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
           height: 600,
         }}
       >
+        {/* REVIEW-1 (#4) — cột trái là flex column, KHÔNG phải khối cuộn.
+            Bản cũ đặt `overflowY:'auto'` lên cả cột, mà header nằm bên trong ⇒
+            cuộn danh sách hội thoại là chữ "Tin nhắn" cùng vạch của nó trôi lên
+            khỏi khung, trong khi header cột phải đứng yên: hai đường nét lệch
+            nhau tăng dần theo vị trí cuộn. Nay header `flex:none`, chỉ phần
+            danh sách bên dưới cuộn. `minHeight:0` bắt buộc — thiếu nó thì con
+            `flex:1` không co được và tràn khỏi khung 600px. */}
         <div
-          className={activeId ? 'hidden md:block' : 'block'}
-          style={{ borderRight: '1px solid var(--color-border)', overflowY: 'auto' }}
+          className={activeId ? 'hidden md:flex' : 'flex'}
+          style={{
+            borderRight: '1px solid var(--color-border)',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
         >
-          <div
-            style={{
-              padding: 16,
-              fontWeight: 700,
-              fontSize: 15,
-              borderBottom: '1px solid var(--color-border)',
-              color: 'var(--color-foreground)',
-            }}
-          >
-            Tin nhắn
-          </div>
+          <PaneHeader>Tin nhắn</PaneHeader>
 
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {error ? (
             <PaneNote title="Không tải được danh sách trò chuyện." />
           ) : (loading || !authed) && items.length === 0 ? (
@@ -126,12 +129,15 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
             />
           ) : (
             <>
-              {items.map((c) => (
+              {items.map((c, i) => (
                 <ConversationRow
                   key={c.id}
                   conversation={c}
                   meId={meId}
                   active={c.id === activeId}
+                  // REVIEW-1 (#4) — dòng cuối không kẻ vạch, trừ khi còn nút
+                  // "Xem thêm" bên dưới (lúc đó vạch dẫn tới một thứ có thật).
+                  isLastRow={i === items.length - 1 && !hasNextPage}
                   onOpen={() => router.push(`/messages/${c.id}`)}
                 />
               ))}
@@ -155,6 +161,7 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
               )}
             </>
           )}
+          </div>
         </div>
 
         {activeId ? (
@@ -163,19 +170,33 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
           <ChatPanel key={activeId} conversationId={activeId} meId={meId} title={activeTitle} />
         ) : (
           // Mobile chưa chọn hội thoại thì danh sách đã chiếm cả khung ⇒ ẩn ô này.
+          //
+          // REVIEW-1 (#4) — nhánh này phải có header GIỮ CHỖ. Trước đây nó
+          // không có header nào, nên ở `/messages` vạch ngang chỉ tồn tại ở
+          // nửa trái rồi cụt giữa chừng — cũng là "đường nét lệch".
           <div
             className="hidden md:flex"
             style={{
-              alignItems: 'center',
-              justifyContent: 'center',
+              flexDirection: 'column',
+              minHeight: 0,
               background: 'var(--color-background)',
-              color: 'var(--color-muted)',
-              fontSize: 13.5,
-              padding: 20,
-              textAlign: 'center',
             }}
           >
-            Chọn một cuộc trò chuyện để bắt đầu.
+            <PaneHeader ariaHidden>{' '}</PaneHeader>
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-muted)',
+                fontSize: 13.5,
+                padding: 20,
+                textAlign: 'center',
+              }}
+            >
+              Chọn một cuộc trò chuyện để bắt đầu.
+            </div>
           </div>
         )}
       </div>
