@@ -15,6 +15,8 @@ import { NOTIF_PAGE_SIZE } from '@/components/shell/notification-subscriber';
 import { useWsStatus } from '@/lib/apollo/ws-status';
 import { useToast } from '@/components/ui/toast';
 import { formatRelativeTime } from '@/lib/format';
+import { useLocale, useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * D2 — /notifications (FE-8). Auth bắt buộc (proxy chặn khách; skip query phòng hờ).
@@ -31,13 +33,14 @@ import { formatRelativeTime } from '@/lib/format';
  * Câu mô tả đã nói rõ loại ⇒ BỎ token `· LOẠI` tiếng Anh của bản vẽ (QĐ user 16/08).
  */
 
-const TYPE_TEXT: Record<string, string> = {
-  FOLLOW: 'đã theo dõi bạn',
-  COMMENT: 'đã bình luận về pin của bạn',
-  REPLY: 'đã trả lời bình luận của bạn',
-  SAVE: 'đã lưu pin của bạn',
-  REACTION: 'đã thả cảm xúc về pin của bạn',
-  MENTION: 'đã nhắc tới bạn',
+/** i18n (23/08/2026): bảng giữ KEY; dòng thông báo gọi `t(TYPE_KEY[n.type])`. */
+const TYPE_KEY: Record<string, TranslationKey> = {
+  FOLLOW: 'notif.typeFollow',
+  COMMENT: 'notif.typeComment',
+  REPLY: 'notif.typeReply',
+  SAVE: 'notif.typeSave',
+  REACTION: 'notif.typeReaction',
+  MENTION: 'notif.typeMention',
 };
 
 const THUMB_TYPES = new Set(['COMMENT', 'REPLY', 'SAVE', 'REACTION']);
@@ -45,6 +48,7 @@ const THUMB_TYPES = new Set(['COMMENT', 'REPLY', 'SAVE', 'REACTION']);
 type NotifItem = ReturnType<typeof useNotifications>['items'][number];
 
 export default function NotificationsPage() {
+  const t = useT();
   const router = useRouter();
   const { status } = useSession();
   const client = useApolloClient();
@@ -119,7 +123,7 @@ export default function NotificationsPage() {
     try {
       await markAllM();
     } catch {
-      toast({ message: 'Không đánh dấu được, thử lại sau.' });
+      toast({ message: t('notif.markAllFailed') });
       void refetch();
     }
   }
@@ -135,7 +139,7 @@ export default function NotificationsPage() {
             color: 'var(--color-foreground)',
           }}
         >
-          Thông báo
+          {t('notif.title')}
         </h1>
         <div style={{ flex: 1 }} />
         <button
@@ -152,7 +156,7 @@ export default function NotificationsPage() {
             cursor: 'pointer',
           }}
         >
-          Đánh dấu tất cả đã đọc
+          {t('notif.markAllRead')}
         </button>
       </div>
 
@@ -184,20 +188,20 @@ export default function NotificationsPage() {
               display: 'inline-block',
             }}
           />
-          Đang kết nối lại…
+          {t('notif.reconnecting')}
         </div>
       )}
 
       {error ? (
-        <StateBlock title="Không tải được thông báo" subtitle="Kiểm tra mạng rồi thử lại." />
+        <StateBlock title={t('notif.loadFailed')} subtitle={t('common.checkNetwork')} />
       ) : (loading || !authed) && items.length === 0 ? (
         <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
-          Đang tải…
+          {t('common.loading')}
         </div>
       ) : items.length === 0 ? (
         <StateBlock
-          title="Chưa có thông báo nào"
-          subtitle="Khi có người theo dõi, lưu pin hoặc nhắc tới bạn, thông báo sẽ hiện ở đây."
+          title={t('notif.empty')}
+          subtitle={t('notif.emptyHint')}
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -220,7 +224,7 @@ export default function NotificationsPage() {
                 cursor: 'pointer',
               }}
             >
-              {loadingMore ? 'Đang tải…' : 'Xem thêm'}
+              {loadingMore ? t('common.loading') : t('common.loadMore')}
             </button>
           )}
         </div>
@@ -230,8 +234,11 @@ export default function NotificationsPage() {
 }
 
 function NotifRow({ n, onOpen }: { n: NotifItem; onOpen: () => void }) {
-  const actorName = n.actor?.name ?? n.actor?.username ?? 'Ai đó';
-  const text = TYPE_TEXT[n.type] ?? '';
+  const t = useT();
+  const locale = useLocale();
+  const actorName = n.actor?.name ?? n.actor?.username ?? t('notif.someone');
+  const typeKey = TYPE_KEY[n.type];
+  const text = typeKey ? t(typeKey) : '';
   const thumb = THUMB_TYPES.has(n.type) && n.pin ? (n.pin.thumbnailUrl ?? n.pin.imageUrl) : null;
 
   return (
@@ -256,7 +263,7 @@ function NotifRow({ n, onOpen }: { n: NotifItem; onOpen: () => void }) {
           <b>{actorName}</b> {text}
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 3 }}>
-          {formatRelativeTime(n.createdAt)}
+          {formatRelativeTime(n.createdAt, t, locale)}
         </div>
       </div>
       {thumb && (
@@ -269,7 +276,7 @@ function NotifRow({ n, onOpen }: { n: NotifItem; onOpen: () => void }) {
       )}
       {!n.isRead && (
         <span
-          aria-label="Chưa đọc"
+          aria-label={t('notif.unread')}
           style={{
             width: 8,
             height: 8,

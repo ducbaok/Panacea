@@ -14,6 +14,7 @@ import {
 } from './nav-items';
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { useUnreadCount } from './use-unread-count';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * Sidebar desktop (QĐ-3, mockup Panacea §3.1).
@@ -114,7 +115,9 @@ type NavItemRowProps = {
 };
 
 function NavItemRow({ item, href, collapsed, active, badge }: NavItemRowProps) {
-  const { Icon, label } = item;
+  const t = useT();
+  const { Icon } = item;
+  const label = t(item.labelKey);
   // REVIEW-1 (#3): mục mang `hardNav` phải là thẻ <a> thường — soft-nav tới
   // /pin/new bị slot @modal chặn thành modal "Không tìm thấy pin". Lý do đầy
   // đủ + hai hướng sửa gốc đã đo và trượt: xem `nav-items.ts` field `hardNav`.
@@ -161,6 +164,7 @@ function NavItemRow({ item, href, collapsed, active, badge }: NavItemRowProps) {
 }
 
 export function Sidebar() {
+  const t = useT();
   const { status } = useSession();
   const pathname = usePathname() || '/';
   const unreadCount = useUnreadCount();
@@ -196,7 +200,7 @@ export function Sidebar() {
   return (
     <aside
       role="navigation"
-      aria-label="Điều hướng chính"
+      aria-label={t('nav.mainNavLabel')}
       data-sidebar-collapsed={mounted ? String(collapsed) : 'false'}
       className="hidden md:flex flex-col shrink-0 sticky top-0 h-screen overflow-y-auto"
       style={{
@@ -235,7 +239,7 @@ export function Sidebar() {
               color: 'var(--color-muted)',
             }}
           >
-            Chính
+            {t('nav.groupMain')}
           </div>
         )}
         {mainNav.map((item) => (
@@ -264,7 +268,7 @@ export function Sidebar() {
               color: 'var(--color-muted)',
             }}
           >
-            {isAuth ? 'Tài khoản' : 'Bắt đầu'}
+            {isAuth ? t('nav.groupAccount') : t('nav.groupStart')}
           </div>
         )}
         {subNav.map((item) => (
@@ -287,7 +291,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={toggle}
-            aria-label={collapsed ? 'Mở rộng cột trái' : 'Thu gọn cột trái'}
+            aria-label={collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}
             aria-pressed={collapsed}
             className="w-full flex items-center rounded-[12px] transition-colors"
             style={{
@@ -302,7 +306,7 @@ export function Sidebar() {
             }}
           >
             {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-            {!collapsed && <span>Thu gọn</span>}
+            {!collapsed && <span>{t('nav.collapse')}</span>}
           </button>
         </div>
       )}

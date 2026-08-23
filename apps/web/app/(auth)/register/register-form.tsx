@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { authStyles, AuthHeader } from '@/components/auth/auth-ui';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * A1 — form đăng ký. So với A2 thêm ô "Tên hiển thị" (BẮT BUỘC — `RegisterDto`
@@ -20,6 +21,7 @@ type RegError =
   | { kind: 'network' };
 
 export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
+  const t = useT();
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -71,15 +73,15 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
 
   const errorText =
     error?.kind === 'short'
-      ? 'Mật khẩu phải có ít nhất 8 ký tự.'
+      ? t('auth.errPasswordShort')
       : error?.kind === 'name'
-        ? 'Tên hiển thị cần ít nhất 2 ký tự.'
+        ? t('auth.errNameShort')
         : error?.kind === 'email-taken'
-          ? 'Email này đã được sử dụng.'
+          ? t('auth.errEmailTaken')
           : error?.kind === 'invalid'
-            ? 'Thông tin chưa hợp lệ, kiểm tra lại.'
+            ? t('auth.errInvalidInput')
             : error?.kind === 'network'
-              ? 'Không kết nối được máy chủ. Thử lại sau.'
+              ? t('auth.errNetwork')
               : null;
 
   const loginHref =
@@ -89,57 +91,57 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
 
   return (
     <div style={authStyles.column}>
-      <AuthHeader subtitle="Tạo tài khoản mới" />
+      <AuthHeader subtitle={t('auth.registerSubtitle')} />
       <form style={authStyles.card} onSubmit={onSubmit} noValidate>
         <label style={authStyles.label}>
-          Tên hiển thị
+          {t('auth.displayName')}
           <input
             type="text"
             autoComplete="name"
-            placeholder="Tên của bạn"
+            placeholder={t('auth.displayNamePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={authStyles.input}
           />
         </label>
         <label style={authStyles.label}>
-          Email
+          {t('auth.email')}
           <input
             type="email"
             autoComplete="email"
-            placeholder="ban@vidu.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={authStyles.input}
           />
         </label>
         <label style={authStyles.label}>
-          Mật khẩu
+          {t('auth.password')}
           <input
             type="password"
             autoComplete="new-password"
-            placeholder="Nhập mật khẩu"
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={authStyles.input}
           />
         </label>
-        <div style={authStyles.hint}>Mật khẩu tối thiểu 8 ký tự, kiểm tra ngay lúc gõ.</div>
+        <div style={authStyles.hint}>{t('auth.passwordHint')}</div>
         {errorText && <div style={authStyles.errorBox}>{errorText}</div>}
         <button type="submit" style={busy ? authStyles.submitBusy : authStyles.submit} disabled={busy}>
-          {busy ? 'Đang tạo tài khoản…' : 'Đăng ký'}
+          {busy ? t('auth.creatingAccount') : t('auth.register')}
         </button>
         {/* OAuth Google: CHƯA VẼ (Q2) — nút chờ bản vẽ, xem login-form.tsx. */}
         <div style={authStyles.footRow}>
           <span />
           <Link href={loginHref} style={authStyles.linkStrong}>
-            Đã có tài khoản
+            {t('auth.haveAccount')}
           </Link>
         </div>
       </form>
       <div style={authStyles.backRow}>
         <Link href="/" style={authStyles.linkMuted}>
-          ← Quay lại lưới pin
+          ← {t('auth.backToGrid')}
         </Link>
       </div>
     </div>

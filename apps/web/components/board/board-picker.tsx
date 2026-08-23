@@ -21,6 +21,7 @@ import {
 import { useUserBoards } from '@/lib/hooks/usePaginatedQuery';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * B6 — BoardPicker (mockup `showBoardPicker`, brief FE-7 §3.3).
@@ -107,6 +108,7 @@ function BoardPickerOverlay({
     return boards.items.filter((b) => b.name.toLowerCase().includes(q));
   }, [boards.items, query]);
 
+  const t = useT();
   const loading = meQuery.loading || (boards.loading && boards.items.length === 0);
 
   async function onPick(board: (typeof boards.items)[number]) {
@@ -121,10 +123,10 @@ function BoardPickerOverlay({
     try {
       await savePin({ variables: { input: { pinId: options.pinId, boardId: board.id } } });
       // savePin trả pin { id isSavedByViewer } ⇒ cache tự cập nhật isSavedByViewer.
-      toast({ message: `Đã lưu vào ${board.name}` }); // save: KHÔNG Hoàn tác (§1 toast)
+      toast({ message: t('board.savedTo', { board: board.name }) }); // save: KHÔNG Hoàn tác (§1 toast)
       onClose();
     } catch {
-      toast({ message: 'Không lưu được vào board, thử lại sau.' });
+      toast({ message: t('board.saveToBoardFailed') });
       setSavingId(null);
     }
   }
@@ -151,7 +153,7 @@ function BoardPickerOverlay({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Lưu vào board"
+        aria-label={t('board.pickerTitle')}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
@@ -163,15 +165,15 @@ function BoardPickerOverlay({
         }}
       >
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-foreground)', marginBottom: 14 }}>
-          Lưu vào board
+          {t('board.pickerTitle')}
         </div>
 
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Tìm board"
-          aria-label="Tìm board"
+          placeholder={t('board.searchPlaceholder')}
+          aria-label={t('board.searchPlaceholder')}
           style={{
             width: '100%',
             padding: '10px 12px',
@@ -195,13 +197,13 @@ function BoardPickerOverlay({
           }}
         >
           {loading ? (
-            <PickerNote>Đang tải danh sách board…</PickerNote>
+            <PickerNote>{t('board.loadingList')}</PickerNote>
           ) : boards.error ? (
-            <PickerNote>Không tải được danh sách board. Đóng rồi mở lại để thử.</PickerNote>
+            <PickerNote>{t('board.loadListFailed')}</PickerNote>
           ) : boards.items.length === 0 ? (
-            <PickerNote>Bạn chưa có board nào — tạo board đầu tiên bên dưới.</PickerNote>
+            <PickerNote>{t('board.emptyList')}</PickerNote>
           ) : filtered.length === 0 ? (
-            <PickerNote>Không có board nào khớp “{query.trim()}”.</PickerNote>
+            <PickerNote>{t('board.noMatch', { query: query.trim() })}</PickerNote>
           ) : (
             filtered.map((b) => {
               const selected = options.mode === 'select' && options.selectedBoardId === b.id;
@@ -258,7 +260,12 @@ function BoardPickerOverlay({
                       {b.name}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>
-                      {savingId === b.id ? 'Đang lưu…' : `${formatCount(b.pinCount)} pin`}
+                      {savingId === b.id
+                        ? t('common.saving')
+                        : t('board.pinCount', {
+                            count: b.pinCount,
+                            countText: formatCount(b.pinCount),
+                          })}
                     </div>
                   </div>
                 </button>
@@ -282,7 +289,7 @@ function BoardPickerOverlay({
                 textAlign: 'left',
               }}
             >
-              {boards.loadingMore ? 'Đang tải…' : 'Tải thêm board'}
+              {boards.loadingMore ? t('common.loading') : t('board.loadMore')}
             </button>
           )}
         </div>
@@ -303,7 +310,7 @@ function BoardPickerOverlay({
             cursor: 'pointer',
           }}
         >
-          + Tạo board mới
+          {t('board.createNew')}
         </button>
       </div>
     </div>

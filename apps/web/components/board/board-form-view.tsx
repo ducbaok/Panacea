@@ -21,7 +21,8 @@ import {
   type DeleteBoardMutationVariables,
 } from '@/lib/gql/graphql';
 import { toReadState, mapError } from '@/lib/errors/map-error';
-import { translateBoardError } from '@/lib/errors/board-error-vi';
+import { boardErrorKey } from '@/lib/errors/board-error';
+import { useT } from '@/lib/i18n/provider';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 
@@ -29,7 +30,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
  * C5 — Tạo/sửa board (mockup `view=boardform`, data-screen="C5"). 8 trạng thái ×
  * 2 chế độ. ⚠️ Input ở C5 nền `--color-surface-muted` (KHÁC B4/B5 dùng surface).
  *
- * Lỗi backend cho board GIỮ NGUYÊN tiếng Anh ⇒ dịch qua translateBoardError
+ * Lỗi backend cho board GIỮ NGUYÊN tiếng Anh ⇒ quy về key qua boardErrorKey
  * (QĐ-8 §5d — một bảng, một chỗ). cap ("200 board") + denied ("quyền sửa board").
  */
 
@@ -41,21 +42,22 @@ export function CreateBoardView() {
 }
 
 export function EditBoardView({ boardId }: { boardId: string }) {
+  const t = useT();
   const { status } = useSession();
   const query = useQuery<BoardQuery, BoardQueryVariables>(BoardDocument, { variables: { id: boardId } });
   const meQuery = useQuery<MeQuery>(MeDocument, { skip: status !== 'authenticated' });
   const state = toReadState({ data: query.data, loading: query.loading, error: query.error });
 
   if (state.phase === 'loading' || meQuery.loading) {
-    return <CenterNote>Đang tải…</CenterNote>;
+    return <CenterNote>{t('common.loading')}</CenterNote>;
   }
   if (state.phase === 'error') {
-    if (state.state.kind === 'not-found') return <CenterNote>Board không tồn tại hoặc đã bị xoá.</CenterNote>;
-    if (state.state.kind === 'network') return <CenterNote>Không kết nối được máy chủ.</CenterNote>;
-    return <CenterNote>Không tải được board.</CenterNote>;
+    if (state.state.kind === 'not-found') return <CenterNote>{t('board.notFoundOrDeleted')}</CenterNote>;
+    if (state.state.kind === 'network') return <CenterNote>{t('pin.serverUnreachable')}</CenterNote>;
+    return <CenterNote>{t('board.loadFailed')}</CenterNote>;
   }
   const board = state.data.board;
-  if (!board) return <CenterNote>Board không tồn tại hoặc đã bị xoá.</CenterNote>;
+  if (!board) return <CenterNote>{t('board.notFoundOrDeleted')}</CenterNote>;
 
   const meId = meQuery.data?.me?.id ?? null;
   const isOwner = meId != null && board.user?.id === meId;
@@ -82,6 +84,7 @@ type BoardFormProps = {
 };
 
 function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
+  const t = useT();
   const router = useRouter();
   const toast = useToast();
   const confirm = useConfirm();
@@ -101,12 +104,14 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
   const disabled = !isOwner || phase === 'saving';
 
   // Chế độ sửa nhưng không phải chủ ⇒ denied (server là nguồn sự thật cuối).
-  const deniedBanner = isEdit && !isOwner ? 'Bạn không có quyền sửa board này.' : null;
+  const deniedBanner = isEdit && !isOwner ? t('errors.board.noEditPermission') : null;
 
   function validate(): 'empty' | 'toolong' | null {
-    const t = name.trim();
-    if (t === '') return 'empty';
-    if (t.length > NAME_MAX) return 'toolong';
+    // ⚠️ biến này TỪNG tên là `t` — đổi thành `trimmed` để nhường tên `t` cho
+    // hàm dịch của component (i18n 23/08/2026).
+    const trimmed = name.trim();
+    if (trimmed === '') return 'empty';
+    if (trimmed.length > NAME_MAX) return 'toolong';
     return null;
   }
 
@@ -124,32 +129,32 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
       if (isEdit && boardId) {
         await updateBoard({ variables: { input: { id: boardId, name: trimmedName, description: desc, isSecret } } });
         setPhase('done');
-        setBanner('Đã lưu board.');
-        toast({ message: 'Đã lưu board' });
+        setBanner(t('board.savedBanner'));
+        toast({ message: t('board.savedToast') });
       } else {
         const res = await createBoard({ variables: { input: { name: trimmedName, description: desc, isSecret } } });
         const created = res.data?.createBoard;
         if (!created) throw new Error('createBoard trả rỗng');
-        toast({ message: 'Đã tạo board' });
+        toast({ message: t('board.createdToast') });
         router.push(`/board/${created.id}`);
       }
     } catch (e) {
       setPhase('idle');
       const raw = e instanceof Error ? e.message : String(e);
-      const translated = translateBoardError(raw); // QĐ-8: cap / denied
+      const key = boardErrorKey(raw); // QĐ-8: cap / denied
       const st = mapError(e);
-      if (translated) setBanner(translated);
-      else if (st.kind === 'network') setBanner('Không lưu được — mất kết nối. Dữ liệu bạn nhập vẫn còn ở đây.');
-      else setBanner(isEdit ? 'Không lưu được board, thử lại sau.' : 'Không tạo được board, thử lại sau.');
+      if (key) setBanner(t(key));
+      else if (st.kind === 'network') setBanner(t('board.netErr'));
+      else setBanner(isEdit ? t('board.saveFailedGeneric') : t('board.createFailed'));
     }
   }
 
   async function onDelete() {
     if (!isOwner || !boardId) return;
     const ok = await confirm({
-      title: 'Xoá board này?',
-      body: 'Các pin đã lưu sẽ bỏ khỏi board, pin gốc của người tạo vẫn còn.',
-      yesLabel: 'Xoá board',
+      title: t('board.deleteTitle'),
+      body: t('board.deleteBody'),
+      yesLabel: t('board.deleteYes'),
       danger: true,
     });
     if (!ok) return;
@@ -161,10 +166,10 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
           cache.gc();
         },
       });
-      toast({ message: 'Đã xoá board' }); // xoá = KHÔNG Hoàn tác (§1 toast)
+      toast({ message: t('board.deletedToast') }); // xoá = KHÔNG Hoàn tác (§1 toast)
       router.push('/');
     } catch {
-      toast({ message: 'Không xoá được board, thử lại sau.' });
+      toast({ message: t('board.deleteFailed') });
     }
   }
 
@@ -173,7 +178,7 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
   return (
     <div data-screen="C5" style={{ maxWidth: 560, margin: '0 auto', padding: '24px 16px 48px' }}>
       <button type="button" onClick={() => router.back()} style={{ ...outlineBtn, marginBottom: 16 }}>
-        ← Quay lại
+        ← {t('common.back')}
       </button>
       <h1
         style={{
@@ -183,7 +188,7 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
           color: 'var(--color-foreground)',
         }}
       >
-        {isEdit ? 'Sửa board' : 'Tạo board'}
+        {isEdit ? t('board.editTitle') : t('board.createTitle')}
       </h1>
 
       {shownBanner && (
@@ -218,7 +223,7 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
         }}
       >
         <div>
-          <label style={labelStyle} htmlFor="board-name">Tên board</label>
+          <label style={labelStyle} htmlFor="board-name">{t('board.name')}</label>
           <input
             id="board-name"
             type="text"
@@ -228,15 +233,15 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
               setName(e.target.value);
               if (nameError) setNameError(null);
             }}
-            placeholder="Ví dụ: Bữa tối nhanh"
+            placeholder={t('board.namePlaceholder')}
             style={inputStyle}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
             <span style={{ fontSize: 12, color: 'var(--color-danger)' }}>
               {nameError === 'empty'
-                ? 'Tên board không được để trống.'
+                ? t('board.nameRequired')
                 : nameError === 'toolong'
-                  ? 'Tên board tối đa 100 ký tự.'
+                  ? t('board.nameTooLong')
                   : ''}
             </span>
             <span style={{ fontSize: 12, color: name.length >= NAME_MAX ? 'var(--color-danger)' : 'var(--color-muted)' }}>
@@ -246,7 +251,7 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
         </div>
 
         <div>
-          <label style={labelStyle} htmlFor="board-desc">Mô tả</label>
+          <label style={labelStyle} htmlFor="board-desc">{t('board.description')}</label>
           <textarea
             id="board-desc"
             value={description}
@@ -265,7 +270,7 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
             type="button"
             role="switch"
             aria-checked={isSecret}
-            aria-label="Board riêng tư"
+            aria-label={t('board.private')}
             onClick={() => setIsSecret((v) => !v)}
             style={{
               width: 46,
@@ -294,9 +299,9 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
             />
           </button>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-foreground)' }}>Board riêng tư</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-foreground)' }}>{t('board.private')}</div>
             <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginTop: 2, lineHeight: 1.5 }}>
-              Chỉ bạn và cộng tác viên thấy board này.
+              {t('board.privateHint')}
             </div>
           </div>
         </div>
@@ -314,10 +319,14 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
               cursor: disabled ? 'not-allowed' : 'pointer',
             }}
           >
-            {phase === 'saving' ? 'Đang lưu…' : isEdit ? 'Lưu thay đổi' : 'Tạo board'}
+            {phase === 'saving'
+              ? t('common.saving')
+              : isEdit
+                ? t('board.saveChanges')
+                : t('board.createTitle')}
           </button>
           <button type="button" onClick={() => router.back()} style={outlineBtn}>
-            Huỷ
+            {t('common.cancel')}
           </button>
         </div>
       </fieldset>
@@ -334,14 +343,14 @@ function BoardForm({ mode, boardId, isOwner, initial }: BoardFormProps) {
           }}
         >
           <div style={{ fontSize: 13.5, color: 'var(--color-muted)', lineHeight: 1.6, marginBottom: 12 }}>
-            Các pin đã lưu sẽ bỏ khỏi board, pin gốc của người tạo vẫn còn.
+            {t('board.deleteBody')}
           </div>
           <button
             type="button"
             onClick={() => void onDelete()}
             style={{ ...outlineBtn, border: '1px solid var(--color-danger)', color: 'var(--color-danger)' }}
           >
-            Xoá board
+            {t('board.deleteYes')}
           </button>
         </div>
       )}

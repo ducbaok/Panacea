@@ -1,4 +1,5 @@
 import { ReactionType } from '@/lib/gql/graphql';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * FE-4 §4.1 — Bảng ánh xạ ReactionType → emoji + nhãn.
@@ -34,10 +35,14 @@ export const REACTION_EMOJI: Record<ReactionType, string> = {
   FUNNY: '😂',
 };
 
-export const REACTION_LABEL: Record<ReactionType, string> = {
-  HEART: 'Yêu',
-  IDEA: 'Hữu ích',
-  THANKS: 'Cảm ơn',
-  WOW: 'Tuyệt',
-  FUNNY: 'Cười',
+/**
+ * i18n (23/08/2026) — bảng nhãn nay giữ KEY từ điển thay vì chữ Việt; nơi dùng
+ * gọi `t(REACTION_LABEL_KEY[type])`. Emoji ở trên KHÔNG đổi theo ngôn ngữ.
+ */
+export const REACTION_LABEL_KEY: Record<ReactionType, TranslationKey> = {
+  HEART: 'pin.reactionHeart',
+  IDEA: 'pin.reactionIdea',
+  THANKS: 'pin.reactionThanks',
+  WOW: 'pin.reactionWow',
+  FUNNY: 'pin.reactionFunny',
 };

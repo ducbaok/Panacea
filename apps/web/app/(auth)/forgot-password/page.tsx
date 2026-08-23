@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { authStyles, AuthHeader } from '@/components/auth/auth-ui';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * A3 — Quên mật khẩu. 5 trạng thái (mockup `view=forgot`):
@@ -16,6 +17,7 @@ type Stage = 'idle' | 'invalid' | 'sending' | 'sent' | 'neterr';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ForgotPasswordPage() {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [stage, setStage] = useState<Stage>('idle');
 
@@ -42,7 +44,7 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  const subtitle = stage === 'sent' ? 'Kiểm tra hộp thư của bạn.' : 'Nhập email, chúng tôi sẽ gửi liên kết đặt lại.';
+  const subtitle = stage === 'sent' ? t('auth.forgotSentSubtitle') : t('auth.forgotSubtitle');
 
   return (
     <div style={authStyles.column}>
@@ -50,7 +52,7 @@ export default function ForgotPasswordPage() {
       {stage === 'sent' ? (
         <div style={authStyles.card}>
           <div style={authStyles.noteBox}>
-            Nếu email này có tài khoản, chúng tôi đã gửi liên kết đặt lại. Liên kết có hiệu lực trong 1 giờ.
+            {t('auth.forgotSentNote')}
           </div>
           <button
             type="button"
@@ -60,38 +62,42 @@ export default function ForgotPasswordPage() {
               setStage('idle');
             }}
           >
-            Dùng email khác
+            {t('auth.useAnotherEmail')}
           </button>
         </div>
       ) : (
         <form style={authStyles.card} onSubmit={onSubmit} noValidate>
           <label style={authStyles.label}>
-            Email
+            {t('auth.email')}
             <input
               type="email"
               autoComplete="email"
-              placeholder="ban@vidu.com"
+              placeholder={t('auth.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={authStyles.input}
             />
           </label>
-          {stage === 'invalid' && <div style={authStyles.errorBox}>Email không hợp lệ.</div>}
+          {stage === 'invalid' && <div style={authStyles.errorBox}>{t('auth.errEmailInvalid')}</div>}
           {stage === 'neterr' && (
-            <div style={authStyles.errorBox}>Không kết nối được máy chủ. Thử lại sau.</div>
+            <div style={authStyles.errorBox}>{t('auth.errNetwork')}</div>
           )}
           <button
             type="submit"
             style={stage === 'sending' ? authStyles.submitBusy : authStyles.submit}
             disabled={stage === 'sending'}
           >
-            {stage === 'sending' ? 'Đang gửi…' : stage === 'neterr' ? 'Thử lại' : 'Gửi liên kết đặt lại'}
+            {stage === 'sending'
+              ? t('auth.sending')
+              : stage === 'neterr'
+                ? t('common.retry')
+                : t('auth.sendResetLink')}
           </button>
         </form>
       )}
       <div style={authStyles.backRow}>
         <Link href="/login" style={authStyles.linkMuted}>
-          ← Quay lại đăng nhập
+          ← {t('auth.backToLogin')}
         </Link>
       </div>
     </div>

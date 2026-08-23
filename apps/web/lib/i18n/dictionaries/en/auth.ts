@@ -1,0 +1,102 @@
+import type { Mirror } from '../mirror';
+
+type Vi = (typeof import('../vi/auth'))['auth'];
+
+export const auth: Mirror<Vi> = {
+  // Modal nhắc đăng nhập (khách bấm hành động cần phiên)
+  'auth.promptTitle': 'Log in to {action}',
+  'auth.promptBody': 'You’ll come back to exactly where you were, scroll position included.',
+  'auth.actionDefault': 'continue',
+  'auth.actionSavePin': 'save this pin',
+  'auth.actionComment': 'comment',
+  'auth.actionReply': 'reply to a comment',
+  'auth.actionReact': 'react',
+  'auth.actionFollow': 'follow this person',
+  'auth.actionMessage': 'send a message',
+  'auth.actionBlock': 'block this person',
+  'auth.login': 'Log in',
+  'auth.createAccount': 'Create account',
+  'auth.later': 'Later',
+
+  // A1–A5 dùng chung
+  'auth.email': 'Email',
+  'auth.emailPlaceholder': 'you@example.com',
+  'auth.password': 'Password',
+  'auth.passwordPlaceholder': 'Enter your password',
+  'auth.backToGrid': 'Back to the pin grid',
+  'auth.backToLogin': 'Back to log in',
+  'auth.errNetwork': 'Could not reach the server. Try again later.',
+
+  // A2 — Đăng nhập
+  'auth.loginSubtitle': 'Log in to continue',
+  'auth.loggingIn': 'Logging in…',
+  'auth.forgotPassword': 'Forgot password?',
+  'auth.errInvalidCredentials': 'Wrong email or password.',
+  'auth.errJustLocked': 'Five wrong attempts — this account is locked for 15 minutes.',
+  'auth.errLocked': 'Locked. Try again in {sec} seconds.',
+
+  // A1 — Đăng ký
+  'auth.registerSubtitle': 'Create a new account',
+  'auth.displayName': 'Display name',
+  'auth.displayNamePlaceholder': 'Your name',
+  'auth.passwordHint': 'Passwords need at least 8 characters — checked as you type.',
+  'auth.creatingAccount': 'Creating account…',
+  'auth.register': 'Sign up',
+  'auth.haveAccount': 'Already have an account',
+  'auth.errPasswordShort': 'Password must be at least 8 characters.',
+  'auth.errNameShort': 'Display name needs at least 2 characters.',
+  'auth.errEmailTaken': 'That email is already in use.',
+  'auth.errInvalidInput': 'Some details are not valid — check them again.',
+
+  // A3 — Quên mật khẩu
+  'auth.forgotSubtitle': 'Enter your email and we will send a reset link.',
+  'auth.forgotSentSubtitle': 'Check your inbox.',
+  'auth.forgotSentNote': 'If that email has an account, we have sent a reset link. It stays valid for 1 hour.',
+  'auth.useAnotherEmail': 'Use a different email',
+  'auth.errEmailInvalid': 'That email is not valid.',
+  'auth.sending': 'Sending…',
+  'auth.sendResetLink': 'Send reset link',
+
+  // A4 — Đặt lại mật khẩu
+  'auth.resetSubtitle': 'Reset password',
+  'auth.resetInvalidLink': 'This link is not valid. Request a new one.',
+  'auth.requestNewLink': 'Request a new link',
+  'auth.resetDoneSubtitle': 'Your password has been changed.',
+  'auth.resetDoneNote': 'Password changed. You have been signed out on your other devices.',
+  'auth.linkExpired': 'This link has expired.',
+  'auth.linkInvalid': 'This link is not valid.',
+  'auth.sendNewLink': 'Send a new link',
+  'auth.chooseNewPassword': 'Choose a new password for your account.',
+  'auth.newPassword': 'New password',
+  'auth.newPasswordPlaceholder': 'At least 8 characters',
+  'auth.repeatPassword': 'Repeat password',
+  'auth.repeatPasswordPlaceholder': 'Repeat the new password',
+  'auth.min8Hint': 'At least 8 characters.',
+  'auth.errPasswordMismatch': 'The two passwords do not match.',
+
+  // A5 — Xác minh email
+  'auth.verifySubtitle': 'Verify email',
+  'auth.verifyNoTokenTitle': 'Verification code missing',
+  'auth.verifyNoTokenBody': 'The URL has no token parameter.',
+  'auth.verifyWaitTitle': 'Verify your email',
+  'auth.verifyWaitBody': 'Press the button below to finish. This page does nothing on its own, so a mail client cannot spend the link for you.',
+  'auth.verifyAction': 'Verify email',
+  'auth.verifyLoadingTitle': 'Verifying your email…',
+  'auth.verifyLoadingBody': 'One moment.',
+  'auth.verifyOkNote': 'Your email has been verified.',
+  'auth.verifyOkTitle': 'All done',
+  'auth.verifyOkBody': 'Your account is ready.',
+  'auth.verifyNetTitle': 'Could not connect',
+  'auth.verifyResendingBody': 'Sending a new verification email.',
+  'auth.verifyResentNote': 'A new email is on its way. Check your inbox.',
+  'auth.verifyResentTitle': 'Sent again',
+  'auth.verifyResentBody': 'No email yet? Wait out the 60 seconds, then send another.',
+  'auth.verifyResendIn': 'Resend in {sec} seconds',
+  'auth.verifyResend': 'Resend email',
+  'auth.verifyExpiredTitle': 'This link has expired',
+  'auth.verifyExpiredBody': 'A verification link stays valid for 1 hour.',
+  'auth.verifyBadTitle': 'This link cannot be used',
+  'auth.verifyMalformedBody': 'The verification code could not be read. Open the newest link in your inbox.',
+  'auth.verifyInvalidBody': 'Open the newest link in your inbox.',
+  'auth.loginAndRetry': 'Log in and try again',
+};

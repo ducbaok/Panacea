@@ -16,10 +16,12 @@ import {
   type BlockedUsersQuery,
 } from '@/lib/gql/graphql';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
 import { useAvatarUpload } from '@/components/profile/use-avatar-upload';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * C2 — Cài đặt (FE-6). Route đã được `proxy.ts` (matcher `/settings/:path*`) bảo
@@ -28,12 +30,19 @@ import { formatCount } from '@/lib/format';
  * Bám bản vẽ v2 (view=settings): 4 khối — Hồ sơ · Giao diện · Tài khoản (Người
  * đã chặn + Đăng xuất) · Xoá tài khoản. Chữ chép nguyên văn từ mockup (§9).
  *
+ * 🔵 23/08/2026 — thêm khối thứ 5 "Ngôn ngữ" (không có trong bản vẽ v2). Đây
+ * là yêu cầu trực tiếp của người dùng, KHÔNG phải tôi tự bịa màn: chỗ đặt duy
+ * nhất hợp lý là ngay dưới "Giao diện" vì cùng nhóm "app hiện ra sao", và
+ * `LanguageToggle` cố ý mượn nguyên dáng chip của `ThemeToggle` để không sinh
+ * kiểu điều khiển thứ hai cho cùng một loại lựa chọn.
+ *
  * ⚠️ Bản vẽ chỉ vẽ 2 ô (Tên hiển thị + Tiểu sử), KHÔNG vẽ nút Lưu, không có ô
  * username/website. Giữ đúng phạm vi đó; thêm nút "Lưu" là phần TỐI THIỂU để nối
  * updateProfile (bản vẽ để trống hành vi). Đổi username (1 lần/30 ngày) không có
  * ô trong bản vẽ nên không dựng ở đợt này.
  */
 export default function SettingsPage() {
+  const t = useT();
   const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
@@ -61,30 +70,38 @@ export default function SettingsPage() {
 
   const blockedCount = blockedQuery.data?.blockedUsers.items.length ?? 0;
   const blockedMore = blockedQuery.data?.blockedUsers.pageInfo.hasNextPage ?? false;
-  const blockedLabel = blockedCount > 0 ? `${formatCount(blockedCount)}${blockedMore ? '+' : ''} người` : '';
+  const blockedLabel =
+    blockedCount > 0
+      ? t('settings.blockedCount', {
+          count: blockedCount,
+          // formatCount rút gọn (1.2K) nên chuỗi hiện KHÁC `count` thô; `count`
+          // vẫn phải truyền để tiếng Anh chọn đúng dạng số ít/số nhiều.
+          countText: `${formatCount(blockedCount)}${blockedMore ? '+' : ''}`,
+        })
+      : '';
 
   async function onSave() {
     try {
       await updateProfile({ variables: { input: { name, bio } } });
       await meQuery.refetch();
-      toast({ message: 'Đã lưu hồ sơ' });
+      toast({ message: t('settings.savedProfile') });
     } catch {
-      toast({ message: 'Không lưu được, thử lại sau.' });
+      toast({ message: t('settings.saveFailed') });
     }
   }
 
   async function onDelete() {
     const step1 = await confirm({
-      title: 'Xoá tài khoản?',
-      body: 'Toàn bộ pin, board và bình luận của bạn sẽ không còn hiển thị. Hành động này không thể hoàn tác.',
-      yesLabel: 'Tiếp tục',
+      title: t('settings.deleteTitle'),
+      body: t('settings.deleteBody'),
+      yesLabel: t('settings.deleteContinue'),
       danger: true,
     });
     if (!step1) return;
     const step2 = await confirm({
-      title: 'Xác nhận lần cuối',
-      body: 'Bạn chắc chắn muốn xoá tài khoản? Bạn sẽ bị đăng xuất ngay.',
-      yesLabel: 'Xoá vĩnh viễn',
+      title: t('settings.deleteFinalTitle'),
+      body: t('settings.deleteFinalBody'),
+      yesLabel: t('settings.deleteForever'),
       danger: true,
     });
     if (!step2) return;
@@ -92,19 +109,19 @@ export default function SettingsPage() {
       await deleteAccount();
       await signOut({ callbackUrl: '/' });
     } catch {
-      toast({ message: 'Không xoá được, thử lại sau.' });
+      toast({ message: t('settings.deleteFailed') });
     }
   }
 
   return (
     <div style={{ padding: '24px 16px 40px' }}>
       <h1 style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 24, margin: '0 0 20px', color: 'var(--color-foreground)' }}>
-        Cài đặt
+        {t('settings.title')}
       </h1>
       <div style={{ maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Hồ sơ */}
         <Card>
-          <CardTitle>Hồ sơ</CardTitle>
+          <CardTitle>{t('settings.profile')}</CardTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {/* Đổi ảnh đại diện (FE-10, bản vẽ C2): avatar preview 60×60 + nút có
                 icon camera + hint. Cùng luồng với nút camera ở C1a — một hook
@@ -166,22 +183,24 @@ export default function SettingsPage() {
                     />
                     <circle cx="12" cy="12.5" r="3.2" stroke="currentColor" strokeWidth="1.8" />
                   </svg>
-                  {avatarUpload.phase === 'working' ? 'Đang tải ảnh…' : 'Đổi ảnh đại diện'}
+                  {avatarUpload.phase === 'working'
+                    ? t('settings.uploadingAvatar')
+                    : t('settings.changeAvatar')}
                 </button>
                 <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>
-                  Ảnh vuông, tối thiểu 200×200.
+                  {t('settings.avatarHint')}
                 </div>
               </div>
             </div>
 
-            <Field label="Tên hiển thị">
+            <Field label={t('settings.displayName')}>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 style={inputStyle}
               />
             </Field>
-            <Field label="Tiểu sử">
+            <Field label={t('settings.bio')}>
               <textarea
                 rows={3}
                 value={bio}
@@ -206,7 +225,7 @@ export default function SettingsPage() {
                   opacity: !dirty || saving ? 0.6 : 1,
                 }}
               >
-                {saving ? 'Đang lưu…' : 'Lưu'}
+                {saving ? t('common.saving') : t('common.save')}
               </button>
             </div>
           </div>
@@ -214,18 +233,27 @@ export default function SettingsPage() {
 
         {/* Giao diện */}
         <Card>
-          <CardTitle noMargin>Giao diện</CardTitle>
+          <CardTitle noMargin>{t('settings.appearance')}</CardTitle>
           <div style={{ fontSize: 13, color: 'var(--color-muted)', margin: '6px 0 14px' }}>
-            Ba trạng thái. “Theo hệ thống” tiếp tục nghe theo cài đặt máy.
+            {t('settings.appearanceHint')}
           </div>
           <ThemeToggle />
         </Card>
 
+        {/* Ngôn ngữ */}
+        <Card>
+          <CardTitle noMargin>{t('settings.language')}</CardTitle>
+          <div style={{ fontSize: 13, color: 'var(--color-muted)', margin: '6px 0 14px' }}>
+            {t('settings.languageHint')}
+          </div>
+          <LanguageToggle />
+        </Card>
+
         {/* Tài khoản */}
         <Card>
-          <CardTitle noMargin>Tài khoản</CardTitle>
+          <CardTitle noMargin>{t('settings.account')}</CardTitle>
           <div style={{ fontSize: 13, color: 'var(--color-muted)', margin: '6px 0 14px' }}>
-            Quản lý người bạn đã chặn và kết thúc phiên đăng nhập.
+            {t('settings.accountHint')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
             <button
@@ -246,7 +274,7 @@ export default function SettingsPage() {
                 textAlign: 'left',
               }}
             >
-              <span style={{ flex: 1 }}>Người đã chặn</span>
+              <span style={{ flex: 1 }}>{t('settings.blocked')}</span>
               {blockedLabel && <span style={{ color: 'var(--color-muted)', fontSize: 13 }}>{blockedLabel}</span>}
               <span style={{ color: 'var(--color-muted)' }}>›</span>
             </button>
@@ -265,16 +293,18 @@ export default function SettingsPage() {
                 cursor: 'pointer',
               }}
             >
-              Đăng xuất
+              {t('settings.signOut')}
             </button>
           </div>
         </Card>
 
         {/* Xoá tài khoản */}
         <Card>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: 'var(--color-danger)' }}>Xoá tài khoản</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: 'var(--color-danger)' }}>
+            {t('settings.deleteAccount')}
+          </div>
           <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 14 }}>
-            Xác nhận hai bước. Hành động không thể hoàn tác.
+            {t('settings.deleteHint')}
           </div>
           <button
             type="button"
@@ -290,7 +320,7 @@ export default function SettingsPage() {
               cursor: 'pointer',
             }}
           >
-            Xoá tài khoản
+            {t('settings.deleteAccount')}
           </button>
         </Card>
       </div>

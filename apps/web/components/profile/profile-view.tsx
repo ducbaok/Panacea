@@ -15,7 +15,7 @@ import {
   UnblockUserDocument,
   CreateConversationDocument,
 } from '@/lib/gql/graphql';
-import { translateMessagingError } from '@/components/messages/chat-panel';
+import { messagingErrorKey } from '@/components/messages/chat-panel';
 import { useUserPins, useUserBoards, useSavedPins } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -23,6 +23,7 @@ import { useToast } from '@/components/ui/toast';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useAvatarUpload } from '@/components/profile/use-avatar-upload';
 import { formatCount } from '@/lib/format';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * C1 — Hồ sơ (FE-6). Hai biến thể của CÙNG một màn:
@@ -37,23 +38,24 @@ import { formatCount } from '@/lib/format';
 type ProfileUser = NonNullable<UserByUsernameQuery['userByUsername']>;
 
 export function ProfileView({ username }: { username: string }) {
+  const t = useT();
   const { status } = useSession();
   const profileQuery = useQuery<UserByUsernameQuery>(UserByUsernameDocument, {
     variables: { username },
   });
   const meQuery = useQuery<MeQuery>(MeDocument, { skip: status !== 'authenticated' });
 
-  if (profileQuery.loading) return <CenteredCard>Đang tải hồ sơ…</CenteredCard>;
+  if (profileQuery.loading) return <CenteredCard>{t('profile.loading')}</CenteredCard>;
 
   if (profileQuery.error) {
     return (
       <CenteredCard>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>Không tải được hồ sơ</div>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>{t('profile.loadFailed')}</div>
         <div style={{ fontSize: 13.5, color: 'var(--color-muted)', marginTop: 6 }}>
-          Kiểm tra mạng rồi thử lại.
+          {t('common.checkNetwork')}
         </div>
         <PrimaryButton onClick={() => profileQuery.refetch()} style={{ marginTop: 16 }}>
-          Thử lại
+          {t('common.retry')}
         </PrimaryButton>
       </CenteredCard>
     );
@@ -63,9 +65,9 @@ export function ProfileView({ username }: { username: string }) {
   if (!profile) {
     return (
       <CenteredCard>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>Không tìm thấy người dùng</div>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>{t('profile.notFound')}</div>
         <div style={{ fontSize: 13.5, color: 'var(--color-muted)', marginTop: 6 }}>
-          @{username} không tồn tại hoặc đã đổi tên.
+          {t('profile.notFoundBody', { username })}
         </div>
       </CenteredCard>
     );
@@ -91,6 +93,7 @@ function ProfileContent({
   isSelf: boolean;
   refetchProfile: () => Promise<unknown>;
 }) {
+  const t = useT();
   const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
@@ -159,9 +162,11 @@ function ProfileContent({
             borderRadius: 20,
           }}
         >
-          <div style={{ fontWeight: 700, fontSize: 15 }}>Đã chặn @{uname}</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>
+            {t('profile.blockedTitle', { username: uname })}
+          </div>
           <div style={{ flex: 1 }} />
-          <OutlineButton onClick={runUnblock}>Bỏ chặn</OutlineButton>
+          <OutlineButton onClick={runUnblock}>{t('profile.unblock')}</OutlineButton>
         </div>
       </div>
     );
@@ -169,7 +174,7 @@ function ProfileContent({
 
   async function runFollow() {
     if (status !== 'authenticated') {
-      openAuthPrompt('theo dõi người này');
+      openAuthPrompt('auth.actionFollow');
       return;
     }
     if (busy) return;
@@ -177,9 +182,9 @@ function ProfileContent({
     try {
       await followM({ variables: { userId: profile.id } });
       await refetchProfile();
-      toast({ message: `Đang theo dõi ${dispName}` });
+      toast({ message: t('profile.nowFollowing', { name: dispName }) });
     } catch {
-      toast({ message: 'Không theo dõi được, thử lại sau.' });
+      toast({ message: t('profile.followFailed') });
     } finally {
       setBusy(false);
     }
@@ -201,9 +206,12 @@ function ProfileContent({
     try {
       await unfollowM({ variables: { userId: profile.id } });
       await refetchProfile();
-      toast({ message: `Đã bỏ theo dõi ${dispName}`, action: { label: 'Hoàn tác', onClick: silentFollow } });
+      toast({
+        message: t('profile.unfollowed', { name: dispName }),
+        action: { label: t('profile.undo'), onClick: silentFollow },
+      });
     } catch {
-      toast({ message: 'Lỗi, thử lại sau.' });
+      toast({ message: t('profile.genericError') });
     } finally {
       setBusy(false);
     }
@@ -220,7 +228,7 @@ function ProfileContent({
    */
   async function runOpenConversation() {
     if (status !== 'authenticated') {
-      openAuthPrompt('nhắn tin');
+      openAuthPrompt('auth.actionMessage');
       return;
     }
     setBusy(true);
@@ -228,9 +236,9 @@ function ProfileContent({
       const res = await createConversationM({ variables: { userId: profile.id } });
       const id = res.data?.createConversation?.id;
       if (id) router.push(`/messages/${id}`);
-      else toast({ message: 'Không mở được cuộc trò chuyện. Thử lại nhé.' });
+      else toast({ message: t('profile.openChatFailed') });
     } catch (e) {
-      toast({ message: translateMessagingError(e instanceof Error ? e.message : '') });
+      toast({ message: t(messagingErrorKey(e instanceof Error ? e.message : '')) });
     } finally {
       setBusy(false);
     }
@@ -239,38 +247,38 @@ function ProfileContent({
   async function runBlock() {
     setMenuOpen(false);
     if (status !== 'authenticated') {
-      openAuthPrompt('chặn người này');
+      openAuthPrompt('auth.actionBlock');
       return;
     }
     const ok = await confirm({
-      title: `Chặn @${uname}?`,
-      body: 'Họ không thấy pin của bạn và bạn không thấy pin của họ.',
-      yesLabel: 'Chặn',
+      title: t('profile.blockTitle', { username: uname }),
+      body: t('profile.blockBody'),
+      yesLabel: t('profile.blockYes'),
       danger: true,
     });
     if (!ok) return;
     try {
       await blockM({ variables: { userId: profile.id } });
       await refetchProfile();
-      toast({ message: `Đã chặn @${uname}` });
+      toast({ message: t('profile.blocked', { username: uname }) });
     } catch {
-      toast({ message: 'Không chặn được, thử lại sau.' });
+      toast({ message: t('profile.blockFailed') });
     }
   }
 
   async function runUnblock() {
     const ok = await confirm({
-      title: `Bỏ chặn @${uname}?`,
-      body: 'Họ sẽ thấy lại pin của bạn và bạn thấy lại pin của họ.',
-      yesLabel: 'Bỏ chặn',
+      title: t('profile.unblockTitle', { username: uname }),
+      body: t('profile.unblockBody'),
+      yesLabel: t('profile.unblock'),
     });
     if (!ok) return;
     try {
       await unblockM({ variables: { userId: profile.id } });
       await refetchProfile();
-      toast({ message: `Đã bỏ chặn @${uname}` });
+      toast({ message: t('profile.unblocked', { username: uname }) });
     } catch {
-      toast({ message: 'Không bỏ chặn được, thử lại sau.' });
+      toast({ message: t('profile.unblockFailed') });
     }
   }
 
@@ -300,7 +308,7 @@ function ProfileContent({
               fontWeight: 600,
             }}
           >
-            Đang theo dõi bạn
+            {t('profile.followsYou')}
           </div>
         )}
 
@@ -326,12 +334,12 @@ function ProfileContent({
         <div style={{ display: 'flex', gap: 22, marginTop: 12, fontSize: 13.5 }}>
           <CountButton
             count={profile.followerCount ?? 0}
-            label="người theo dõi"
+            label={t('profile.followerLabel', { count: profile.followerCount ?? 0 })}
             onClick={() => router.push(`/@${uname}/followers`)}
           />
           <CountButton
             count={profile.followingCount ?? 0}
-            label="đang theo dõi"
+            label={t('profile.followingLabel')}
             onClick={() => router.push(`/@${uname}/following`)}
           />
         </div>
@@ -340,10 +348,10 @@ function ProfileContent({
         <div style={{ display: 'flex', gap: 9, marginTop: 16, alignItems: 'center', position: 'relative' }}>
           {isSelf ? (
             <>
-              <OutlineButton onClick={() => router.push('/settings')}>Sửa hồ sơ</OutlineButton>
+              <OutlineButton onClick={() => router.push('/settings')}>{t('profile.editProfile')}</OutlineButton>
               {/* C1a: nút này mở HỘP THƯ của mình (bản vẽ: c1Message → view messages),
                   không phải mở DM với chính mình — backend chặn việc đó (400). */}
-              <OutlineButton onClick={() => router.push('/messages')}>Tin nhắn</OutlineButton>
+              <OutlineButton onClick={() => router.push('/messages')}>{t('profile.messages')}</OutlineButton>
             </>
           ) : (
             <>
@@ -366,11 +374,11 @@ function ProfileContent({
                     minWidth: 118,
                   }}
                 >
-                  {hoverFollow ? 'Bỏ theo dõi' : 'Đang theo dõi'}
+                  {hoverFollow ? t('profile.unfollow') : t('profile.following')}
                 </button>
               ) : (
                 <PrimaryButton disabled={busy} onClick={runFollow}>
-                  Theo dõi
+                  {t('profile.follow')}
                 </PrimaryButton>
               )}
 
@@ -390,13 +398,13 @@ function ProfileContent({
                   opacity: mutual ? 1 : 0.7,
                 }}
               >
-                Tin nhắn
+                {t('profile.messages')}
               </button>
 
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
-                title="Thêm"
+                title={t('profile.more')}
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 style={{
@@ -449,7 +457,7 @@ function ProfileContent({
                         cursor: 'pointer',
                       }}
                     >
-                      Chặn @{uname}
+                      {t('profile.block', { username: uname })}
                     </button>
                   </div>
                 </>
@@ -461,7 +469,7 @@ function ProfileContent({
         {/* Dòng gợi ý khi Tin nhắn bị khoá (chưa mutual) — chép nguyên văn */}
         {!isSelf && !mutual && (
           <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 8 }}>
-            Tin nhắn chỉ mở khi hai người theo dõi nhau.
+            {t('profile.messagesMutualOnly')}
           </div>
         )}
 
@@ -470,15 +478,15 @@ function ProfileContent({
             người dùng — pin lưu bằng nút "Lưu" mặc định trước nay không có chỗ
             nào hiển thị. */}
         <div style={{ display: 'flex', gap: 4, margin: '24px 0 18px', background: 'var(--color-surface-muted)', borderRadius: 999, padding: 4 }}>
-          <TabButton label="Pin" active={tab === 'pin'} onClick={() => setTab('pin')} />
-          <TabButton label="Board" active={tab === 'board'} onClick={() => setTab('board')} />
-          <TabButton label="Đã lưu" active={tab === 'saved'} onClick={() => setTab('saved')} />
+          <TabButton label={t('profile.tabPins')} active={tab === 'pin'} onClick={() => setTab('pin')} />
+          <TabButton label={t('profile.tabBoards')} active={tab === 'board'} onClick={() => setTab('board')} />
+          <TabButton label={t('profile.tabSaved')} active={tab === 'saved'} onClick={() => setTab('saved')} />
         </div>
       </div>
 
       {tab === 'pin' ? (
         pinsTab.items.length === 0 && !pinsTab.loading ? (
-          <EmptyTab>Không có pin nào để hiển thị</EmptyTab>
+          <EmptyTab>{t('profile.emptyPins')}</EmptyTab>
         ) : (
           <PinGrid
             items={pinsTab.items}
@@ -497,7 +505,7 @@ function ProfileContent({
         />
       ) : savedPinItems.length === 0 && !savedTab.loading ? (
         <EmptyTab>
-          {isSelf ? 'Bạn chưa lưu pin nào' : 'Chưa lưu pin nào'}
+          {isSelf ? t('profile.emptySavedSelf') : t('profile.emptySavedOther')}
         </EmptyTab>
       ) : (
         <PinGrid
@@ -530,11 +538,12 @@ function BoardsGrid({
   loading: boolean;
   onOpen: (id: string) => void;
 }) {
+  const t = useT();
   if (loading && boards.length === 0) {
-    return <EmptyTab>Đang tải board…</EmptyTab>;
+    return <EmptyTab>{t('profile.loadingBoards')}</EmptyTab>;
   }
   if (boards.length === 0) {
-    return <EmptyTab>Chưa có board nào</EmptyTab>;
+    return <EmptyTab>{t('profile.emptyBoards')}</EmptyTab>;
   }
   return (
     <div
@@ -569,10 +578,17 @@ function BoardsGrid({
               <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {b.name}
               </div>
-              {b.isSecret && <span title="Riêng tư" aria-label="Riêng tư" style={{ fontSize: 12 }}>🔒</span>}
+              {b.isSecret && (
+                <span title={t('profile.secret')} aria-label={t('profile.secret')} style={{ fontSize: 12 }}>
+                  🔒
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginTop: 2 }}>
-              {formatCount(b.pinCount ?? 0)} pin
+              {t('profile.pinCount', {
+                count: b.pinCount ?? 0,
+                countText: formatCount(b.pinCount ?? 0),
+              })}
             </div>
           </button>
         );
@@ -600,6 +616,7 @@ function BoardsGrid({
  * Dùng lại `useAvatarUpload('coverUrl')` — cùng luồng upload với ảnh đại diện.
  */
 function CoverBand({ url, editable }: { url?: string | null; editable?: boolean }) {
+  const t = useT();
   const coverUpload = useAvatarUpload('coverUrl');
 
   const band = url ? (
@@ -630,8 +647,8 @@ function CoverBand({ url, editable }: { url?: string | null; editable?: boolean 
         type="button"
         onClick={coverUpload.pick}
         disabled={coverUpload.phase === 'working'}
-        title="Đổi ảnh bìa"
-        aria-label="Đổi ảnh bìa"
+        title={t('profile.changeCover')}
+        aria-label={t('profile.changeCover')}
         data-testid="change-cover"
         style={{
           position: 'absolute',
@@ -652,7 +669,7 @@ function CoverBand({ url, editable }: { url?: string | null; editable?: boolean 
         }}
       >
         <CameraIcon />
-        {coverUpload.phase === 'working' ? 'Đang tải…' : 'Đổi ảnh bìa'}
+        {coverUpload.phase === 'working' ? t('common.loading') : t('profile.changeCover')}
       </button>
     </div>
   );
@@ -667,6 +684,7 @@ function HeaderAvatar({
   url?: string | null;
   editable?: boolean;
 }) {
+  const t = useT();
   const initial = (name ?? '?').trim().charAt(0).toUpperCase() || '?';
   const border = '4px solid var(--color-background)';
   const avatarUpload = useAvatarUpload();
@@ -708,8 +726,8 @@ function HeaderAvatar({
         type="button"
         onClick={avatarUpload.pick}
         disabled={avatarUpload.phase === 'working'}
-        title="Đổi ảnh đại diện"
-        aria-label="Đổi ảnh đại diện"
+        title={t('profile.changeAvatar')}
+        aria-label={t('profile.changeAvatar')}
         style={{
           position: 'absolute',
           right: -2,

@@ -18,7 +18,9 @@ import {
   type TagsQueryVariables,
 } from '@/lib/gql/graphql';
 import { measureImage, uploadImage, UploadError, type UploadErrorKind } from '@/lib/upload';
-import { UPLOAD_ERROR_TEXT } from '@/lib/errors/upload-error-vi';
+import { UPLOAD_ERROR_KEY } from '@/lib/errors/upload-error';
+import { useLocale, useT } from '@/lib/i18n/provider';
+import type { Locale } from '@/lib/i18n/config';
 import { mapError } from '@/lib/errors/map-error';
 import { formatBytes } from '@/lib/format';
 import { useToast } from '@/components/ui/toast';
@@ -53,10 +55,11 @@ const CATS_MAX = 3;
  * FE-10 chuyển ra đó vì luồng đổi ảnh đại diện (C1a + C2) dùng CHUNG bảng này;
  * để cục bộ ở đây thì bản thứ hai sẽ trôi khỏi bản này.
  */
-/** Q1 — trần ngày (403 createPin), đã duyệt. */
-const DAILY_CAP_TEXT = 'Bạn đã đạt trần 20 pin hôm nay — quay lại vào ngày mai.';
-/** Q2 — savePin fail sau createPin, đã duyệt. */
-const SAVE_FAIL_TEXT = 'Đã tạo pin, nhưng chưa lưu được vào board — thử lại từ trang pin.';
+/*
+ * i18n (23/08/2026) — hai chuỗi đã duyệt (Q1 trần ngày, Q2 savePin hỏng sau
+ * createPin) nay nằm ở từ điển: `pin.dailyCap` và `pin.saveToBoardFailed`.
+ * Nội dung KHÔNG đổi, chỉ đổi chỗ chứa.
+ */
 
 function isValidHttpUrl(s: string): boolean {
   try {
@@ -71,13 +74,20 @@ function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
 }
 
-/** Hint "3:4 · 1.240 × 1.653 · 2,4MB" (§3.1). Tỉ lệ chỉ hiện nếu rút gọn đẹp. */
-function imageHint(w: number, h: number, bytes: number): string {
+/**
+ * Hint "3:4 · 1.240 × 1.653 · 2,4MB" (§3.1). Tỉ lệ chỉ hiện nếu rút gọn đẹp.
+ *
+ * i18n (23/08/2026): dấu ngăn nghìn và dấu thập phân của MB đổi theo ngôn ngữ —
+ * vi-VN cho "1.240 × 1.653 · 2,4MB", en-US cho "1,240 × 1,653 · 2.4MB". Để
+ * nguyên 'vi-VN' thì bản tiếng Anh hiện dấu chấm/phẩy ngược nghĩa với người đọc.
+ */
+function imageHint(w: number, h: number, bytes: number, locale: Locale): string {
   const g = gcd(w, h) || 1;
   const rw = w / g;
   const rh = h / g;
   const ratio = rw <= 40 && rh <= 40 ? `${rw}:${rh} · ` : '';
-  return `${ratio}${w.toLocaleString('vi-VN')} × ${h.toLocaleString('vi-VN')} · ${formatBytes(bytes)}`;
+  const bcp47 = locale === 'vi' ? 'vi-VN' : 'en-US';
+  return `${ratio}${w.toLocaleString(bcp47)} × ${h.toLocaleString(bcp47)} · ${formatBytes(bytes, locale)}`;
 }
 
 const labelStyle: React.CSSProperties = {
@@ -99,6 +109,8 @@ const inputStyle: React.CSSProperties = {
 };
 
 export function CreatePinView() {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const { data: session } = useSession();
   const toast = useToast();
@@ -192,10 +204,10 @@ export function CreatePinView() {
       e.stopPropagation();
       void (async () => {
         const ok = await confirm({
-          title: 'Rời trang khi chưa đăng?',
-          body: 'Ảnh đã chọn và nội dung bạn nhập sẽ mất.',
-          yesLabel: 'Rời trang',
-          cancelLabel: 'Ở lại',
+          title: t('pin.leaveTitle'),
+          body: t('pin.leaveBody'),
+          yesLabel: t('pin.leaveYes'),
+          cancelLabel: t('pin.leaveNo'),
           danger: true,
         });
         if (ok) router.push(href);
@@ -250,13 +262,13 @@ export function CreatePinView() {
   }
 
   function addTag(raw: string) {
-    const t = raw.trim();
-    if (!t || tags.length >= TAGS_MAX) return;
-    if (tags.some((x) => x.toLowerCase() === t.toLowerCase())) {
+    const tag = raw.trim();
+    if (!tag || tags.length >= TAGS_MAX) return;
+    if (tags.some((x) => x.toLowerCase() === tag.toLowerCase())) {
       setTagInput('');
       return;
     }
-    setTags([...tags, t]);
+    setTags([...tags, tag]);
     setTagInput('');
   }
 
@@ -295,7 +307,7 @@ export function CreatePinView() {
         try {
           await savePin({ variables: { input: { pinId: created.id, boardId: board.id } } });
         } catch {
-          toast({ message: SAVE_FAIL_TEXT });
+          toast({ message: t('pin.saveToBoardFailed') });
         }
       }
       // Điều hướng tới HỒ SƠ người tạo — KHÔNG dùng /pin/[id]: soft-nav tới đó bị
@@ -307,14 +319,16 @@ export function CreatePinView() {
       router.push(uname ? `/@${uname}` : '/');
     } catch (err) {
       const st = mapError(err);
-      setSubmitErr(st.kind === 'rate-limit' ? DAILY_CAP_TEXT : 'Không đăng được pin, thử lại sau.');
+      setSubmitErr(st.kind === 'rate-limit' ? t('pin.dailyCap') : t('pin.createFailed'));
       setSubmitting(false);
     }
   }
 
   const tagSuggestions = useMemo(() => {
-    const existing = new Set(tags.map((t) => t.toLowerCase()));
-    return (tagsSug.data?.tags ?? []).filter((t) => !existing.has(t.name.toLowerCase())).slice(0, 6);
+    const existing = new Set(tags.map((tag) => tag.toLowerCase()));
+    return (tagsSug.data?.tags ?? [])
+      .filter((sug) => !existing.has(sug.name.toLowerCase()))
+      .slice(0, 6);
   }, [tagsSug.data, tags]);
 
   return (
@@ -327,10 +341,10 @@ export function CreatePinView() {
           color: 'var(--color-foreground)',
         }}
       >
-        Tạo pin
+        {t('pin.createTitle')}
       </h1>
       <p style={{ fontSize: 13.5, color: 'var(--color-muted)', margin: '6px 0 24px' }}>
-        Trang riêng, không phải modal. Rời trang khi đã chọn ảnh sẽ hỏi xác nhận.
+        {t('pin.createSubtitle')}
       </p>
 
       <div
@@ -371,17 +385,17 @@ export function CreatePinView() {
             <>
               <img
                 src={previewUrl}
-                alt="Xem trước ảnh sắp đăng"
+                alt={t('pin.previewAlt')}
                 style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 12, objectFit: 'contain' }}
               />
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-foreground)' }}>Đã tải lên</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-foreground)' }}>{t('pin.uploaded')}</div>
               {dims && file && (
                 <div style={{ fontSize: 12.5, color: 'var(--color-muted)' }}>
-                  {imageHint(dims.width, dims.height, file.size)}
+                  {imageHint(dims.width, dims.height, file.size, locale)}
                 </div>
               )}
               <button type="button" onClick={() => fileInputRef.current?.click()} style={outlineBtn}>
-                Đổi ảnh khác
+                {t('pin.changeImage')}
               </button>
             </>
           ) : uploadPhase === 'working' ? (
@@ -395,7 +409,7 @@ export function CreatePinView() {
                   marginBottom: 8,
                 }}
               >
-                <span>Đang tải lên</span>
+                <span>{t('pin.uploading')}</span>
               </div>
               <div style={{ position: 'relative', height: 6, borderRadius: 3, background: 'var(--color-surface-muted)', overflow: 'hidden' }}>
                 <div
@@ -432,20 +446,20 @@ export function CreatePinView() {
                     color: 'var(--color-danger)',
                   }}
                 >
-                  {UPLOAD_ERROR_TEXT[uploadErr]}
+                  {t(UPLOAD_ERROR_KEY[uploadErr])}
                 </div>
               ) : (
                 <>
                   <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-foreground)' }}>
-                    Kéo thả ảnh vào đây
+                    {t('pin.dropImage')}
                   </div>
                   <div style={{ fontSize: 12.5, color: 'var(--color-muted)' }}>
-                    Hoặc chọn từ máy. Bước 1 của 2.
+                    {t('pin.dropImageHint')}
                   </div>
                 </>
               )}
               <button type="button" onClick={() => fileInputRef.current?.click()} style={primaryBtn}>
-                {uploadPhase === 'error' ? 'Chọn ảnh khác' : 'Chọn ảnh'}
+                {uploadPhase === 'error' ? t('pin.pickAnotherImage') : t('pin.pickImage')}
               </button>
             </>
           )}
@@ -455,7 +469,7 @@ export function CreatePinView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={labelStyle} htmlFor="pin-title">
-              Tiêu đề
+              {t('pin.fieldTitle')}
             </label>
             <input
               id="pin-title"
@@ -463,7 +477,7 @@ export function CreatePinView() {
               value={title}
               maxLength={TITLE_MAX}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Thêm tiêu đề"
+              placeholder={t('pin.fieldTitlePlaceholder')}
               style={inputStyle}
             />
             <Counter n={title.length} max={TITLE_MAX} />
@@ -471,14 +485,14 @@ export function CreatePinView() {
 
           <div>
             <label style={labelStyle} htmlFor="pin-desc">
-              Mô tả
+              {t('pin.fieldDescription')}
             </label>
             <textarea
               id="pin-desc"
               value={description}
               maxLength={DESC_MAX}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Nói thêm về pin này"
+              placeholder={t('pin.fieldDescriptionPlaceholder')}
               rows={4}
               style={{ ...inputStyle, resize: 'vertical' }}
             />
@@ -487,7 +501,7 @@ export function CreatePinView() {
 
           <div>
             <label style={labelStyle} htmlFor="pin-source">
-              Link nguồn
+              {t('pin.fieldSourceUrl')}
             </label>
             <input
               id="pin-source"
@@ -499,7 +513,7 @@ export function CreatePinView() {
             />
             {!sourceUrlValid && (
               <div style={{ fontSize: 12, color: 'var(--color-danger)', marginTop: 6 }}>
-                Link nguồn phải là URL hợp lệ.
+                {t('pin.errSourceUrl')}
               </div>
             )}
           </div>
@@ -507,17 +521,17 @@ export function CreatePinView() {
           {/* Thẻ — autocomplete tags(query), tối đa 10 (§4.4, KHÔNG chép 6 nhãn cứng) */}
           <div>
             <label style={labelStyle} htmlFor="pin-tags">
-              Thẻ
+              {t('pin.fieldTags')}
             </label>
             {tags.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                {tags.map((t) => (
-                  <span key={t} style={chipStyle}>
-                    #{t}
+                {tags.map((tag) => (
+                  <span key={tag} style={chipStyle}>
+                    #{tag}
                     <button
                       type="button"
-                      aria-label={`Bỏ thẻ ${t}`}
-                      onClick={() => setTags(tags.filter((x) => x !== t))}
+                      aria-label={t('pin.removeTag', { tag })}
+                      onClick={() => setTags(tags.filter((x) => x !== tag))}
                       style={chipRemoveBtn}
                     >
                       ×
@@ -538,26 +552,28 @@ export function CreatePinView() {
                   addTag(tagInput);
                 }
               }}
-              placeholder={tags.length >= TAGS_MAX ? 'Đã đủ thẻ' : 'Nhập thẻ rồi Enter'}
+              placeholder={
+                tags.length >= TAGS_MAX ? t('pin.tagsFull') : t('pin.tagInputPlaceholder')
+              }
               style={inputStyle}
             />
             {tagSuggestions.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                {tagSuggestions.map((t) => (
-                  <button key={t.id} type="button" onClick={() => addTag(t.name)} style={suggestChip}>
-                    #{t.name}
+                {tagSuggestions.map((sug) => (
+                  <button key={sug.id} type="button" onClick={() => addTag(sug.name)} style={suggestChip}>
+                    #{sug.name}
                   </button>
                 ))}
               </div>
             )}
             <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>
-              Còn {TAGS_MAX - tags.length} thẻ
+              {t('pin.tagsLeft', { count: TAGS_MAX - tags.length, n: TAGS_MAX - tags.length })}
             </div>
           </div>
 
           {/* Danh mục — chip toggle, tối đa 3 (§4.5) */}
           <div>
-            <label style={labelStyle}>Danh mục</label>
+            <label style={labelStyle}>{t('pin.fieldCategories')}</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {(catsQuery.data?.categories ?? []).map((c) => {
                 const active = categoryIds.includes(c.id);
@@ -584,13 +600,16 @@ export function CreatePinView() {
               })}
             </div>
             <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>
-              Còn {CATS_MAX - categoryIds.length} danh mục
+              {t('pin.categoriesLeft', {
+                count: CATS_MAX - categoryIds.length,
+                n: CATS_MAX - categoryIds.length,
+              })}
             </div>
           </div>
 
           {/* Board — Q2 H1: mặc định không chọn; mở picker chế độ 'select' */}
           <div>
-            <label style={labelStyle}>Board</label>
+            <label style={labelStyle}>{t('pin.fieldBoard')}</label>
             <button
               type="button"
               onClick={() =>
@@ -602,7 +621,7 @@ export function CreatePinView() {
               }
               style={{ ...inputStyle, textAlign: 'left', cursor: 'pointer', color: board ? 'var(--color-foreground)' : 'var(--color-muted)' }}
             >
-              {board ? board.name : 'Chọn board (tuỳ chọn)'} ▾
+              {board ? board.name : t('pin.pickBoardOptional')} ▾
             </button>
           </div>
 
@@ -614,7 +633,7 @@ export function CreatePinView() {
               lineHeight: 1.5,
             }}
           >
-            Tối đa 10MB · tối thiểu 1KB · chỉ nhận JPG, PNG, WEBP, GIF · tối đa 20 pin/ngày.
+            {t('pin.uploadLimits')}
           </div>
 
           {submitErr && (
@@ -646,10 +665,10 @@ export function CreatePinView() {
                 color: submitting ? 'var(--color-muted)' : 'var(--color-primary-foreground)',
               }}
             >
-              {submitting ? 'Đang đăng…' : 'Đăng'}
+              {submitting ? t('pin.publishing') : t('pin.publish')}
             </button>
             <button type="button" onClick={() => void leaveTo('/')} style={outlineBtn}>
-              Huỷ
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -661,10 +680,10 @@ export function CreatePinView() {
   async function leaveTo(href: string) {
     if (dirtyRef.current) {
       const ok = await confirm({
-        title: 'Rời trang khi chưa đăng?',
-        body: 'Ảnh đã chọn và nội dung bạn nhập sẽ mất.',
-        yesLabel: 'Rời trang',
-        cancelLabel: 'Ở lại',
+        title: t('pin.leaveTitle'),
+        body: t('pin.leaveBody'),
+        yesLabel: t('pin.leaveYes'),
+        cancelLabel: t('pin.leaveNo'),
         danger: true,
       });
       if (!ok) return;

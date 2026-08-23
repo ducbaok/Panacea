@@ -18,6 +18,8 @@ import {
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/lib/i18n/provider';
+import type { TFunction, TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * FE-4 §4.5 — Cây bình luận 2 tầng. FE-11 nối GHI cho tầng 1; **DEBT-1b nối nốt
@@ -132,6 +134,7 @@ function messageOf(e: unknown): string {
 }
 
 export function PinComments({ pinId, variant }: Props) {
+  const t = useT();
   const isModal = variant === 'modal';
   const { items, loading, loadingMore, hasNextPage, loadMore, refetch } = usePinComments({
     pinId,
@@ -174,7 +177,7 @@ export function PinComments({ pinId, variant }: Props) {
    */
   const onSend = async () => {
     if (sessionStatus !== 'authenticated') {
-      openAuthPrompt('bình luận');
+      openAuthPrompt('auth.actionComment');
       return;
     }
     if (!canSend) return;
@@ -184,7 +187,7 @@ export function PinComments({ pinId, variant }: Props) {
       await refetch();
       setText('');
     } catch {
-      toast({ message: 'Không gửi được bình luận, thử lại sau.' });
+      toast({ message: t('pin.commentFailed') });
     } finally {
       setSending(false);
     }
@@ -204,7 +207,7 @@ export function PinComments({ pinId, variant }: Props) {
   const sendReply = useCallback(
     async (parentId: string, content: string): Promise<boolean> => {
       if (sessionStatus !== 'authenticated') {
-        openAuthPrompt('trả lời bình luận');
+        openAuthPrompt('auth.actionReply');
         return false;
       }
       try {
@@ -221,8 +224,8 @@ export function PinComments({ pinId, variant }: Props) {
       } catch (e) {
         toast({
           message: REPLY_TO_REPLY.test(messageOf(e))
-            ? 'Không trả lời được vào một trả lời.'
-            : 'Không gửi được bình luận, thử lại sau.',
+            ? t('pin.replyToReplyFailed')
+            : t('pin.commentFailed'),
         });
         return false;
       }
@@ -240,14 +243,14 @@ export function PinComments({ pinId, variant }: Props) {
   const saveEdit = useCallback(
     async (id: string, content: string): Promise<boolean> => {
       if (sessionStatus !== 'authenticated') {
-        openAuthPrompt('bình luận');
+        openAuthPrompt('auth.actionComment');
         return false;
       }
       try {
         await updateComment({ variables: { input: { id, content } } });
         return true;
       } catch {
-        toast({ message: 'Không sửa được bình luận, thử lại sau.' });
+        toast({ message: t('pin.commentEditFailed') });
         return false;
       }
     },
@@ -265,13 +268,13 @@ export function PinComments({ pinId, variant }: Props) {
   const removeComment = useCallback(
     async (id: string): Promise<void> => {
       if (sessionStatus !== 'authenticated') {
-        openAuthPrompt('bình luận');
+        openAuthPrompt('auth.actionComment');
         return;
       }
       const ok = await confirm({
-        title: 'Xoá bình luận này?',
-        body: 'Bình luận và các trả lời trên đó sẽ không còn hiển thị.',
-        yesLabel: 'Xoá bình luận',
+        title: t('pin.commentDeleteTitle'),
+        body: t('pin.commentDeleteBody'),
+        yesLabel: t('pin.commentDeleteYes'),
         danger: true,
       });
       if (!ok) return;
@@ -303,7 +306,7 @@ export function PinComments({ pinId, variant }: Props) {
         // nên dòng rụng khỏi cả danh sách gốc lẫn cây trả lời mà không tốn
         // request nào.
       } catch {
-        toast({ message: 'Không xoá được bình luận, thử lại sau.' });
+        toast({ message: t('pin.commentDeleteFailed') });
       }
     },
     [confirm, deleteComment, openAuthPrompt, refetch, sessionStatus, toast],
@@ -318,7 +321,7 @@ export function PinComments({ pinId, variant }: Props) {
   const toggleReaction = useCallback(
     async (commentId: string): Promise<void> => {
       if (sessionStatus !== 'authenticated') {
-        openAuthPrompt('bày tỏ cảm xúc');
+        openAuthPrompt('auth.actionReact');
         return;
       }
       try {
@@ -326,7 +329,7 @@ export function PinComments({ pinId, variant }: Props) {
           variables: { input: { commentId, type: ReactionType.Heart } },
         });
       } catch {
-        toast({ message: 'Không gửi được cảm xúc, thử lại sau.' });
+        toast({ message: t('pin.reactFailed') });
       }
     },
     [openAuthPrompt, sessionStatus, toast, toggleCommentReaction],
@@ -361,8 +364,8 @@ export function PinComments({ pinId, variant }: Props) {
                 void onSend();
               }
             }}
-            placeholder="Bình luận công khai"
-            aria-label="Bình luận công khai"
+            placeholder={t('pin.commentPlaceholder')}
+            aria-label={t('pin.commentPlaceholder')}
             aria-invalid={tooLong || undefined}
             disabled={sending}
             style={{
@@ -392,23 +395,23 @@ export function PinComments({ pinId, variant }: Props) {
               opacity: canSend ? 1 : 0.6,
             }}
           >
-            {sending ? 'Đang gửi…' : 'Gửi'}
+            {sending ? t('pin.sending') : t('pin.send')}
           </button>
         </div>
         {tooLong && (
           <div role="alert" style={{ fontSize: 11.5, color: 'var(--color-danger)', marginTop: 4 }}>
-            Bình luận tối đa {MAX_COMMENT_LENGTH} ký tự.
+            {t('pin.commentTooLong', { max: MAX_COMMENT_LENGTH })}
           </div>
         )}
         <div style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 4 }}>
-          Bình luận chỉ 2 tầng — không trả lời vào một trả lời.
+          {t('pin.commentTwoLevels')}
         </div>
       </>
     );
 
   if (loading && items.length === 0) {
     return (
-      <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>Đang tải bình luận…</div>
+      <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>{t('pin.loadingComments')}</div>
     );
   }
 
@@ -421,7 +424,7 @@ export function PinComments({ pinId, variant }: Props) {
   if (items.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>Chưa có bình luận nào.</div>
+        <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>{t('pin.noComments')}</div>
         {composer}
       </div>
     );
@@ -448,7 +451,7 @@ export function PinComments({ pinId, variant }: Props) {
             alignSelf: 'flex-start',
           }}
         >
-          {loadingMore ? 'Đang tải…' : 'Xem thêm bình luận'}
+          {loadingMore ? t('common.loading') : t('pin.loadMoreComments')}
         </button>
       )}
       {composer}
@@ -464,7 +467,8 @@ type RowActions = {
   meId: string | null;
   openEditor: OpenEditor;
   setOpenEditor: (v: OpenEditor) => void;
-  promptLogin: (reason: string) => void;
+  /** i18n: nhận KEY từ điển (auth.action*), không nhận chữ. */
+  promptLogin: (actionKey: TranslationKey) => void;
   sendReply: (parentId: string, content: string) => Promise<boolean>;
   saveEdit: (id: string, content: string) => Promise<boolean>;
   removeComment: (id: string) => Promise<void>;
@@ -539,13 +543,14 @@ function ReactionButton({
   fontSize: number;
   onToggle: () => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   return (
     <button
       type="button"
       aria-pressed={reacted}
-      aria-label={reacted ? 'Bỏ cảm xúc' : 'Thả cảm xúc'}
-      title={reacted ? 'Bỏ cảm xúc' : 'Thả cảm xúc'}
+      aria-label={reacted ? t('pin.removeReaction') : t('pin.addReaction')}
+      title={reacted ? t('pin.removeReaction') : t('pin.addReaction')}
       disabled={busy}
       onClick={async () => {
         if (busy) return;
@@ -599,6 +604,7 @@ function InlineEditor({
   onCancel: () => void;
   onSubmit: (content: string) => Promise<boolean>;
 }) {
+  const t = useT();
   const [value, setValue] = useState(initial);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -673,7 +679,7 @@ function InlineEditor({
             opacity: canSubmit ? 1 : 0.6,
           }}
         >
-          {busy ? 'Đang gửi…' : submitLabel}
+          {busy ? t('pin.sending') : submitLabel}
         </button>
         <button
           type="button"
@@ -690,12 +696,12 @@ function InlineEditor({
             cursor: busy ? 'default' : 'pointer',
           }}
         >
-          Huỷ
+          {t('common.cancel')}
         </button>
       </div>
       {tooLong && (
         <div role="alert" style={{ fontSize: 11.5, color: 'var(--color-danger)', marginTop: 4 }}>
-          Bình luận tối đa {MAX_COMMENT_LENGTH} ký tự.
+          {t('pin.commentTooLong', { max: MAX_COMMENT_LENGTH })}
         </div>
       )}
     </div>
@@ -712,6 +718,7 @@ function OwnerMenu({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -747,7 +754,7 @@ function OwnerMenu({
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
       <button
         type="button"
-        aria-label="Tuỳ chọn bình luận"
+        aria-label={t('pin.commentOptions')}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         style={{
@@ -790,7 +797,7 @@ function OwnerMenu({
             }}
             style={{ ...item, color: 'var(--color-foreground)' }}
           >
-            Sửa
+            {t('common.edit')}
           </button>
           <button
             type="button"
@@ -801,7 +808,7 @@ function OwnerMenu({
             }}
             style={{ ...item, color: 'var(--color-danger)' }}
           >
-            Xoá
+            {t('common.delete')}
           </button>
         </div>
       )}
@@ -818,10 +825,11 @@ function CommentRow({
   variant: Variant;
   actions: RowActions;
 }) {
+  const t = useT();
   const isModal = variant === 'modal';
   const [showReplies, setShowReplies] = useState(false);
   const user = comment.user ?? null;
-  const authorName = user?.name || user?.username || 'Người dùng';
+  const authorName = user?.name || user?.username || t('pin.someUser');
   const replyCount = comment.replyCount ?? 0;
   const avatarSize = isModal ? 28 : 30;
   const textSize = isModal ? 13 : 13.5;
@@ -880,7 +888,7 @@ function CommentRow({
             }}
           >
             <div style={{ fontSize: metaSize, color: 'var(--color-muted)' }}>
-              {formatRelative(comment.createdAt)}
+              {formatRelative(comment.createdAt, t)}
             </div>
             <ReactionButton
               count={comment.reactionCount ?? 0}
@@ -899,7 +907,7 @@ function CommentRow({
               type="button"
               onClick={() => {
                 if (actions.meId == null) {
-                  actions.promptLogin('trả lời bình luận');
+                  actions.promptLogin('auth.actionReply');
                   return;
                 }
                 actions.setOpenEditor(replying ? null : { id: comment.id, mode: 'reply' });
@@ -915,7 +923,7 @@ function CommentRow({
                 color: replying ? 'var(--color-primary-strong)' : 'var(--color-muted)',
               }}
             >
-              Trả lời
+              {t('pin.reply')}
             </button>
             {/*
               Menu chỉ tồn tại cho chủ bình luận. Không phải "hiện rồi để server
@@ -943,15 +951,17 @@ function CommentRow({
                   color: 'var(--color-primary-strong)',
                 }}
               >
-                {showReplies ? 'Ẩn trả lời' : `Xem ${replyCount} trả lời`}
+                {showReplies
+                  ? t('pin.hideReplies')
+                  : t('pin.showReplies', { count: replyCount })}
               </button>
             )}
           </div>
           {editing && (
             <InlineEditor
               initial={comment.content}
-              placeholder="Sửa bình luận"
-              submitLabel="Lưu"
+              placeholder={t('pin.editComment')}
+              submitLabel={t('common.save')}
               fontSize={textSize}
               onCancel={() => actions.setOpenEditor(null)}
               onSubmit={(content) => actions.saveEdit(comment.id, content)}
@@ -965,8 +975,8 @@ function CommentRow({
               // nguyên "@tên" cũ.
               key={actions.openEditor?.prefill ?? ''}
               initial={actions.openEditor?.prefill ?? ''}
-              placeholder={`Trả lời ${authorName}`}
-              submitLabel="Gửi"
+              placeholder={t('pin.replyTo', { name: authorName })}
+              submitLabel={t('pin.send')}
               fontSize={textSize}
               onCancel={() => actions.setOpenEditor(null)}
               onSubmit={async (content) => {
@@ -1003,6 +1013,7 @@ function CommentRepliesList({
   actions: RowActions;
   onRefetchReady: (fn: () => Promise<unknown>) => void;
 }) {
+  const t = useT();
   const isModal = variant === 'modal';
   const { items, loading, loadingMore, hasNextPage, loadMore, refetch } = useCommentReplies({
     commentId,
@@ -1025,7 +1036,7 @@ function CommentRepliesList({
           color: 'var(--color-muted)',
         }}
       >
-        Đang tải trả lời…
+        {t('pin.loadingReplies')}
       </div>
     );
   }
@@ -1044,7 +1055,7 @@ function CommentRepliesList({
     >
       {items.map((r: ReplyItem) => {
         const ru = r.user ?? null;
-        const author = ru?.name || ru?.username || 'Người dùng';
+        const author = ru?.name || ru?.username || t('pin.someUser');
         const mine = actions.meId != null && ru?.id === actions.meId;
         const editingThis =
           actions.openEditor?.id === r.id && actions.openEditor.mode === 'edit';
@@ -1077,7 +1088,7 @@ function CommentRepliesList({
                 }}
               >
                 <div style={{ fontSize: metaSize, color: 'var(--color-muted)' }}>
-                  {formatRelative(r.createdAt)}
+                  {formatRelative(r.createdAt, t)}
                 </div>
                 <ReactionButton
                   count={r.reactionCount ?? 0}
@@ -1100,7 +1111,7 @@ function CommentRepliesList({
                   onClick={() => {
                     // Cùng khuôn guard với nút "Trả lời" ở tầng 1 ngay trên.
                     if (actions.meId == null) {
-                      actions.promptLogin('trả lời bình luận');
+                      actions.promptLogin('auth.actionReply');
                       return;
                     }
                     actions.setOpenEditor({
@@ -1119,7 +1130,7 @@ function CommentRepliesList({
                     color: 'var(--color-muted)',
                   }}
                 >
-                  Trả lời
+                  {t('pin.reply')}
                 </button>
                 {mine && (
                   <OwnerMenu
@@ -1132,8 +1143,8 @@ function CommentRepliesList({
               {editingThis && (
                 <InlineEditor
                   initial={r.content}
-                  placeholder="Sửa bình luận"
-                  submitLabel="Lưu"
+                  placeholder={t('pin.editComment')}
+                  submitLabel={t('common.save')}
                   fontSize={textSize}
                   onCancel={() => actions.setOpenEditor(null)}
                   onSubmit={(content) => actions.saveEdit(r.id, content)}
@@ -1160,27 +1171,34 @@ function CommentRepliesList({
             alignSelf: 'flex-start',
           }}
         >
-          {loadingMore ? 'Đang tải…' : 'Xem thêm trả lời'}
+          {loadingMore ? t('common.loading') : t('pin.loadMoreReplies')}
         </button>
       )}
     </div>
   );
 }
 
-function formatRelative(iso: string): string {
+/**
+ * i18n (23/08/2026) — nhận `t` làm tham số thay vì tự chứa chữ Việt.
+ * Không đổi thành hook: hàm này được gọi trong thân JSX của nhiều component
+ * khác nhau, truyền `t` xuống rẻ hơn và không đụng luật hook.
+ * Ngưỡng (60s · 60m · 24h · 30d · 12mo) giữ NGUYÊN. Bản tiếng Anh cố ý dùng
+ * dạng NGẮN (5m · 3h · 2d) vì chuỗi này nằm sát tên người trên một dòng chật.
+ */
+function formatRelative(iso: string, t: TFunction): string {
   const then = Date.parse(iso);
   if (!Number.isFinite(then)) return '';
   const now = Date.now();
   const diff = Math.max(0, now - then);
   const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s`;
+  if (s < 60) return t('pin.timeSeconds', { n: s });
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} phút`;
+  if (m < 60) return t('pin.timeMinutes', { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} giờ`;
+  if (h < 24) return t('pin.timeHours', { n: h });
   const d = Math.floor(h / 24);
-  if (d < 30) return `${d} ngày`;
+  if (d < 30) return t('pin.timeDays', { n: d });
   const mo = Math.floor(d / 30);
-  if (mo < 12) return `${mo} tháng`;
-  return `${Math.floor(mo / 12)} năm`;
+  if (mo < 12) return t('pin.timeMonths', { n: mo });
+  return t('pin.timeYears', { n: Math.floor(mo / 12) });
 }

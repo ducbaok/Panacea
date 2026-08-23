@@ -15,7 +15,8 @@ import { useFollowers, useFollowing } from '@/lib/hooks/usePaginatedQuery';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
-import { translateBoardError } from '@/lib/errors/board-error-vi';
+import { boardErrorKey } from '@/lib/errors/board-error';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * C3 — Follower / Following (FE-10, view=follows).
@@ -46,6 +47,7 @@ import { translateBoardError } from '@/lib/errors/board-error-vi';
 export type FollowsTab = 'followers' | 'following';
 
 export function FollowsView({ username, tab }: { username: string; tab: FollowsTab }) {
+  const t = useT();
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const { openAuthPrompt } = useAuthPrompt();
@@ -113,7 +115,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
 
   async function onToggleFollow(row: (typeof rows)[number]) {
     if (sessionStatus !== 'authenticated') {
-      openAuthPrompt('theo dõi người này');
+      openAuthPrompt('auth.actionFollow');
       return;
     }
     if (busyIds.has(row.id)) return;
@@ -135,7 +137,8 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
     } catch (err) {
       writeFollowed(row.id, currently);
       const raw = err instanceof Error ? err.message : '';
-      toast({ message: translateBoardError(raw) ?? 'Không đổi được trạng thái theo dõi, thử lại sau.' });
+      const key = boardErrorKey(raw);
+      toast({ message: t(key ?? 'profile.followToggleFailed') });
     } finally {
       setBusyIds((s) => {
         const n = new Set(s);
@@ -148,7 +151,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
   // ── Trạng thái màn (4 trạng thái bản vẽ: list · loading · empty · neterr) ──
   const heading = user?.name || user?.username || `@${username}`;
   const userMissing = !userQuery.loading && !userQuery.error && !user;
-  const emptyText = tab === 'followers' ? 'Chưa có ai theo dõi' : 'Chưa theo dõi ai';
+  const emptyText = tab === 'followers' ? t('profile.emptyFollowers') : t('profile.emptyFollowing');
   const netErr = !!userQuery.error || !!list.error;
   const firstLoading = (userQuery.loading && !user) || (list.loading && rows.length === 0);
   const stateName = userMissing
@@ -173,10 +176,10 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
       <div style={{ padding: '24px 16px 40px' }} data-screen="C3" data-state={`${tab}-notfound`}>
         <StateCard>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--color-foreground)' }}>
-            Không tìm thấy người dùng
+            {t('profile.notFound')}
           </div>
           <div style={{ fontSize: 13.5, color: 'var(--color-muted)', marginTop: 6 }}>
-            @{username} không tồn tại hoặc đã đổi tên.
+            {t('profile.notFoundBody', { username })}
           </div>
         </StateCard>
       </div>
@@ -190,7 +193,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
         onClick={() => router.push(`/@${username}`)}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13.5, color: 'var(--color-muted)', fontWeight: 600, padding: 0, marginBottom: 14 }}
       >
-        ← Quay lại hồ sơ
+        ← {t('profile.backToProfile')}
       </button>
 
       <h1 style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 24, margin: '0 0 14px', color: 'var(--color-foreground)' }}>
@@ -200,7 +203,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
       {/* Tab = điều hướng route, không phải state cục bộ. */}
       <div
         role="tablist"
-        aria-label="Follower và Following"
+        aria-label={t('profile.followTabsAria')}
         style={{
           display: 'flex',
           gap: 4,
@@ -214,22 +217,27 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
         <TabButton
           active={tab === 'followers'}
           onClick={() => router.push(`/@${username}/followers`)}
-          label={`${formatCount(user?.followerCount)} người theo dõi`}
+          label={t('profile.followerCount', {
+            count: user?.followerCount ?? 0,
+            countText: formatCount(user?.followerCount),
+          })}
         />
         <TabButton
           active={tab === 'following'}
           onClick={() => router.push(`/@${username}/following`)}
-          label={`${formatCount(user?.followingCount)} đang theo dõi`}
+          label={t('profile.followingCount', {
+            countText: formatCount(user?.followingCount),
+          })}
         />
       </div>
 
       {netErr ? (
         <StateCard>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--color-foreground)' }}>
-            Không tải được danh sách
+            {t('profile.listLoadFailed')}
           </div>
           <div style={{ fontSize: 13.5, color: 'var(--color-muted)', marginTop: 6 }}>
-            Kiểm tra mạng rồi thử lại.
+            {t('common.checkNetwork')}
           </div>
           <button
             type="button"
@@ -249,12 +257,12 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
               cursor: 'pointer',
             }}
           >
-            Thử lại
+            {t('common.retry')}
           </button>
         </StateCard>
       ) : firstLoading ? (
         <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
-          Đang tải…
+          {t('common.loading')}
         </div>
       ) : rows.length === 0 ? (
         <StateCard>
@@ -318,7 +326,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
                       flex: 'none',
                     }}
                   >
-                    {isFollowed ? 'Đang theo dõi' : 'Theo dõi'}
+                    {isFollowed ? t('profile.following') : t('profile.follow')}
                   </button>
                 </div>
               );
@@ -346,7 +354,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
                   cursor: 'pointer',
                 }}
               >
-                Xem thêm
+                {t('common.loadMore')}
               </button>
             </div>
           )}
@@ -377,7 +385,7 @@ export function FollowsView({ username, tab }: { username: string; tab: FollowsT
                   animation: 'pin-grid-spin 900ms linear infinite',
                 }}
               />
-              Đang tải…
+              {t('common.loading')}
             </div>
           )}
         </>

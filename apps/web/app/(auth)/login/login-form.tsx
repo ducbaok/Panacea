@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { authStyles, AuthHeader } from '@/components/auth/auth-ui';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * A2 — form đăng nhập. Bốn trạng thái lỗi (§3.2), chữ chép ĐÚNG mockup:
@@ -28,6 +29,7 @@ type LoginError =
   | { kind: 'network' };
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
+  const t = useT();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -84,13 +86,13 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
 
   const errorText =
     error?.kind === 'invalid'
-      ? 'Email hoặc mật khẩu không đúng.'
+      ? t('auth.errInvalidCredentials')
       : error?.kind === 'just-locked'
-        ? 'Sai 5 lần — tài khoản vừa bị tạm khoá 15 phút.'
+        ? t('auth.errJustLocked')
         : error?.kind === 'locked'
-          ? `Đang bị khoá. Thử lại sau ${lockSec} giây.`
+          ? t('auth.errLocked', { sec: lockSec })
           : error?.kind === 'network'
-            ? 'Không kết nối được máy chủ. Thử lại sau.'
+            ? t('auth.errNetwork')
             : null;
 
   const registerHref =
@@ -100,25 +102,25 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
 
   return (
     <div style={authStyles.column}>
-      <AuthHeader subtitle="Đăng nhập để tiếp tục" />
+      <AuthHeader subtitle={t('auth.loginSubtitle')} />
       <form style={authStyles.card} onSubmit={onSubmit} noValidate>
         <label style={authStyles.label}>
-          Email
+          {t('auth.email')}
           <input
             type="email"
             autoComplete="email"
-            placeholder="ban@vidu.com"
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={authStyles.input}
           />
         </label>
         <label style={authStyles.label}>
-          Mật khẩu
+          {t('auth.password')}
           <input
             type="password"
             autoComplete="current-password"
-            placeholder="Nhập mật khẩu"
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={authStyles.input}
@@ -126,22 +128,22 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
         </label>
         {errorText && <div style={authStyles.errorBox}>{errorText}</div>}
         <button type="submit" style={busy ? authStyles.submitBusy : authStyles.submit} disabled={busy}>
-          {busy ? 'Đang đăng nhập…' : 'Đăng nhập'}
+          {busy ? t('auth.loggingIn') : t('auth.login')}
         </button>
         {/* OAuth Google: CHƯA VẼ (FE-5 Q2 giữ Google, bố cục nút chờ bản vẽ).
             Khi có bản vẽ: đường kẻ "hoặc" + nút viền gọi signIn('google', {callbackUrl}). */}
         <div style={authStyles.footRow}>
           <Link href="/forgot-password" style={authStyles.linkMuted}>
-            Quên mật khẩu?
+            {t('auth.forgotPassword')}
           </Link>
           <Link href={registerHref} style={authStyles.linkStrong}>
-            Tạo tài khoản
+            {t('auth.createAccount')}
           </Link>
         </div>
       </form>
       <div style={authStyles.backRow}>
         <Link href="/" style={authStyles.linkMuted}>
-          ← Quay lại lưới pin
+          ← {t('auth.backToGrid')}
         </Link>
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import { PinCard, TEXT_BLOCK_HEIGHT, cardHeight, type PinCardItem } from './pin-card';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * FE-3 — Masonry theo khuôn `fullWidthLayout` của Gestalt (Pinterest).
@@ -153,6 +154,7 @@ export function PinGrid({
   onOpen,
   renderOverlay,
 }: Props) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
@@ -271,7 +273,7 @@ export function PinGrid({
       {loadingMore && (
         <div
           role="status"
-          aria-label="Đang tải thêm"
+          aria-label={t('pin.loadingMore')}
           style={{
             display: 'flex',
             justifyContent: 'center',

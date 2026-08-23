@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getT } from '@/lib/i18n/server';
 
 /**
  * FE-4 T2.5 — Trang 404 dành riêng cho /pin/[id]. Được kích hoạt khi
@@ -9,7 +10,8 @@ import Link from 'next/link';
  * palette đầy đủ; hiện đủ token để nhận diện được.
  */
 
-export default function PinNotFound() {
+export default async function PinNotFound() {
+  const t = await getT();
   return (
     <div
       style={{
@@ -51,7 +53,7 @@ export default function PinNotFound() {
             color: 'var(--color-foreground)',
           }}
         >
-          Không tìm thấy pin
+          {t('pin.notFoundTitle')}
         </div>
         <p
           style={{
@@ -61,7 +63,7 @@ export default function PinNotFound() {
             margin: '0 0 20px',
           }}
         >
-          Pin có thể đã bị xoá, hoặc bạn không có quyền xem.
+          {t('pin.notFoundBody')}
         </p>
         <Link
           href="/"
@@ -76,7 +78,7 @@ export default function PinNotFound() {
             fontSize: 13.5,
           }}
         >
-          Về trang chủ
+          {t('common.goHome')}
         </Link>
       </div>
     </div>

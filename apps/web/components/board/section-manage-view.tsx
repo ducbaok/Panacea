@@ -18,7 +18,9 @@ import {
 } from '@/lib/gql/graphql';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
-import { translateBoardError } from '@/lib/errors/board-error-vi';
+import { boardErrorKey } from '@/lib/errors/board-error';
+import { useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * C6 — Quản lý section (FE-10, view=sections). Route `/board/[id]/sections`.
@@ -39,7 +41,7 @@ import { translateBoardError } from '@/lib/errors/board-error-vi';
  * 3. **Banner `denied` dùng chuỗi RUNTIME, không phải chuỗi bản vẽ** (§4.4).
  *    Bản vẽ ghi "You do not have permission to edit this board" — nhưng thao tác
  *    section đi qua `checkBoardEditorAccess`, ném "You do not have editor access
- *    to this board". Cả hai khoá đều có trong board-error-vi.ts, cùng trỏ một
+ *    to this board". Cả hai khoá đều có trong board-error.ts, cùng trỏ một
  *    chữ Việt; ở đây chặn TRƯỚC bằng vai trò đọc từ board nên người không có
  *    quyền không bấm được gì.
  *
@@ -55,6 +57,7 @@ const MAX_SECTIONS = 50;
 type C6State = 'idle' | 'saving' | 'done' | 'toolong' | 'cap' | 'denied' | 'neterr';
 
 export function SectionManageView({ boardId }: { boardId: string }) {
+  const t = useT();
   const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
@@ -116,18 +119,18 @@ export function SectionManageView({ boardId }: { boardId: string }) {
     if (bannerOverride) return bannerOverride;
     switch (effectiveState) {
       case 'saving':
-        return 'Đang lưu thứ tự mới…';
+        return t('board.orderSaving');
       case 'done':
-        return 'Đã lưu thứ tự mới.';
+        return t('board.orderSaved');
       case 'toolong':
-        return `Tên section tối đa ${MAX_SECTION_NAME} ký tự.`;
+        return t('board.sectionNameTooLong', { max: MAX_SECTION_NAME });
       case 'cap':
-        // Chuỗi backend nguyên văn 'Max 50 sections per board' → bảng dịch QĐ-8.
-        return translateBoardError('Max 50 sections per board');
+        // Chuỗi backend nguyên văn 'Max 50 sections per board' → key QĐ-8.
+        return t('errors.board.maxSections');
       case 'denied':
-        return translateBoardError('You do not have editor access to this board');
+        return t('errors.board.noEditPermission');
       case 'neterr':
-        return 'Không lưu được thứ tự — mất kết nối.';
+        return t('board.orderNetErr');
       default:
         return null;
     }
@@ -135,10 +138,11 @@ export function SectionManageView({ boardId }: { boardId: string }) {
   const bannerTone: 'success' | 'danger' =
     effectiveState === 'saving' || effectiveState === 'done' ? 'success' : 'danger';
 
-  /** Dịch lỗi mutation → banner. Chuỗi lạ giữ nguyên (nhánh dự phòng QĐ-8). */
-  function showError(err: unknown, fallback: string) {
+  /** Quy lỗi mutation → banner. Chuỗi lạ rơi về `fallbackKey` (dự phòng QĐ-8). */
+  function showError(err: unknown, fallbackKey: TranslationKey) {
     const raw = err instanceof Error ? err.message : '';
-    setBannerOverride(translateBoardError(raw) ?? fallback);
+    const key = boardErrorKey(raw);
+    setBannerOverride(t(key ?? fallbackKey));
     setState('neterr');
   }
 
@@ -161,9 +165,9 @@ export function SectionManageView({ boardId }: { boardId: string }) {
       setNewName('');
       setState('idle');
       await boardQuery.refetch();
-      toast({ message: 'Đã thêm section' });
+      toast({ message: t('board.sectionAdded') });
     } catch (err) {
-      showError(err, 'Không thêm được section, thử lại sau.');
+      showError(err, 'board.sectionAddFailed');
     }
   }
 
@@ -181,16 +185,16 @@ export function SectionManageView({ boardId }: { boardId: string }) {
       setState('idle');
       await boardQuery.refetch();
     } catch (err) {
-      showError(err, 'Không đổi được tên section, thử lại sau.');
+      showError(err, 'board.sectionRenameFailed');
     }
   }
 
   async function onDelete(section: Section) {
     if (disabled) return;
     const ok = await confirm({
-      title: 'Xoá section này?',
-      body: 'Pin trong section sẽ trở về board, không bị xoá.',
-      yesLabel: 'Xoá section',
+      title: t('board.sectionDeleteTitle'),
+      body: t('board.sectionDeleteBody'),
+      yesLabel: t('board.sectionDeleteYes'),
       danger: true,
     });
     if (!ok) return;
@@ -201,9 +205,9 @@ export function SectionManageView({ boardId }: { boardId: string }) {
       await boardQuery.refetch();
       // KHÔNG gắn Hoàn tác: không có mutation nào dựng lại section đã xoá cùng
       // các pin đã gán (luật toast — chỉ hành động đảo được mới có Hoàn tác).
-      toast({ message: `Đã xoá section "${section.name}"` });
+      toast({ message: t('board.sectionDeleted', { name: section.name }) });
     } catch (err) {
-      showError(err, 'Không xoá được section, thử lại sau.');
+      showError(err, 'board.sectionDeleteFailed');
     }
   }
 
@@ -223,21 +227,21 @@ export function SectionManageView({ boardId }: { boardId: string }) {
       await boardQuery.refetch();
     } catch (err) {
       setOrder(previous);
-      showError(err, 'Không lưu được thứ tự — mất kết nối.');
+      showError(err, 'board.orderNetErr');
     }
   }
 
   if (boardQuery.loading && !board) {
-    return <Centered>Đang tải board…</Centered>;
+    return <Centered>{t('board.loadingBoard')}</Centered>;
   }
   if (boardQuery.error || !board) {
     return (
       <Centered>
         <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--color-foreground)' }}>
-          Không tìm thấy board
+          {t('board.notFoundTitle')}
         </div>
         <div style={{ fontSize: 13.5, color: 'var(--color-muted)', marginTop: 6 }}>
-          Board có thể đã bị xoá, hoặc bạn không có quyền xem.
+          {t('board.notFoundBody')}
         </div>
       </Centered>
     );
@@ -250,14 +254,14 @@ export function SectionManageView({ boardId }: { boardId: string }) {
         onClick={() => router.push(`/board/${boardId}`)}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13.5, color: 'var(--color-muted)', fontWeight: 600, padding: 0, marginBottom: 14 }}
       >
-        ← Quay lại board
+        ← {t('board.backToBoard')}
       </button>
 
       <h1 style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 24, margin: '0 0 4px', color: 'var(--color-foreground)' }}>
-        Quản lý section
+        {t('board.manageSections')}
       </h1>
       <p style={{ fontSize: 13.5, color: 'var(--color-muted)', margin: '0 0 18px' }}>
-        Kéo để đổi thứ tự — bản desktop. {order.length}/{MAX_SECTIONS} section
+        {t('board.sectionsHint', { n: order.length, max: MAX_SECTIONS })}
       </p>
 
       <div style={{ maxWidth: 620, display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -290,10 +294,10 @@ export function SectionManageView({ boardId }: { boardId: string }) {
             }}
           >
             <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-foreground)' }}>
-              Board này chưa có section
+              {t('board.noSectionsTitle')}
             </div>
             <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 6, lineHeight: 1.6 }}>
-              Section giúp chia pin trong board thành nhóm. Thêm section đầu tiên ở dưới.
+              {t('board.noSectionsBody')}
             </div>
           </div>
         ) : (
@@ -325,8 +329,8 @@ export function SectionManageView({ boardId }: { boardId: string }) {
               if (e.key === 'Enter') void onAdd();
             }}
             disabled={disabled}
-            placeholder="Tên section mới"
-            aria-label="Tên section mới"
+            placeholder={t('board.newSectionPlaceholder')}
+            aria-label={t('board.newSectionPlaceholder')}
             style={{
               flex: 1,
               padding: '11px 14px',
@@ -355,7 +359,7 @@ export function SectionManageView({ boardId }: { boardId: string }) {
               flex: 'none',
             }}
           >
-            Thêm section
+            {t('board.addSection')}
           </button>
         </div>
       </div>
@@ -382,6 +386,7 @@ function SectionRow({
   onRename: (name: string) => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(section.name);
   // Server là nguồn sự thật: khi tên đổi từ ngoài (refetch sau rename/thất bại),
   // ô nhập phải theo. `section.id` trong deps để reset đúng khi danh sách xáo.
@@ -411,7 +416,7 @@ function SectionRow({
       }}
     >
       <span
-        title="Kéo để đổi thứ tự"
+        title={t('board.dragToReorder')}
         aria-hidden
         style={{ color: 'var(--color-muted)', cursor: disabled ? 'default' : 'grab', fontSize: 15, lineHeight: 1 }}
       >
@@ -429,7 +434,7 @@ function SectionRow({
           if (e.key === 'Escape') setDraft(section.name);
         }}
         disabled={disabled}
-        aria-label={`Tên section ${section.name}`}
+        aria-label={t('board.sectionNameAria', { name: section.name })}
         style={{
           flex: 1,
           minWidth: 0,
@@ -458,7 +463,7 @@ function SectionRow({
             flex: 'none',
           }}
         >
-          Xoá
+          {t('common.delete')}
         </button>
       )}
     </div>

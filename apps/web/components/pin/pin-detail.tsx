@@ -27,7 +27,8 @@ import {
   type ReactionType,
 } from '@/lib/gql/graphql';
 import { toReadState } from '@/lib/errors/map-error';
-import { REACTION_ORDER, REACTION_EMOJI, REACTION_LABEL } from '@/lib/reactions';
+import { REACTION_ORDER, REACTION_EMOJI, REACTION_LABEL_KEY } from '@/lib/reactions';
+import { useT } from '@/lib/i18n/provider';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -78,13 +79,19 @@ function initialOf(name: string | null | undefined, username: string | null | un
   return source.charAt(0).toUpperCase() || '?';
 }
 
+/**
+ * i18n (23/08/2026) — hàm này TRƯỚC ĐÂY trả nguyên câu "N người theo dõi".
+ * Nay chỉ trả PHẦN SỐ đã rút gọn ("949", "1.2K", "3.4M"); chữ "người theo dõi"
+ * / "followers" do `t('pin.followerCount')` ghép. Ngưỡng làm tròn giữ NGUYÊN.
+ * Trả `null` khi không có số ⇒ chỗ dùng ẩn cả dòng.
+ */
 function formatFollowerCount(n: number | null | undefined): string | null {
   if (n === null || n === undefined) return null;
   if (!Number.isFinite(n) || n < 0) return null;
   const rounded = Math.floor(n);
-  if (rounded < 1000) return `${rounded} người theo dõi`;
-  if (rounded < 1_000_000) return `${(rounded / 1000).toFixed(rounded < 10_000 ? 1 : 0)}K người theo dõi`;
-  return `${(rounded / 1_000_000).toFixed(1)}M người theo dõi`;
+  if (rounded < 1000) return String(rounded);
+  if (rounded < 1_000_000) return `${(rounded / 1000).toFixed(rounded < 10_000 ? 1 : 0)}K`;
+  return `${(rounded / 1_000_000).toFixed(1)}M`;
 }
 
 type Props = {
@@ -95,6 +102,7 @@ type Props = {
 };
 
 export function PinDetail({ pinId, variant, onClose }: Props) {
+  const t = useT();
   const query = useQuery<PinQuery, PinQueryVariables>(PinDocument, {
     variables: { id: pinId },
   });
@@ -111,7 +119,7 @@ export function PinDetail({ pinId, variant, onClose }: Props) {
     return (
       <div
         role="status"
-        aria-label="Đang tải pin"
+        aria-label={t('pin.loadingAria')}
         style={{
           display: 'flex',
           justifyContent: 'center',
@@ -121,7 +129,7 @@ export function PinDetail({ pinId, variant, onClose }: Props) {
           fontSize: 13.5,
         }}
       >
-        Đang tải…
+        {t('common.loading')}
       </div>
     );
   }
@@ -129,10 +137,10 @@ export function PinDetail({ pinId, variant, onClose }: Props) {
   if (state.phase === 'error') {
     const message =
       state.state.kind === 'not-found'
-        ? 'Không tìm thấy pin này.'
+        ? t('pin.notFound')
         : state.state.kind === 'network'
-          ? 'Không kết nối được máy chủ.'
-          : 'Không tải được pin.';
+          ? t('pin.serverUnreachable')
+          : t('pin.loadFailed');
     return (
       <div
         role="alert"
@@ -166,7 +174,7 @@ export function PinDetail({ pinId, variant, onClose }: Props) {
               fontSize: 13.5,
             }}
           >
-            Đóng
+            {t('common.close')}
           </button>
         )}
       </div>
@@ -189,7 +197,7 @@ export function PinDetail({ pinId, variant, onClose }: Props) {
           padding: 24,
         }}
       >
-        Không tìm thấy pin này.
+        {t('pin.notFound')}
       </div>
     );
   }
@@ -224,6 +232,7 @@ function PinDetailContent({
    */
   refetchPin: () => Promise<unknown>;
 }) {
+  const t = useT();
   const isModal = variant === 'modal';
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
   const [optimisticFollow, setOptimisticFollow] = useState<boolean | null>(null);
@@ -369,15 +378,15 @@ function PinDetailContent({
         ? null
         : optimisticReaction;
   const imgUrl = pickDetailImageUrl(pin);
-  const title = pin.title || pin.description || 'Pin không tiêu đề';
+  const title = pin.title || pin.description || t('pin.untitled');
   const description = pin.description ?? '';
   const followerLabel = formatFollowerCount(pin.creator.followerCount);
-  const authorName = pin.creator.name || pin.creator.username || 'Người dùng';
+  const authorName = pin.creator.name || pin.creator.username || t('pin.someUser');
 
   // Pill "Lưu vào bảng ▾" → mở BoardPicker (save mode). Khách → AuthPrompt.
   const openPicker = () => {
     if (sessionStatus === 'unauthenticated') {
-      openAuthPrompt('lưu pin này');
+      openAuthPrompt('auth.actionSavePin');
       return;
     }
     openBoardPicker({ mode: 'save', pinId: pin.id });
@@ -396,7 +405,7 @@ function PinDetailContent({
   // Nút Lưu = lưu nhanh vào HỒ SƠ (boardId null) — nợ FE-6b: thêm nhánh khách.
   const toggleSave = async () => {
     if (sessionStatus === 'unauthenticated') {
-      openAuthPrompt('lưu pin này');
+      openAuthPrompt('auth.actionSavePin');
       return;
     }
     if (saveBusy) return;
@@ -416,13 +425,13 @@ function PinDetailContent({
             }),
         });
         toast({
-          message: 'Đã bỏ lưu',
-          action: { label: 'Hoàn tác', onClick: () => void resaveQuiet() },
+          message: t('pin.unsaved'),
+          action: { label: t('pin.undo'), onClick: () => void resaveQuiet() },
         });
       }
     } catch {
       setOptimisticSaved(!next);
-      toast({ message: 'Không lưu được, thử lại sau.' });
+      toast({ message: t('pin.saveFailed') });
     } finally {
       setSaveBusy(false);
     }
@@ -458,7 +467,7 @@ function PinDetailContent({
     // `runFollow` của profile-view. Hệ quả nghiệm thu được (T2.4): khách bấm ⇒
     // KHÔNG có request `togglePinReaction` nào bay ra.
     if (sessionStatus !== 'authenticated') {
-      openAuthPrompt('bày tỏ cảm xúc');
+      openAuthPrompt('auth.actionReact');
       return;
     }
     // Bấm liên tiếp không có guard sẽ ĐUA NHAU: kết quả cuối phụ thuộc thứ tự
@@ -473,7 +482,7 @@ function PinDetailContent({
     } catch {
       // Hoàn nguyên = bỏ optimistic để rơi về sự thật của server (không đổi).
       setOptimisticReaction(null);
-      toast({ message: 'Không gửi được cảm xúc, thử lại sau.' });
+      toast({ message: t('pin.reactFailed') });
     } finally {
       setReactionBusy(false);
     }
@@ -501,7 +510,7 @@ function PinDetailContent({
    */
   const toggleFollow = async () => {
     if (sessionStatus !== 'authenticated') {
-      openAuthPrompt('theo dõi người này');
+      openAuthPrompt('auth.actionFollow');
       return;
     }
     if (followBusy) return;
@@ -518,15 +527,15 @@ function PinDetailContent({
       setOptimisticFollow(null);
       toast(
         next
-          ? { message: `Đang theo dõi ${authorName}` }
+          ? { message: t('pin.nowFollowing', { name: authorName }) }
           : {
-              message: `Đã bỏ theo dõi ${authorName}`,
-              action: { label: 'Hoàn tác', onClick: () => void refollowQuiet() },
+              message: t('pin.unfollowed', { name: authorName }),
+              action: { label: t('pin.undo'), onClick: () => void refollowQuiet() },
             },
       );
     } catch {
       setOptimisticFollow(null);
-      toast({ message: 'Không theo dõi được, thử lại sau.' });
+      toast({ message: t('pin.followFailed') });
     } finally {
       setFollowBusy(false);
     }
@@ -542,7 +551,7 @@ function PinDetailContent({
     const url = `${window.location.origin}/pin/${pin.id}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast({ message: 'Đã copy liên kết' });
+      toast({ message: t('pin.linkCopied') });
     } catch {
       toast({ message: url });
     }
@@ -556,9 +565,9 @@ function PinDetailContent({
   const onDeletePin = async () => {
     setMenuOpen(false);
     const ok = await confirm({
-      title: `Xoá "${pin.title?.trim() || 'pin này'}"?`,
-      body: 'Pin và bình luận trên đó sẽ không còn hiển thị.',
-      yesLabel: 'Xoá pin',
+      title: t('pin.deleteTitle', { title: pin.title?.trim() || t('pin.thisPin') }),
+      body: t('pin.deleteBody'),
+      yesLabel: t('pin.deleteYes'),
       danger: true,
     });
     if (!ok) return;
@@ -570,10 +579,10 @@ function PinDetailContent({
           cache.gc();
         },
       });
-      toast({ message: 'Đã xoá pin' });
+      toast({ message: t('pin.deleted') });
       router.push('/');
     } catch {
-      toast({ message: 'Không xoá được pin, thử lại sau.' });
+      toast({ message: t('pin.deleteFailed') });
     }
   };
 
@@ -590,7 +599,7 @@ function PinDetailContent({
         <>
           <button
             type="button"
-            aria-label="Đóng"
+            aria-label={t('common.close')}
             onClick={onClose}
             style={{
               width: 36,
@@ -607,7 +616,7 @@ function PinDetailContent({
             ×
           </button>
           <div style={{ fontSize: 11.5, color: 'var(--color-muted)' }}>
-            ESC để đóng · bấm nền để đóng
+            {t('pin.closeEscHint')}
           </div>
         </>
       ) : (
@@ -615,7 +624,7 @@ function PinDetailContent({
           <div ref={menuRef} style={{ position: 'relative' }}>
             <button
               type="button"
-              aria-label="Thêm tuỳ chọn"
+              aria-label={t('pin.moreOptions')}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((o) => !o)}
               style={{
@@ -656,7 +665,7 @@ function PinDetailContent({
                   onClick={onEditPin}
                   style={{ textAlign: 'left', padding: '9px 12px', border: 'none', background: 'none', color: 'var(--color-foreground)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, borderRadius: 8, width: '100%' }}
                 >
-                  Sửa pin
+                  {t('pin.edit')}
                 </button>
                 <button
                   type="button"
@@ -664,7 +673,7 @@ function PinDetailContent({
                   onClick={() => void onDeletePin()}
                   style={{ textAlign: 'left', padding: '9px 12px', border: 'none', background: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, borderRadius: 8, width: '100%' }}
                 >
-                  Xoá pin
+                  {t('pin.deleteYes')}
                 </button>
               </div>
             )}
@@ -683,7 +692,7 @@ function PinDetailContent({
               fontSize: 13.5,
             }}
           >
-            Chia sẻ
+            {t('pin.share')}
           </button>
         </>
       )}
@@ -691,7 +700,7 @@ function PinDetailContent({
       <button
         type="button"
         onClick={openPicker}
-        aria-label="Chọn board để lưu pin"
+        aria-label={t('pin.pickBoardAria')}
         style={{
           padding: isModal ? '9px 16px' : '10px 18px',
           borderRadius: 'var(--radius-button)',
@@ -703,7 +712,7 @@ function PinDetailContent({
           cursor: 'pointer',
         }}
       >
-        Lưu vào bảng ▾
+        {t('pin.saveToBoard')}
       </button>
       <button
         type="button"
@@ -720,7 +729,7 @@ function PinDetailContent({
           color: isSaved ? 'var(--color-background)' : 'var(--color-primary-foreground)',
         }}
       >
-        {isSaved ? 'Đã lưu' : 'Lưu'}
+        {isSaved ? t('pin.saved') : t('pin.save')}
       </button>
     </div>
   );
@@ -728,7 +737,7 @@ function PinDetailContent({
   const reactionsRow = (
     <div
       role="group"
-      aria-label="Chọn cảm xúc"
+      aria-label={t('pin.pickReactionAria')}
       style={{
         display: 'flex',
         gap: 6,
@@ -743,7 +752,7 @@ function PinDetailContent({
             key={r}
             type="button"
             aria-pressed={active}
-            title={REACTION_LABEL[r]}
+            title={t(REACTION_LABEL_KEY[r])}
             onClick={() => void onReaction(r)}
             style={{
               display: 'inline-flex',
@@ -762,7 +771,7 @@ function PinDetailContent({
             <span aria-hidden style={{ fontSize: 15, lineHeight: 1 }}>
               {REACTION_EMOJI[r]}
             </span>
-            <span>{REACTION_LABEL[r]}</span>
+            <span>{t(REACTION_LABEL_KEY[r])}</span>
           </button>
         );
       })}
@@ -856,7 +865,7 @@ function PinDetailContent({
   const sourceRow =
     sourceHost && pin.sourceUrl ? (
       <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginBottom: 20 }}>
-        Nguồn:{' '}
+        {t('pin.source')}{' '}
         <a
           href={pin.sourceUrl}
           target="_blank"
@@ -924,7 +933,12 @@ function PinDetailContent({
           {authorName}
         </div>
         {!isModal && followerLabel && (
-          <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>{followerLabel}</div>
+          <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>
+            {t('pin.followerCount', {
+              count: pin.creator.followerCount ?? 0,
+              countText: followerLabel,
+            })}
+          </div>
         )}
       </div>
       <div style={{ flex: 1 }} />
@@ -952,7 +966,7 @@ function PinDetailContent({
             cursor: 'pointer',
           }}
         >
-          {isFollowed ? 'Đang theo dõi' : 'Theo dõi'}
+          {isFollowed ? t('pin.following') : t('pin.follow')}
         </button>
       )}
     </div>
@@ -995,7 +1009,7 @@ function PinDetailContent({
             color: 'var(--color-foreground)',
           }}
         >
-          Bình luận
+          {t('pin.comments')}
         </div>
         <PinComments pinId={pin.id} variant={variant} />
       </div>
@@ -1015,7 +1029,7 @@ function PinDetailContent({
               textDecoration: 'none',
             }}
           >
-            Mở trang đầy đủ (F5 / link trực tiếp) →
+            {t('pin.openFullPage')}
           </a>
         </div>
       )}

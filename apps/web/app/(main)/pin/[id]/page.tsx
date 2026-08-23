@@ -3,6 +3,9 @@ import { notFound } from 'next/navigation';
 import { PinDetail } from '@/components/pin/pin-detail';
 import { BackToGridLink } from './back-link';
 import { fetchPinForServer, type ServerPin } from './fetch-pin-server';
+import { getLocale } from '@/lib/i18n/server';
+import { translate } from '@/lib/i18n/translate';
+import type { Locale } from '@/lib/i18n/config';
 
 /**
  * FE-4 — Trang chi tiết pin đầy đủ `/pin/[id]`.
@@ -28,13 +31,12 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  const locale = await getLocale();
   const { pin } = await fetchPinForServer(id);
   if (!pin) {
-    return {
-      title: 'Pin không tồn tại · Panacea',
-    };
+    return { title: translate(locale, 'pin.notFoundMeta') };
   }
-  return buildMetadata(pin);
+  return buildMetadata(pin, locale);
 }
 
 export default async function PinPage({
@@ -64,11 +66,14 @@ export default async function PinPage({
   );
 }
 
-function buildMetadata(pin: ServerPin): Metadata {
-  const rawTitle = pin.title?.trim() || pin.description?.trim().slice(0, 60) || 'Pin không tiêu đề';
+function buildMetadata(pin: ServerPin, locale: Locale): Metadata {
+  const rawTitle =
+    pin.title?.trim() || pin.description?.trim().slice(0, 60) || translate(locale, 'pin.untitled');
   const description =
     pin.description?.trim() ||
-    `Bởi ${pin.creator?.name || pin.creator?.username || 'người dùng'} · Panacea`;
+    translate(locale, 'pin.metaByline', {
+      name: pin.creator?.name || pin.creator?.username || translate(locale, 'pin.metaSomeone'),
+    });
   const image = pin.largeUrl ?? pin.mediumUrl ?? pin.imageUrl;
   return {
     title: `${rawTitle} · Panacea`,

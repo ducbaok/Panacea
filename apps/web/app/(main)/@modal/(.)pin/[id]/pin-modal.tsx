@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PinDetail } from '@/components/pin/pin-detail';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * FE-4 — Wrapper modal cho intercepting route `@modal/(.)pin/[id]`.
@@ -32,6 +33,7 @@ import { PinDetail } from '@/components/pin/pin-detail';
 const MOBILE_BREAKPOINT = 768;
 
 export function PinModal({ id }: { id: string }) {
+  const t = useT();
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -103,7 +105,7 @@ export function PinModal({ id }: { id: string }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Chi tiết pin"
+        aria-label={t('pin.modalAria')}
         data-modal-mobile
         style={{
           position: 'fixed',
@@ -124,7 +126,7 @@ export function PinModal({ id }: { id: string }) {
           <button
             type="button"
             onClick={close}
-            aria-label="Đóng"
+            aria-label={t('common.close')}
             style={{
               width: 40,
               height: 40,
@@ -151,7 +153,7 @@ export function PinModal({ id }: { id: string }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Chi tiết pin"
+      aria-label={t('pin.modalAria')}
       onClick={onBackdropClick}
       style={{
         position: 'fixed',

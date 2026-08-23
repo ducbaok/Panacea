@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { authStyles, AuthHeader } from '@/components/auth/auth-ui';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * A4 — Đặt lại mật khẩu. 9 trạng thái (mockup `view=reset`):
@@ -19,6 +20,7 @@ import { authStyles, AuthHeader } from '@/components/auth/auth-ui';
 type Stage = 'idle' | 'short' | 'mismatch' | 'sending' | 'done' | 'invalid' | 'expired' | 'neterr';
 
 export function ResetForm({ token }: { token: string | null }) {
+  const t = useT();
   const [pw1, setPw1] = useState('');
   const [pw2, setPw2] = useState('');
   const [stage, setStage] = useState<Stage>('idle');
@@ -27,11 +29,11 @@ export function ResetForm({ token }: { token: string | null }) {
   if (!token) {
     return (
       <div style={authStyles.column}>
-        <AuthHeader subtitle="Đặt lại mật khẩu" />
+        <AuthHeader subtitle={t('auth.resetSubtitle')} />
         <div style={authStyles.card}>
-          <div style={authStyles.errorBox}>Liên kết không hợp lệ. Hãy yêu cầu liên kết mới.</div>
+          <div style={authStyles.errorBox}>{t('auth.resetInvalidLink')}</div>
           <Link href="/forgot-password" style={{ ...authStyles.submit, textAlign: 'center' }}>
-            Yêu cầu liên kết mới
+            {t('auth.requestNewLink')}
           </Link>
         </div>
         <BackToLogin />
@@ -71,13 +73,11 @@ export function ResetForm({ token }: { token: string | null }) {
   if (stage === 'done') {
     return (
       <div style={authStyles.column}>
-        <AuthHeader subtitle="Mật khẩu đã được thay." />
+        <AuthHeader subtitle={t('auth.resetDoneSubtitle')} />
         <div style={authStyles.card}>
-          <div style={authStyles.noteBox}>
-            Đã đổi mật khẩu. Bạn đã được đăng xuất khỏi các thiết bị khác.
-          </div>
+          <div style={authStyles.noteBox}>{t('auth.resetDoneNote')}</div>
           <Link href="/login" style={{ ...authStyles.submit, textAlign: 'center' }}>
-            Đăng nhập
+            {t('auth.login')}
           </Link>
         </div>
         <BackToLogin />
@@ -90,12 +90,14 @@ export function ResetForm({ token }: { token: string | null }) {
     const isExpired = stage === 'expired';
     return (
       <div style={authStyles.column}>
-        <AuthHeader subtitle="Đặt lại mật khẩu" />
+        <AuthHeader subtitle={t('auth.resetSubtitle')} />
         <div style={authStyles.card}>
-          <div style={authStyles.errorBox}>{isExpired ? 'Liên kết đã hết hạn.' : 'Liên kết không hợp lệ.'}</div>
+          <div style={authStyles.errorBox}>
+            {isExpired ? t('auth.linkExpired') : t('auth.linkInvalid')}
+          </div>
           {isExpired && (
             <Link href="/forgot-password" style={{ ...authStyles.submit, textAlign: 'center' }}>
-              Gửi liên kết mới
+              {t('auth.sendNewLink')}
             </Link>
           )}
         </div>
@@ -106,40 +108,44 @@ export function ResetForm({ token }: { token: string | null }) {
 
   return (
     <div style={authStyles.column}>
-      <AuthHeader subtitle="Chọn mật khẩu mới cho tài khoản." />
+      <AuthHeader subtitle={t('auth.chooseNewPassword')} />
       <form style={authStyles.card} onSubmit={onSubmit} noValidate>
         <label style={authStyles.label}>
-          Mật khẩu mới
+          {t('auth.newPassword')}
           <input
             type="password"
             autoComplete="new-password"
-            placeholder="Tối thiểu 8 ký tự"
+            placeholder={t('auth.newPasswordPlaceholder')}
             value={pw1}
             onChange={(e) => setPw1(e.target.value)}
             style={authStyles.input}
           />
         </label>
         <label style={authStyles.label}>
-          Nhập lại mật khẩu
+          {t('auth.repeatPassword')}
           <input
             type="password"
             autoComplete="new-password"
-            placeholder="Nhập lại mật khẩu mới"
+            placeholder={t('auth.repeatPasswordPlaceholder')}
             value={pw2}
             onChange={(e) => setPw2(e.target.value)}
             style={authStyles.input}
           />
         </label>
-        <div style={authStyles.hint}>Tối thiểu 8 ký tự.</div>
-        {stage === 'short' && <div style={authStyles.errorBox}>Mật khẩu phải có ít nhất 8 ký tự.</div>}
-        {stage === 'mismatch' && <div style={authStyles.errorBox}>Hai mật khẩu chưa khớp.</div>}
-        {stage === 'neterr' && <div style={authStyles.errorBox}>Không kết nối được máy chủ. Thử lại sau.</div>}
+        <div style={authStyles.hint}>{t('auth.min8Hint')}</div>
+        {stage === 'short' && <div style={authStyles.errorBox}>{t('auth.errPasswordShort')}</div>}
+        {stage === 'mismatch' && <div style={authStyles.errorBox}>{t('auth.errPasswordMismatch')}</div>}
+        {stage === 'neterr' && <div style={authStyles.errorBox}>{t('auth.errNetwork')}</div>}
         <button
           type="submit"
           style={stage === 'sending' ? authStyles.submitBusy : authStyles.submit}
           disabled={stage === 'sending'}
         >
-          {stage === 'sending' ? 'Đang gửi…' : stage === 'neterr' ? 'Thử lại' : 'Đặt lại mật khẩu'}
+          {stage === 'sending'
+            ? t('auth.sending')
+            : stage === 'neterr'
+              ? t('common.retry')
+              : t('auth.resetSubtitle')}
         </button>
       </form>
       <BackToLogin />
@@ -148,10 +154,11 @@ export function ResetForm({ token }: { token: string | null }) {
 }
 
 function BackToLogin() {
+  const t = useT();
   return (
     <div style={authStyles.backRow}>
       <Link href="/login" style={authStyles.linkMuted}>
-        ← Quay lại đăng nhập
+        ← {t('auth.backToLogin')}
       </Link>
     </div>
   );

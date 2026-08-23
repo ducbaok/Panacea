@@ -9,6 +9,7 @@ import {
   BOTTOM_TABS_GUEST,
   type NavItem,
 } from './nav-items';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * BottomTabBar mobile (QĐ-4, mockup Panacea §3.3).
@@ -37,6 +38,7 @@ function resolveHref(item: NavItem, username: string | null): string {
 }
 
 export function BottomTabBar() {
+  const t = useT();
   const { status } = useSession();
   const pathname = usePathname() || '/';
   const isAuth = status === 'authenticated';
@@ -46,7 +48,7 @@ export function BottomTabBar() {
   return (
     <nav
       role="navigation"
-      aria-label="Điều hướng mobile"
+      aria-label={t('nav.mobileNavLabel')}
       className="md:hidden fixed bottom-0 left-0 right-0 flex items-stretch"
       style={{
         zIndex: 'var(--z-header)',
@@ -58,7 +60,7 @@ export function BottomTabBar() {
       {tabs.map((item) => {
         const href = resolveHref(item, username);
         const active = isActive(pathname, href);
-        const { Icon, label } = item;
+        const { Icon } = item;
         // REVIEW-1 (#3): xem chú thích `hardNav` ở `nav-items.ts`.
         const Anchor = item.hardNav ? 'a' : Link;
         return (
@@ -76,7 +78,7 @@ export function BottomTabBar() {
             }}
           >
             <Icon />
-            <span>{label}</span>
+            <span>{t(item.labelKey)}</span>
           </Anchor>
         );
       })}

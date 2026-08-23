@@ -16,7 +16,8 @@ import { useBoardPins } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
-import { translateBoardError } from '@/lib/errors/board-error-vi';
+import { boardErrorKey } from '@/lib/errors/board-error';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * C4 — Chi tiết board (FE-6, view=board).
@@ -43,6 +44,7 @@ import { translateBoardError } from '@/lib/errors/board-error-vi';
  *     đầu bị xuyên qua, và máy cảm ứng không có hover ⇒ nút không chạm tới được).
  */
 export function BoardView({ id }: { id: string }) {
+  const t = useT();
   const router = useRouter();
   const toast = useToast();
   const { status } = useSession();
@@ -79,16 +81,16 @@ export function BoardView({ id }: { id: string }) {
   }, [coverMenuPinId]);
 
   if (boardQuery.loading) {
-    return <Centered>Đang tải board…</Centered>;
+    return <Centered>{t('board.loadingBoard')}</Centered>;
   }
 
   const board = boardQuery.data?.board;
   if (boardQuery.error || !board) {
     return (
       <Centered>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>Không tìm thấy board</div>
+        <div style={{ fontWeight: 700, fontSize: 16 }}>{t('board.notFoundTitle')}</div>
         <div style={{ fontSize: 13.5, color: 'var(--color-muted)', marginTop: 6 }}>
-          Board có thể đã bị xoá, hoặc bạn không có quyền xem.
+          {t('board.notFoundBody')}
         </div>
       </Centered>
     );
@@ -117,7 +119,7 @@ export function BoardView({ id }: { id: string }) {
     const url = `${window.location.origin}/board/${id}`;
     try {
       await navigator.clipboard.writeText(url);
-      toast({ message: 'Đã copy liên kết' });
+      toast({ message: t('pin.linkCopied') });
     } catch {
       toast({ message: url });
     }
@@ -142,10 +144,11 @@ export function BoardView({ id }: { id: string }) {
       await setCoverM({ variables: { boardId: board.id, pinId } });
       // Đọc lại board để `coverPinId` (nguồn của badge) khớp server.
       await boardQuery.refetch();
-      toast({ message: 'Đã đặt làm ảnh bìa board' });
+      toast({ message: t('board.coverSet') });
     } catch (err) {
       const raw = err instanceof Error ? err.message : '';
-      toast({ message: translateBoardError(raw) ?? 'Không đặt được ảnh bìa, thử lại sau.' });
+      const key = boardErrorKey(raw);
+      toast({ message: key ? t(key) : t('board.coverFailed') });
     } finally {
       setCoverBusy(false);
     }
@@ -158,7 +161,7 @@ export function BoardView({ id }: { id: string }) {
         onClick={() => (board.user?.username ? router.push(`/@${board.user.username}`) : router.back())}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13.5, color: 'var(--color-muted)', fontWeight: 600, padding: 0, marginBottom: 14 }}
       >
-        ← Tất cả board
+        ← {t('board.allBoards')}
       </button>
 
       <h1 style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 27, margin: '0 0 6px', color: 'var(--color-foreground)' }}>
@@ -166,7 +169,10 @@ export function BoardView({ id }: { id: string }) {
       </h1>
       <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: '0 0 14px' }}>
         {board.description ? `${board.description} · ` : ''}
-        {formatCount(board.pinCount ?? 0)} pin
+        {t('board.pinCount', {
+          count: board.pinCount ?? 0,
+          countText: formatCount(board.pinCount ?? 0),
+        })}
       </p>
 
       <div style={{ display: 'flex', gap: 9, marginBottom: 18, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -185,20 +191,20 @@ export function BoardView({ id }: { id: string }) {
               cursor: 'pointer',
             }}
           >
-            Sửa board
+            {t('board.editTitle')}
           </button>
         )}
         {/* Cộng tác viên: chủ board VÀ cộng tác viên (mọi vai trò) — C7 là đường
             duy nhất để tự rời board, khoá theo isOwner là bẫy người ta ở lại. */}
         {(isOwner || isCollaborator) && (
           <OutlineButton onClick={() => router.push(`/board/${board.id}/collaborators`)}>
-            Cộng tác viên
+            {t('board.collaborators')}
           </OutlineButton>
         )}
         {/* Quản lý section: cần quyền EDITOR — VIEWER mở ra chỉ thấy `denied`. */}
         {canEditBoard && (
           <OutlineButton onClick={() => router.push(`/board/${board.id}/sections`)}>
-            Quản lý section
+            {t('board.manageSections')}
           </OutlineButton>
         )}
         {!isSecret && (
@@ -216,21 +222,21 @@ export function BoardView({ id }: { id: string }) {
               cursor: 'pointer',
             }}
           >
-            Chia sẻ
+            {t('pin.share')}
           </button>
         )}
       </div>
 
       {isSecret && (
         <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 14, lineHeight: 1.6 }}>
-          Board riêng tư — nút Chia sẻ ẩn hẳn vì người ngoài mở link không được.
+          {t('board.privateNoShare')}
         </div>
       )}
 
       {/* Dải chip section — cuộn ngang, lọc ở SERVER qua sectionId */}
       {sections.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
-          <SectionChip label="Tất cả" active={sectionId === null} onClick={() => setSectionId(null)} />
+          <SectionChip label={t('board.sectionAll')} active={sectionId === null} onClick={() => setSectionId(null)} />
           {sections.map((s) => (
             <SectionChip key={s.id} label={s.name ?? ''} active={sectionId === s.id} onClick={() => setSectionId(s.id)} />
           ))}
@@ -239,7 +245,7 @@ export function BoardView({ id }: { id: string }) {
 
       {pinItems.length === 0 && !boardPins.loading ? (
         <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
-          {sectionId ? 'Section này chưa có pin nào.' : 'Board này chưa có pin nào.'}
+          {sectionId ? t('board.emptySection') : t('board.emptyBoard')}
         </div>
       ) : (
         <PinGrid
@@ -328,6 +334,7 @@ function CoverOverlay({
   onSetCover: () => void;
   menuRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const t = useT();
   return (
     <>
       {isCover && (
@@ -344,7 +351,7 @@ function CoverOverlay({
             fontWeight: 700,
           }}
         >
-          Ảnh bìa
+          {t('board.cover')}
         </div>
       )}
 
@@ -355,8 +362,8 @@ function CoverOverlay({
         >
           <button
             type="button"
-            aria-label="Tuỳ chọn pin"
-            title="Tuỳ chọn pin"
+            aria-label={t('board.pinOptions')}
+            title={t('board.pinOptions')}
             aria-expanded={menuOpen}
             onClick={(e) => {
               e.stopPropagation();
@@ -429,7 +436,7 @@ function CoverOverlay({
                   width: '100%',
                 }}
               >
-                Đặt làm bìa
+                {t('board.setAsCover')}
               </button>
               <button
                 type="button"
@@ -452,7 +459,7 @@ function CoverOverlay({
                 }}
                 data-pin-id={pinId}
               >
-                Đóng
+                {t('common.close')}
               </button>
             </div>
           )}

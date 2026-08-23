@@ -2,6 +2,8 @@
 
 import { useQuery } from '@apollo/client/react';
 import { ConversationLastMessageDocument, type ConversationsQuery } from '@/lib/gql/graphql';
+import { useT } from '@/lib/i18n/provider';
+import type { TFunction } from '@/lib/i18n/translate';
 
 type Conversation = ConversationsQuery['conversations']['items'][number];
 
@@ -53,15 +55,16 @@ export function ConversationRow({
    */
   isLastRow?: boolean;
 }) {
+  const t = useT();
   const other = otherMember(conversation, meId);
-  const name = other?.name ?? other?.username ?? 'Người dùng';
+  const name = other?.name ?? other?.username ?? t('messages.someUser');
 
   const { data } = useQuery(ConversationLastMessageDocument, {
     variables: { conversationId: conversation.id },
   });
   const last = data?.messages.items[0];
 
-  const preview = last ? previewText(last.content, last.attachedPinId) : '';
+  const preview = last ? previewText(last.content, last.attachedPinId, t) : '';
   const unread = !!last && last.senderId !== meId && last.readAt == null;
 
   return (
@@ -101,7 +104,7 @@ export function ConversationRow({
       </div>
       {unread && (
         <span
-          aria-label="Chưa đọc"
+          aria-label={t('messages.unread')}
           style={{
             width: 8,
             height: 8,
@@ -126,10 +129,17 @@ export function otherMember(conversation: Conversation, meId: string | null) {
   return found?.user ?? null;
 }
 
-/** Dòng preview: tin chỉ-pin không có chữ ⇒ hiện nhãn thay vì để trống. */
-function previewText(content: string | null | undefined, attachedPinId: string | null | undefined): string {
+/**
+ * Dòng preview: tin chỉ-pin không có chữ ⇒ hiện nhãn thay vì để trống.
+ * i18n (23/08/2026): nhận `t` — hàm nằm ngoài component nên không gọi hook được.
+ */
+function previewText(
+  content: string | null | undefined,
+  attachedPinId: string | null | undefined,
+  t: TFunction,
+): string {
   if (content) return content;
-  if (attachedPinId) return 'Đã gửi một pin';
+  if (attachedPinId) return t('messages.sentAPin');
   return '';
 }
 

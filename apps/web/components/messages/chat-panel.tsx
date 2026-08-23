@@ -14,6 +14,8 @@ import { useToast } from '@/components/ui/toast';
 import { MessageBubble, type MessageItem } from './message-bubble';
 import { PaneHeader } from './pane-header';
 import { insertMessage, markReadInCache, removeMessage, MSG_PAGE_SIZE } from './message-cache';
+import { useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * D4 — khung chat (pane phải). Số đo từ `Panacea-v2.1.html` view `messages`:
@@ -45,6 +47,7 @@ export function ChatPanel({
   /** Tên người kia — pane trái đã có sẵn dữ liệu, truyền xuống để khỏi thêm query. */
   title: string;
 }) {
+  const t = useT();
   const client = useApolloClient();
   const confirm = useConfirm();
   const toast = useToast();
@@ -149,7 +152,7 @@ export function ChatPanel({
       if (sent) insertMessage(client.cache, sent);
       setText('');
     } catch {
-      toast({ message: 'Không gửi được. Thử lại nhé.' });
+      toast({ message: t('messages.sendFailed') });
     } finally {
       setSending(false);
     }
@@ -158,9 +161,9 @@ export function ChatPanel({
   const onRevoke = useCallback(
     async (m: MessageItem) => {
       const ok = await confirm({
-        title: 'Thu hồi tin nhắn?',
-        body: 'Tin nhắn sẽ biến mất với cả hai người.',
-        yesLabel: 'Thu hồi',
+        title: t('messages.revokeTitle'),
+        body: t('messages.revokeBody'),
+        yesLabel: t('messages.revoke'),
         danger: true,
       });
       if (!ok) return;
@@ -169,7 +172,7 @@ export function ChatPanel({
         removeMessage(client.cache, conversationId, m.id);
         setRevoked((prev) => new Map(prev).set(m.id, { ...m, revokedLocally: true }));
       } catch {
-        toast({ message: 'Không thu hồi được. Thử lại nhé.' });
+        toast({ message: t('messages.revokeFailed') });
       }
     },
     [confirm, deleteM, client, conversationId, toast],
@@ -197,13 +200,13 @@ export function ChatPanel({
         }}
       >
         {subscribeError ? (
-          <Centered text={translateSubscribeError(subscribeError)} />
+          <Centered text={t(subscribeErrorKey(subscribeError))} />
         ) : error ? (
-          <Centered text="Không tải được tin nhắn." />
+          <Centered text={t('messages.loadFailed')} />
         ) : loading && rows.length === 0 ? (
-          <Centered text="Đang tải…" />
+          <Centered text={t('common.loading')} />
         ) : rows.length === 0 ? (
-          <Centered text="Chưa có tin nhắn nào. Gửi lời chào đi." />
+          <Centered text={t('messages.emptyThread')} />
         ) : (
           <>
             {hasNextPage && (
@@ -222,7 +225,7 @@ export function ChatPanel({
                   cursor: 'pointer',
                 }}
               >
-                {loadingMore ? 'Đang tải…' : 'Xem tin cũ hơn'}
+                {loadingMore ? t('common.loading') : t('messages.loadOlder')}
               </button>
             )}
             {rows.map((m) => (
@@ -251,8 +254,8 @@ export function ChatPanel({
         <button
           type="button"
           disabled
-          title="Đính pin sẽ có ở bản sau"
-          aria-label="Đính pin sẽ có ở bản sau"
+          title={t('messages.attachPinSoon')}
+          aria-label={t('messages.attachPinSoon')}
           style={{
             width: 40,
             height: 40,
@@ -276,7 +279,7 @@ export function ChatPanel({
               void onSend();
             }
           }}
-          placeholder="Nhắn gì đó"
+          placeholder={t('messages.composerPlaceholder')}
           disabled={!!subscribeError}
           style={{
             flex: 1,
@@ -305,7 +308,7 @@ export function ChatPanel({
             opacity: sending || !text.trim() ? 0.6 : 1,
           }}
         >
-          Gửi
+          {t('messages.send')}
         </button>
       </div>
     </div>
@@ -313,20 +316,23 @@ export function ChatPanel({
 }
 
 /**
- * Khuôn dịch lỗi cho messaging — mở riêng, không nhét vào `translateBoardError`
- * (chuỗi khác miền). Chuỗi gốc lấy nguyên văn từ backend, đã đo bằng request
- * thật 17/08.
+ * Khuôn quy lỗi messaging → KEY từ điển — mở riêng, không nhét vào
+ * `boardErrorKey` (chuỗi khác miền). Chuỗi gốc lấy nguyên văn từ backend,
+ * đã đo bằng request thật 17/08.
+ *
+ * i18n (23/08/2026) — TRƯỚC ĐÂY tên `translateMessagingError` và trả chữ Việt.
+ * Nay trả key; nơi dùng gọi `t(messagingErrorKey(raw))`.
  */
-export function translateMessagingError(raw: string): string {
-  if (/Mutual follow is required/i.test(raw)) return 'Tin nhắn chỉ mở khi hai người theo dõi nhau.';
-  if (/block status/i.test(raw)) return 'Không mở được trò chuyện do đã chặn nhau.';
-  if (/conversation with yourself/i.test(raw)) return 'Không thể tự nhắn cho chính mình.';
-  if (/Not a member of this conversation/i.test(raw)) return 'Bạn không còn trong cuộc trò chuyện này.';
-  if (/Can only delete your own messages/i.test(raw)) return 'Chỉ thu hồi được tin của chính bạn.';
-  return 'Có lỗi xảy ra. Thử lại nhé.';
+export function messagingErrorKey(raw: string): TranslationKey {
+  if (/Mutual follow is required/i.test(raw)) return 'messages.errMutualRequired';
+  if (/block status/i.test(raw)) return 'messages.errBlocked';
+  if (/conversation with yourself/i.test(raw)) return 'messages.errSelf';
+  if (/Not a member of this conversation/i.test(raw)) return 'messages.errNotMember';
+  if (/Can only delete your own messages/i.test(raw)) return 'messages.errNotOwnMessage';
+  return 'messages.errGeneric';
 }
 
-const translateSubscribeError = translateMessagingError;
+const subscribeErrorKey = messagingErrorKey;
 
 function Centered({ text }: { text: string }) {
   return (

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * "← Quay lại lưới" — dùng router.back() nếu có history same-origin, không
@@ -9,6 +10,7 @@ import { useCallback } from 'react';
  * thần cặp sinh đôi QĐ-2 và T2.1).
  */
 export function BackToGridLink() {
+  const t = useT();
   const router = useRouter();
   const onClick = useCallback(() => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -33,7 +35,7 @@ export function BackToGridLink() {
         marginBottom: 16,
       }}
     >
-      ← Quay lại lưới
+      ← {t('pin.backToGrid')}
     </button>
   );
 }

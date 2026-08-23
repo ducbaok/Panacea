@@ -6,6 +6,7 @@ import { useQuery } from '@apollo/client/react';
 import { CategoriesDocument, type CategoriesQuery } from '@/lib/gql/graphql';
 import { useExploreFeed } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * REVIEW-1 (#2) — Khối "Khám phá": dải chip chủ đề + lưới lọc theo chủ đề.
@@ -26,6 +27,7 @@ import { PinGrid } from '@/components/pin/pin-grid';
  * B-5). Lấy từ query `categories`, ĐỪNG nhét chữ người dùng gõ.
  */
 export function ExploreSection({ skip = false }: { skip?: boolean }) {
+  const t = useT();
   const router = useRouter();
   const [categorySlug, setCategorySlug] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function ExploreSection({ skip = false }: { skip?: boolean }) {
       <div style={{ padding: '0 16px' }}>
         <div
           role="tablist"
-          aria-label="Bộ lọc chủ đề"
+          aria-label={t('home.categoryTablist')}
           data-testid="category-chips"
           style={{
             display: 'flex',
@@ -56,7 +58,7 @@ export function ExploreSection({ skip = false }: { skip?: boolean }) {
           }}
         >
           <CategoryChip
-            label="Tất cả"
+            label={t('home.categoryAll')}
             active={categorySlug === null}
             onClick={() => setCategorySlug(null)}
           />
@@ -91,7 +93,7 @@ export function ExploreSection({ skip = false }: { skip?: boolean }) {
             fontSize: 14,
           }}
         >
-          Chưa có pin nào ở mục này.
+          {t('home.exploreEmpty')}
         </div>
       )}
     </>

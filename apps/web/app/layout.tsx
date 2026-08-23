@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro, Varela_Round } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { getLocale } from "@/lib/i18n/server";
+import { translate } from "@/lib/i18n/translate";
 
 /*
  * FE-1b — Font Be Vietnam Pro (thay Geist/Geist_Mono).
@@ -36,10 +38,19 @@ const varelaRound = Varela_Round({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Antigravity",
-  description: "Antigravity — nơi lưu và khám phá cảm hứng bằng hình ảnh.",
-};
+/*
+ * i18n (23/08/2026) — metadata phải THEO NGÔN NGỮ nên không còn là hằng số
+ * `export const metadata` được: đổi sang `generateMetadata` để đọc cookie
+ * locale mỗi request. Giữ nguyên `export const metadata` thì thẻ <title> và
+ * description luôn tiếng Việt kể cả khi người dùng đã chọn English.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return {
+    title: "Antigravity",
+    description: translate(locale, "common.appDescription"),
+  };
+}
 
 /*
  * FE-1a — script chống nháy màu.
@@ -60,14 +71,19 @@ export const metadata: Metadata = {
  */
 const antiFlashScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Đọc cookie `locale` ở SERVER ⇒ HTML đầu tiên đã đúng ngôn ngữ, không có
+  // khoảnh khắc chữ Việt loé lên rồi mới đổi sang tiếng Anh (đây là lý do
+  // ngôn ngữ KHÔNG dùng lại mẹo `mounted` guard của ThemeToggle).
+  const locale = await getLocale();
+
   return (
     <html
-      lang="vi"
+      lang={locale}
       suppressHydrationWarning
       className={`${beVietnamPro.variable} ${varelaRound.variable} h-full antialiased`}
     >
@@ -75,7 +91,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: antiFlashScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <Providers initialLocale={locale}>{children}</Providers>
       </body>
     </html>
   );

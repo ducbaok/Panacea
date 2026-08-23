@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * Hộp xác nhận DÙNG CHUNG (mockup v2 `confirm`) — MỘT component cho mọi hành động
@@ -14,7 +15,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
  * - z-index: token `--z-confirm` (=65), nằm TRÊN modal (60) và DƯỚI toast (70).
  *   KHÔNG chép số 110 của mockup (bẫy §5f mục 1).
  * - Chữ do call-site truyền vào — bản vẽ đã ghi nguyên văn từng chỗ, chép đừng
- *   sáng tác (§9).
+ *   sáng tác (§9). Call-site tự gọi `t()` trước khi truyền; component này chỉ
+ *   dịch HAI nhãn mặc định (Huỷ / Đồng ý) khi call-site không truyền.
  */
 export type ConfirmOptions = {
   title: string;
@@ -30,6 +32,7 @@ const ConfirmContext = createContext<Ctx>({ confirm: async () => false });
 export const useConfirm = () => useContext(ConfirmContext).confirm;
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const [opts, setOpts] = useState<ConfirmOptions | null>(null);
   const resolverRef = useRef<((v: boolean) => void) | null>(null);
   const open = opts !== null;
@@ -118,7 +121,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                   cursor: 'pointer',
                 }}
               >
-                {opts.cancelLabel ?? 'Huỷ'}
+                {opts.cancelLabel ?? t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -135,7 +138,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                   cursor: 'pointer',
                 }}
               >
-                {opts.yesLabel ?? 'Đồng ý'}
+                {opts.yesLabel ?? t('common.agree')}
               </button>
             </div>
           </div>

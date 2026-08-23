@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { BellIcon, SearchIcon } from './icons';
 import { useUnreadCount } from './use-unread-count';
 import { useMeUsername } from './use-me-username';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * TopBar sticky (QĐ-3b, mockup Panacea §3.2).
@@ -31,6 +32,7 @@ import { useMeUsername } from './use-me-username';
  * FE-D1 sẽ dựng ô tìm kiếm to bên trong màn).
  */
 export function TopBar() {
+  const t = useT();
   const router = useRouter();
   const { data: session, status } = useSession();
   const unread = useUnreadCount();
@@ -93,8 +95,8 @@ export function TopBar() {
           name="q"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Tìm pin, người dùng, board"
-          aria-label="Ô tìm kiếm"
+          placeholder={t('nav.searchPlaceholder')}
+          aria-label={t('nav.searchBoxLabel')}
           className="flex-1 bg-transparent outline-none text-sm"
           style={{ color: 'var(--color-foreground)' }}
         />
@@ -103,7 +105,7 @@ export function TopBar() {
       {/* Kính lúp mobile — link tới /search (FE-D1 sẽ dựng màn có ô lớn) */}
       <Link
         href="/search"
-        aria-label="Tìm kiếm"
+        aria-label={t('nav.search')}
         className="md:hidden inline-flex items-center justify-center rounded-full"
         style={{
           width: '40px',
@@ -129,7 +131,11 @@ export function TopBar() {
       {isAuth && (
         <Link
           href="/notifications"
-          aria-label={`Thông báo${unread > 0 ? ` (${unread} chưa đọc)` : ''}`}
+          aria-label={
+            unread > 0
+              ? t('nav.notificationsAriaUnread', { count: unread })
+              : t('nav.notificationsAria')
+          }
           className="relative inline-flex items-center justify-center rounded-full"
           style={{
             width: '40px',
@@ -164,7 +170,7 @@ export function TopBar() {
       {isAuth ? (
         <Link
           href={meUsername ? `/@${meUsername}` : '/'}
-          aria-label="Hồ sơ của tôi"
+          aria-label={t('nav.myProfile')}
           className="inline-flex items-center justify-center rounded-full overflow-hidden"
           style={{
             width: '38px',
@@ -198,7 +204,7 @@ export function TopBar() {
             color: 'var(--color-primary-foreground)',
           }}
         >
-          Đăng nhập
+          {t('nav.login')}
         </Link>
       )}
     </header>

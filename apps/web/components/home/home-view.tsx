@@ -17,6 +17,8 @@ import { PinGrid } from '@/components/pin/pin-grid';
 import { ExploreSection } from '@/components/home/explore-section';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
+import { useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * B1 — Trang chủ (FE-6). Hai vai:
@@ -68,6 +70,7 @@ function readDismissed(): boolean {
 }
 
 function AuthHome() {
+  const t = useT();
   const router = useRouter();
   const toast = useToast();
 
@@ -135,18 +138,18 @@ function AuthHome() {
           >
             <div style={{ minWidth: 240, flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15.5, color: 'var(--color-foreground)' }}>
-                Theo dõi vài người để trang chủ hợp gu hơn
+                {t('home.suggestBannerTitle')}
               </div>
               <div style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4, lineHeight: 1.5 }}>
-                Bạn chưa theo dõi ai, nên đây đang là nội dung khám phá.
+                {t('home.suggestBannerBody')}
               </div>
             </div>
             <SuggestionBlock />
             {/* REVIEW-1 (#5) — nút đóng; ghi nhớ qua localStorage nên F5 không hiện lại */}
             <button
               type="button"
-              aria-label="Đóng gợi ý"
-              title="Đóng gợi ý"
+              aria-label={t('home.dismissSuggest')}
+              title={t('home.dismissSuggest')}
               data-testid="dismiss-suggest"
               onClick={dismissBanner}
               style={{
@@ -175,7 +178,7 @@ function AuthHome() {
         {/* Chip nguồn — 2 chip, active = nguồn THỰC (không phải forced) */}
         <div
           role="tablist"
-          aria-label="Nguồn trang chủ"
+          aria-label={t('home.sourceTablist')}
           style={{
             display: 'inline-flex',
             gap: 4,
@@ -186,12 +189,12 @@ function AuthHome() {
           }}
         >
           <SourceChip
-            label="Đang theo dõi"
+            labelKey="home.tabFollowing"
             active={effectiveTab === 'following'}
             onClick={() => setTab('following')}
           />
           <SourceChip
-            label="Khám phá"
+            labelKey="home.tabExplore"
             active={effectiveTab === 'explore'}
             onClick={() => setTab('explore')}
           />
@@ -224,7 +227,16 @@ function AuthHome() {
   );
 }
 
-function SourceChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function SourceChip({
+  labelKey,
+  active,
+  onClick,
+}: {
+  labelKey: TranslationKey;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -244,7 +256,7 @@ function SourceChip({ label, active, onClick }: { label: string; active: boolean
         whiteSpace: 'nowrap',
       }}
     >
-      {label}
+      {t(labelKey)}
     </button>
   );
 }
@@ -254,6 +266,7 @@ function SourceChip({ label, active, onClick }: { label: string; active: boolean
  * NGUYÊN VĂN 3 chuỗi từ bản vẽ (§9: chép, đừng sáng tác).
  */
 function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
+  const t = useT();
   return (
     <div
       data-screen="home"
@@ -271,7 +284,7 @@ function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
       }}
     >
       <div style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 21, color: 'var(--color-foreground)' }}>
-        Bạn chưa theo dõi ai
+        {t('home.emptyFollowingTitle')}
       </div>
       <div
         style={{
@@ -282,7 +295,7 @@ function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
           maxWidth: 420,
         }}
       >
-        Khi bạn theo dõi ai đó, pin mới của họ sẽ hiện ở đây.
+        {t('home.emptyFollowingBody')}
       </div>
       <button
         type="button"
@@ -299,7 +312,7 @@ function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
           cursor: 'pointer',
         }}
       >
-        Xem Khám phá
+        {t('home.seeExplore')}
       </button>
     </div>
   );
@@ -311,6 +324,7 @@ function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
  * KHÔNG có Hoàn tác — chỉ bỏ-theo-dõi mới có, §1 toast).
  */
 function SuggestionBlock() {
+  const t = useT();
   const toast = useToast();
   const { data } = useQuery<SuggestedUsersQuery>(SuggestedUsersDocument, {
     variables: { first: 3 },
@@ -325,14 +339,16 @@ function SuggestionBlock() {
     setFollowed((s) => new Set(s).add(u.id)); // optimistic: gỡ chip ngay
     try {
       await followMutation({ variables: { userId: u.id } });
-      toast({ message: `Đã theo dõi @${u.username ?? u.name ?? 'người này'}` });
+      toast({
+        message: t('home.followed', { handle: u.username ?? u.name ?? t('home.someone') }),
+      });
     } catch {
       setFollowed((s) => {
         const n = new Set(s);
         n.delete(u.id);
         return n;
       });
-      toast({ message: 'Không theo dõi được, thử lại sau.' });
+      toast({ message: t('home.followFailed') });
     }
   };
 
@@ -357,7 +373,10 @@ function SuggestionBlock() {
               {u.name ?? u.username}
             </div>
             <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>
-              {formatCount(u.followerCount ?? 0)} người theo dõi
+              {t('home.followerCount', {
+                count: u.followerCount ?? 0,
+                countText: formatCount(u.followerCount ?? 0),
+              })}
             </div>
           </div>
           <button
@@ -374,7 +393,7 @@ function SuggestionBlock() {
               cursor: 'pointer',
             }}
           >
-            Theo dõi
+            {t('home.follow')}
           </button>
         </div>
       ))}

@@ -10,6 +10,7 @@ import { PinGrid } from '@/components/pin/pin-grid';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * D1 — Tìm kiếm (FE-8). 3 tab Pin / Người dùng / Board.
@@ -31,6 +32,7 @@ type Tab = 'pin' | 'user' | 'board';
 const PAGE = 20;
 
 export function SearchView({ initialQuery }: { initialQuery: string }) {
+  const t = useT();
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [submitted, setSubmitted] = useState(initialQuery.trim());
@@ -75,8 +77,8 @@ export function SearchView({ initialQuery }: { initialQuery: string }) {
             name="q"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tìm pin, người dùng, board"
-            aria-label="Ô tìm kiếm"
+            placeholder={t('search.placeholder')}
+            aria-label={t('search.boxAria')}
             className="flex-1 bg-transparent outline-none text-sm"
             style={{ color: 'var(--color-foreground)', width: '100%' }}
           />
@@ -91,14 +93,14 @@ export function SearchView({ initialQuery }: { initialQuery: string }) {
               color: 'var(--color-foreground)',
             }}
           >
-            Kết quả cho “{submitted}”
+            {t('search.resultsFor', { query: submitted })}
           </h1>
         )}
 
         {hasQuery && (
           <div
             role="tablist"
-            aria-label="Loại kết quả"
+            aria-label={t('search.tabsAria')}
             style={{
               display: 'inline-flex',
               gap: 4,
@@ -108,15 +110,15 @@ export function SearchView({ initialQuery }: { initialQuery: string }) {
               marginBottom: 20,
             }}
           >
-            <TabPill label="Pin" active={tab === 'pin'} onClick={() => setTab('pin')} />
-            <TabPill label="Người dùng" active={tab === 'user'} onClick={() => setTab('user')} />
-            <TabPill label="Board" active={tab === 'board'} onClick={() => setTab('board')} />
+            <TabPill label={t('search.tabPins')} active={tab === 'pin'} onClick={() => setTab('pin')} />
+            <TabPill label={t('search.tabUsers')} active={tab === 'user'} onClick={() => setTab('user')} />
+            <TabPill label={t('search.tabBoards')} active={tab === 'board'} onClick={() => setTab('board')} />
           </div>
         )}
       </div>
 
       {!hasQuery ? (
-        <StateBlock title="Nhập từ khoá để tìm pin, người dùng và board." />
+        <StateBlock title={t('search.prompt')} />
       ) : tab === 'pin' ? (
         <PinResults query={submitted} />
       ) : tab === 'user' ? (
@@ -131,12 +133,14 @@ export function SearchView({ initialQuery }: { initialQuery: string }) {
 // ─── Tab con ───────────────────────────────────────────────────────────────────
 
 function PinResults({ query }: { query: string }) {
+  const t = useT();
   const router = useRouter();
   const { items, loading, loadingMore, hasNextPage, loadMore, error } = useSearchPins({
     query,
     first: PAGE,
   });
-  if (error) return <StateBlock title="Không tải được kết quả" subtitle="Kiểm tra mạng rồi thử lại." />;
+  if (error)
+    return <StateBlock title={t('search.loadFailed')} subtitle={t('common.checkNetwork')} />;
   return (
     <>
       <PinGrid
@@ -149,8 +153,8 @@ function PinResults({ query }: { query: string }) {
       />
       {!loading && items.length === 0 && (
         <StateBlock
-          title="Không có pin nào khớp"
-          subtitle="Thử từ khoá ngắn hơn, hoặc xem tab Người dùng và Board."
+          title={t('search.noPins')}
+          subtitle={t('search.noPinsHint')}
         />
       )}
     </>
@@ -158,14 +162,16 @@ function PinResults({ query }: { query: string }) {
 }
 
 function UserResults({ query }: { query: string }) {
+  const t = useT();
   const { items, loading, loadingMore, hasNextPage, loadMore, error } = useSearchUsers({
     query,
     first: PAGE,
   });
-  if (error) return <StateBlock title="Không tải được kết quả" subtitle="Kiểm tra mạng rồi thử lại." />;
+  if (error)
+    return <StateBlock title={t('search.loadFailed')} subtitle={t('common.checkNetwork')} />;
   if (loading && items.length === 0) return <LoadingBlock />;
   if (items.length === 0)
-    return <StateBlock title="Không tìm thấy người dùng nào" subtitle="Thử tên hoặc @tên đăng nhập khác." />;
+    return <StateBlock title={t('search.noUsers')} subtitle={t('search.noUsersHint')} />;
   return (
     <div style={{ padding: '0 16px 32px', maxWidth: 640 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -179,18 +185,20 @@ function UserResults({ query }: { query: string }) {
 }
 
 function BoardResults({ query }: { query: string }) {
+  const t = useT();
   const router = useRouter();
   const { items, loading, loadingMore, hasNextPage, loadMore, error } = useSearchBoards({
     query,
     first: PAGE,
   });
-  if (error) return <StateBlock title="Không tải được kết quả" subtitle="Kiểm tra mạng rồi thử lại." />;
+  if (error)
+    return <StateBlock title={t('search.loadFailed')} subtitle={t('common.checkNetwork')} />;
   if (loading && items.length === 0) return <LoadingBlock />;
   if (items.length === 0)
     return (
       <StateBlock
-        title="Không có board nào khớp"
-        subtitle="Thử từ khoá ngắn hơn, hoặc xem tab Pin và Người dùng."
+        title={t('search.noBoards')}
+        subtitle={t('search.noBoardsHint')}
       />
     );
   return (
@@ -216,6 +224,7 @@ function BoardResults({ query }: { query: string }) {
 type SearchUser = ReturnType<typeof useSearchUsers>['items'][number];
 
 function SearchUserRow({ user }: { user: SearchUser }) {
+  const t = useT();
   const router = useRouter();
   const { status } = useSession();
   const { openAuthPrompt } = useAuthPrompt();
@@ -230,7 +239,7 @@ function SearchUserRow({ user }: { user: SearchUser }) {
   async function toggle(e: React.MouseEvent) {
     e.stopPropagation();
     if (status !== 'authenticated') {
-      openAuthPrompt('theo dõi người này');
+      openAuthPrompt('auth.actionFollow');
       return;
     }
     if (busy) return;
@@ -243,7 +252,7 @@ function SearchUserRow({ user }: { user: SearchUser }) {
     } catch {
       setFollowing(!next);
       toast({
-        message: next ? 'Không theo dõi được, thử lại sau.' : 'Không bỏ theo dõi được, thử lại sau.',
+        message: next ? t('profile.followFailed') : t('search.unfollowFailed'),
       });
     } finally {
       setBusy(false);
@@ -316,7 +325,7 @@ function SearchUserRow({ user }: { user: SearchUser }) {
               }
         }
       >
-        {following ? 'Đang theo dõi' : 'Theo dõi'}
+        {following ? t('profile.following') : t('profile.follow')}
       </button>
     </div>
   );
@@ -408,14 +417,16 @@ function StateBlock({ title, subtitle }: { title: string; subtitle?: string }) {
 }
 
 function LoadingBlock() {
+  const t = useT();
   return (
     <div style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
-      Đang tải…
+      {t('common.loading')}
     </div>
   );
 }
 
 function MoreButton({ loadingMore, onClick }: { loadingMore: boolean; onClick: () => void }) {
+  const t = useT();
   const style: CSSProperties = {
     marginTop: 10,
     width: '100%',
@@ -429,7 +440,7 @@ function MoreButton({ loadingMore, onClick }: { loadingMore: boolean; onClick: (
   };
   return (
     <button type="button" onClick={onClick} disabled={loadingMore} style={style}>
-      {loadingMore ? 'Đang tải…' : 'Xem thêm'}
+      {loadingMore ? t('common.loading') : t('common.loadMore')}
     </button>
   );
 }

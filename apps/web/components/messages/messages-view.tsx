@@ -11,6 +11,7 @@ import { ChatPanel } from './chat-panel';
 import { PaneHeader } from './pane-header';
 import { ConversationRow, otherMember } from './conversation-row';
 import { CONV_PAGE_SIZE } from './message-cache';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * D3 + D4 — `/messages` (FE-9). Khung 2 pane, số đo từ `Panacea-v2.1.html`:
@@ -22,6 +23,7 @@ import { CONV_PAGE_SIZE } from './message-cache';
  * nút "Tin nhắn" ở hồ sơ C1b link thẳng vào đúng hội thoại được.
  */
 export function MessagesView({ activeId }: { activeId: string | null }) {
+  const t = useT();
   const router = useRouter();
   const { status } = useSession();
   const ws = useWsStatus();
@@ -81,7 +83,7 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
               display: 'inline-block',
             }}
           />
-          Đang kết nối lại…
+          {t('messages.reconnecting')}
         </div>
       )}
 
@@ -115,17 +117,17 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
             minHeight: 0,
           }}
         >
-          <PaneHeader>Tin nhắn</PaneHeader>
+          <PaneHeader>{t('messages.title')}</PaneHeader>
 
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {error ? (
-            <PaneNote title="Không tải được danh sách trò chuyện." />
+            <PaneNote title={t('messages.listLoadFailed')} />
           ) : (loading || !authed) && items.length === 0 ? (
-            <PaneNote title="Đang tải…" />
+            <PaneNote title={t('common.loading')} />
           ) : items.length === 0 ? (
             <PaneNote
-              title="Chưa có cuộc trò chuyện nào."
-              subtitle="Tin nhắn chỉ mở khi hai người theo dõi nhau."
+              title={t('messages.emptyList')}
+              subtitle={t('messages.mutualOnly')}
             />
           ) : (
             <>
@@ -156,7 +158,7 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
                     cursor: 'pointer',
                   }}
                 >
-                  {loadingMore ? 'Đang tải…' : 'Xem thêm'}
+                  {loadingMore ? t('common.loading') : t('common.loadMore')}
                 </button>
               )}
             </>
@@ -195,7 +197,7 @@ export function MessagesView({ activeId }: { activeId: string | null }) {
                 textAlign: 'center',
               }}
             >
-              Chọn một cuộc trò chuyện để bắt đầu.
+              {t('messages.pickConversation')}
             </div>
           </div>
         )}

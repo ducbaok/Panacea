@@ -15,6 +15,7 @@ import {
 import { REACTION_EMOJI } from '@/lib/reactions';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * FE-3 — Thẻ pin (khung + 6 trạng thái §3.3 của brief).
@@ -114,6 +115,7 @@ type Props = {
 };
 
 export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
+  const t = useT();
   const imgRef = useRef<HTMLImageElement>(null);
   const [imageStatus, setImageStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
@@ -155,7 +157,7 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
   // Lưu nhanh: toggle lưu/bỏ-lưu vào HỒ SƠ (boardId null) — KHÔNG mở picker (Q3).
   const toggleSave = async () => {
     if (sessionStatus === 'unauthenticated') {
-      openAuthPrompt('lưu pin này');
+      openAuthPrompt('auth.actionSavePin');
       return;
     }
     if (saveBusy) return;
@@ -177,13 +179,13 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
             }),
         });
         toast({
-          message: 'Đã bỏ lưu',
-          action: { label: 'Hoàn tác', onClick: () => void resaveQuiet() },
+          message: t('pin.unsaved'),
+          action: { label: t('pin.undo'), onClick: () => void resaveQuiet() },
         });
       }
     } catch {
       setOptimisticSaved(!next); // rollback
-      toast({ message: 'Không lưu được, thử lại sau.' });
+      toast({ message: t('pin.saveFailed') });
     } finally {
       setSaveBusy(false);
     }
@@ -260,7 +262,7 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
         {imageStatus === 'error' && (
           <div
             role="img"
-            aria-label="Không tải được ảnh"
+            aria-label={t('pin.imageLoadFailed')}
             style={{
               position: 'absolute',
               inset: 0,
@@ -274,7 +276,7 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
               padding: '0 12px',
             }}
           >
-            Không tải được ảnh
+            {t('pin.imageLoadFailed')}
           </div>
         )}
 
@@ -301,14 +303,14 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
             color: isSaved ? 'var(--color-background)' : 'var(--color-primary-foreground)',
           }}
         >
-          {isSaved ? 'Đã lưu' : 'Lưu'}
+          {isSaved ? t('pin.saved') : t('pin.save')}
         </button>
 
         {/* Menu ⋯ — chỉ hiện khi hover (trạng thái 2). FE-3 để trống hành vi */}
         <button
           type="button"
           onClick={(e) => e.stopPropagation()}
-          aria-label="Thêm tuỳ chọn"
+          aria-label={t('pin.moreOptions')}
           className="opacity-0 group-hover:opacity-100 transition-opacity"
           style={{
             position: 'absolute',
@@ -333,7 +335,7 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
         {/* Chỉ báo cảm xúc — trạng thái 6 (đã thả cảm xúc) */}
         {item.viewerReaction && (
           <div
-            aria-label={`Đã thả cảm xúc ${item.viewerReaction}`}
+            aria-label={t('pin.reactedAria', { reaction: item.viewerReaction })}
             style={{
               position: 'absolute',
               bottom: '9px',

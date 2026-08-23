@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { authStyles, AuthHeader } from '@/components/auth/auth-ui';
+import { useT } from '@/lib/i18n/provider';
 
 /**
  * A5 — Xác minh email. 9 trạng thái (mockup `view=verify`):
@@ -30,6 +31,7 @@ type Stage =
   | 'neterr';
 
 export function VerifyView({ token }: { token: string | null }) {
+  const t = useT();
   const { status } = useSession();
   const loggedIn = status === 'authenticated';
   const [stage, setStage] = useState<Stage>('wait');
@@ -86,9 +88,9 @@ export function VerifyView({ token }: { token: string | null }) {
       <Frame
         glyph="!"
         tone="danger"
-        title="Thiếu mã xác thực"
-        body="URL không có tham số token."
-        note="Liên kết không hợp lệ. Hãy yêu cầu liên kết mới."
+        title={t('auth.verifyNoTokenTitle')}
+        body={t('auth.verifyNoTokenBody')}
+        note={t('auth.resetInvalidLink')}
       />
     );
   }
@@ -97,15 +99,15 @@ export function VerifyView({ token }: { token: string | null }) {
     return (
       <Frame
         glyph="✉"
-        title="Xác thực email của bạn"
-        body="Bấm nút bên dưới để hoàn tất. Màn không tự chạy, để trình đọc mail không tiêu mất liên kết."
-        primary={{ label: 'Xác thực email', onClick: doVerify }}
+        title={t('auth.verifyWaitTitle')}
+        body={t('auth.verifyWaitBody')}
+        primary={{ label: t('auth.verifyAction'), onClick: doVerify }}
       />
     );
   }
 
   if (stage === 'loading') {
-    return <Frame spinner title="Đang xác thực email…" body="Chờ một chút." />;
+    return <Frame spinner title={t('auth.verifyLoadingTitle')} body={t('auth.verifyLoadingBody')} />;
   }
 
   if (stage === 'ok') {
@@ -113,10 +115,10 @@ export function VerifyView({ token }: { token: string | null }) {
       <Frame
         glyph="✓"
         tone="success"
-        note="Email đã được xác thực."
-        title="Xong rồi"
-        body="Tài khoản của bạn đã sẵn sàng."
-        primaryLink={{ label: 'Về trang chủ', href: '/' }}
+        note={t('auth.verifyOkNote')}
+        title={t('auth.verifyOkTitle')}
+        body={t('auth.verifyOkBody')}
+        primaryLink={{ label: t('common.goHome'), href: '/' }}
       />
     );
   }
@@ -126,10 +128,10 @@ export function VerifyView({ token }: { token: string | null }) {
       <Frame
         glyph="!"
         tone="danger"
-        note="Không kết nối được máy chủ. Thử lại sau."
-        title="Không kết nối được"
-        body="Kiểm tra mạng rồi thử lại."
-        primary={{ label: 'Thử lại', onClick: doVerify }}
+        note={t('auth.errNetwork')}
+        title={t('auth.verifyNetTitle')}
+        body={t('common.checkNetwork')}
+        primary={{ label: t('common.retry'), onClick: doVerify }}
       />
     );
   }
@@ -138,9 +140,9 @@ export function VerifyView({ token }: { token: string | null }) {
     return (
       <Frame
         glyph="✉"
-        title="Liên kết đã hết hạn"
-        body="Đang gửi email xác thực mới."
-        primary={{ label: 'Đang gửi…', onClick: () => {}, disabled: true }}
+        title={t('auth.verifyExpiredTitle')}
+        body={t('auth.verifyResendingBody')}
+        primary={{ label: t('auth.sending'), onClick: () => {}, disabled: true }}
       />
     );
   }
@@ -151,11 +153,11 @@ export function VerifyView({ token }: { token: string | null }) {
       <Frame
         glyph="✓"
         tone="success"
-        note="Đã gửi email mới. Kiểm tra hộp thư."
-        title="Đã gửi lại"
-        body="Chưa thấy email? Chờ hết 60 giây rồi gửi tiếp."
+        note={t('auth.verifyResentNote')}
+        title={t('auth.verifyResentTitle')}
+        body={t('auth.verifyResentBody')}
         primary={{
-          label: waiting ? `Gửi lại sau ${cooldown} giây` : 'Gửi lại email',
+          label: waiting ? t('auth.verifyResendIn', { sec: cooldown }) : t('auth.verifyResend'),
           onClick: doResend,
           disabled: waiting,
         }}
@@ -168,28 +170,26 @@ export function VerifyView({ token }: { token: string | null }) {
       <Frame
         glyph="!"
         tone="danger"
-        note="Liên kết đã hết hạn."
-        title="Liên kết đã hết hạn"
-        body="Liên kết xác thực có hiệu lực trong 1 giờ."
-        primary={{ label: 'Gửi lại email', onClick: doResend }}
+        note={t('auth.linkExpired')}
+        title={t('auth.verifyExpiredTitle')}
+        body={t('auth.verifyExpiredBody')}
+        primary={{ label: t('auth.verifyResend'), onClick: doResend }}
       />
     );
   }
 
   // invalid / malformed — §4.4: nút gửi lại CHỈ khi đang đăng nhập.
   const invalidBody =
-    stage === 'malformed'
-      ? 'Mã xác thực không đọc được. Hãy mở liên kết mới nhất trong hộp thư.'
-      : 'Hãy mở liên kết mới nhất trong hộp thư.';
+    stage === 'malformed' ? t('auth.verifyMalformedBody') : t('auth.verifyInvalidBody');
   return (
     <Frame
       glyph="!"
       tone="danger"
-      note="Liên kết không hợp lệ."
-      title="Không dùng được liên kết này"
+      note={t('auth.linkInvalid')}
+      title={t('auth.verifyBadTitle')}
       body={invalidBody}
-      primary={loggedIn ? { label: 'Gửi lại email', onClick: doResend } : undefined}
-      secondaryLink={loggedIn ? undefined : { label: 'Đăng nhập rồi thử lại', href: '/login' }}
+      primary={loggedIn ? { label: t('auth.verifyResend'), onClick: doResend } : undefined}
+      secondaryLink={loggedIn ? undefined : { label: t('auth.loginAndRetry'), href: '/login' }}
     />
   );
 }
@@ -219,6 +219,7 @@ function Frame({
   primaryLink?: LinkBtn;
   secondaryLink?: LinkBtn;
 }) {
+  const t = useT();
   const markColor =
     tone === 'success'
       ? 'var(--color-success)'
@@ -227,7 +228,7 @@ function Frame({
         : 'var(--color-primary-strong)';
   return (
     <div style={authStyles.column}>
-      <AuthHeader subtitle="Xác minh email" />
+      <AuthHeader subtitle={t('auth.verifySubtitle')} />
       <div style={{ ...authStyles.card, alignItems: 'center', textAlign: 'center' }}>
         {spinner ? (
           <div
@@ -289,7 +290,7 @@ function Frame({
       </div>
       <div style={authStyles.backRow}>
         <Link href="/login" style={authStyles.linkMuted}>
-          ← Quay lại đăng nhập
+          ← {t('auth.backToLogin')}
         </Link>
       </div>
     </div>

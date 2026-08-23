@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { MessagesQuery } from '@/lib/gql/graphql';
+import { useT } from '@/lib/i18n/provider';
 
 export type MessageItem = MessagesQuery['messages']['items'][number] & {
   /** Cờ CHỈ SỐNG TRONG PHIÊN — xem ghi chú "Ba trạng thái" bên dưới. */
@@ -48,10 +49,11 @@ export function MessageBubble({
   mine: boolean;
   onRevoke?: () => void;
 }) {
+  const t = useT();
   const [hover, setHover] = useState(false);
   const revoked = !!m.revokedLocally;
   const pin = revoked ? null : m.attachedPin;
-  const text = revoked ? 'Tin nhắn đã thu hồi' : m.content;
+  const text = revoked ? t('messages.revoked') : m.content;
   const pinOnly = !!pin && !text;
 
   return (
@@ -67,8 +69,8 @@ export function MessageBubble({
         <button
           type="button"
           onClick={onRevoke}
-          aria-label="Thu hồi"
-          title="Thu hồi"
+          aria-label={t('messages.revoke')}
+          title={t('messages.revoke')}
           style={{
             width: 26,
             height: 26,

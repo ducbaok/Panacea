@@ -5,7 +5,9 @@ import { useSession } from 'next-auth/react';
 import { useMutation } from '@apollo/client/react';
 import { UpdateProfileDocument, MeDocument } from '@/lib/gql/graphql';
 import { precheckFile, uploadImage, UploadError, type UploadErrorKind } from '@/lib/upload';
-import { uploadErrorText } from '@/lib/errors/upload-error-vi';
+import { uploadErrorKey } from '@/lib/errors/upload-error';
+import { useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 import { useToast } from '@/components/ui/toast';
 
 /**
@@ -57,14 +59,20 @@ export interface UseAvatarUploadResult {
  */
 export type ProfileImageField = 'avatarUrl' | 'coverUrl';
 
-const FIELD_LABEL: Record<ProfileImageField, string> = {
-  avatarUrl: 'ảnh đại diện',
-  coverUrl: 'ảnh bìa',
+/**
+ * i18n (23/08/2026) — trước là FIELD_LABEL chứa danh từ ('ảnh đại diện') rồi
+ * ghép `Đã cập nhật ${label}.`. Tiếng Anh không ghép được như vậy (viết hoa
+ * đầu câu + trật tự khác), nên đổi sang MỘT key cho cả câu.
+ */
+const FIELD_DONE_KEY: Record<ProfileImageField, TranslationKey> = {
+  avatarUrl: 'profile.avatarUpdated',
+  coverUrl: 'profile.coverUpdated',
 };
 
 export function useAvatarUpload(
   field: ProfileImageField = 'avatarUrl',
 ): UseAvatarUploadResult {
+  const t = useT();
   const { data: session } = useSession();
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +96,7 @@ export function useAvatarUpload(
       if (pre) {
         setErrorKind(pre);
         setPhase('error');
-        toast({ message: uploadErrorText(pre) });
+        toast({ message: t(uploadErrorKey(pre)) });
         return;
       }
 
@@ -105,15 +113,15 @@ export function useAvatarUpload(
           refetchQueries: [{ query: MeDocument }],
         });
         setPhase('idle');
-        toast({ message: `Đã cập nhật ${FIELD_LABEL[field]}.` });
+        toast({ message: t(FIELD_DONE_KEY[field]) });
       } catch (err) {
         const kind: UploadErrorKind = err instanceof UploadError ? err.kind : 'unknown';
         setErrorKind(kind);
         setPhase('error');
-        toast({ message: uploadErrorText(kind) });
+        toast({ message: t(uploadErrorKey(kind)) });
       }
     },
-    [field, session?.accessToken, toast, updateProfile],
+    [field, session?.accessToken, t, toast, updateProfile],
   );
 
   return {
@@ -126,6 +134,6 @@ export function useAvatarUpload(
       onChange: (e) => void onChange(e),
     },
     phase,
-    errorText: phase === 'error' ? uploadErrorText(errorKind) : null,
+    errorText: phase === 'error' ? t(uploadErrorKey(errorKind)) : null,
   };
 }

@@ -19,7 +19,9 @@ import { useSearchUsers } from '@/lib/hooks/usePaginatedQuery';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
-import { translateBoardError } from '@/lib/errors/board-error-vi';
+import { boardErrorKey } from '@/lib/errors/board-error';
+import { useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * C7 — Cộng tác viên (FE-10, view=collabs). Route `/board/[id]/collaborators`.
@@ -56,6 +58,7 @@ import { translateBoardError } from '@/lib/errors/board-error-vi';
 type C7State = 'idle' | 'notfound' | 'owneronly' | 'self' | 'neterr' | 'denied';
 
 export function CollaboratorsView({ boardId }: { boardId: string }) {
+  const t = useT();
   const router = useRouter();
   const confirm = useConfirm();
   const toast = useToast();
@@ -108,21 +111,26 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
     if (bannerOverride) return bannerOverride;
     switch (effectiveState) {
       case 'owneronly':
-        return translateBoardError('Only board owner can invite collaborators');
+        return t('errors.board.onlyOwnerInvites');
       case 'self':
-        return translateBoardError('Cannot invite yourself');
+        return t('errors.board.cannotInviteSelf');
       case 'neterr':
-        return 'Không tải được danh sách cộng tác viên.';
+        return t('board.collabLoadFailed');
       case 'denied':
-        return translateBoardError('You do not have editor access to this board');
+        return t('errors.board.noEditPermission');
       default:
         return null;
     }
   })();
 
-  function showError(err: unknown, fallback: string) {
+  /**
+   * i18n (23/08/2026) — `fallback` nay là KEY, không phải chữ: chuỗi lạ từ
+   * backend rơi về câu dự phòng của MÀN, và câu đó cũng phải đổi theo ngôn ngữ.
+   */
+  function showError(err: unknown, fallbackKey: TranslationKey) {
     const raw = err instanceof Error ? err.message : '';
-    setBannerOverride(translateBoardError(raw) ?? fallback);
+    const key = boardErrorKey(raw);
+    setBannerOverride(t(key ?? fallbackKey));
     setState('neterr');
   }
 
@@ -148,9 +156,11 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
       });
       setState('idle');
       await boardQuery.refetch();
-      toast({ message: `Đã thêm ${user.name || `@${user.username ?? ''}`}` });
+      toast({
+        message: t('board.collabAdded', { name: user.name || `@${user.username ?? ''}` }),
+      });
     } catch (err) {
-      showError(err, 'Không mời được người này, thử lại sau.');
+      showError(err, 'board.inviteFailed');
     } finally {
       setBusy(false);
     }
@@ -165,7 +175,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
       setState('idle');
       await boardQuery.refetch();
     } catch (err) {
-      showError(err, 'Không đổi được vai trò, thử lại sau.');
+      showError(err, 'board.roleChangeFailed');
     } finally {
       setBusy(false);
     }
@@ -175,9 +185,9 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
     if (!isOwner || busy) return;
     const label = user.name || `@${user.username ?? ''}`;
     const ok = await confirm({
-      title: `Gỡ ${label} khỏi board?`,
-      body: 'Họ sẽ mất quyền sửa board này.',
-      yesLabel: 'Gỡ',
+      title: t('board.removeTitle', { name: label }),
+      body: t('board.removeBody'),
+      yesLabel: t('board.removeYes'),
       danger: true,
     });
     if (!ok) return;
@@ -188,9 +198,9 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
       await boardQuery.refetch();
       // Không Hoàn tác: mời lại là một hành động khác (tạo lại quan hệ), không
       // phải phép đảo của gỡ — luật toast.
-      toast({ message: `Đã gỡ ${label}` });
+      toast({ message: t('board.removed', { name: label }) });
     } catch (err) {
-      showError(err, 'Không gỡ được cộng tác viên, thử lại sau.');
+      showError(err, 'board.removeFailed');
     } finally {
       setBusy(false);
     }
@@ -200,9 +210,9 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
   async function onLeave() {
     if (!meId || busy) return;
     const ok = await confirm({
-      title: 'Rời board này?',
-      body: 'Bạn sẽ mất quyền sửa; chủ board có thể mời lại.',
-      yesLabel: 'Rời board',
+      title: t('board.leaveTitle'),
+      body: t('board.leaveBody'),
+      yesLabel: t('board.leaveYes'),
       danger: true,
     });
     if (!ok) return;
@@ -210,26 +220,26 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
     setBusy(true);
     try {
       await removeM({ variables: { boardId, userId: meId } });
-      toast({ message: 'Đã rời board' });
+      toast({ message: t('board.leftBoard') });
       router.push(`/board/${boardId}`);
     } catch (err) {
-      showError(err, 'Không rời được board, thử lại sau.');
+      showError(err, 'board.leaveFailed');
     } finally {
       setBusy(false);
     }
   }
 
   if (boardQuery.loading && !board) {
-    return <Centered>Đang tải board…</Centered>;
+    return <Centered>{t('board.loadingBoard')}</Centered>;
   }
   if (boardQuery.error || !board) {
     return (
       <Centered>
         <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--color-foreground)' }}>
-          Không tìm thấy board
+          {t('board.notFoundTitle')}
         </div>
         <div style={{ fontSize: 13.5, color: 'var(--color-muted)', marginTop: 6 }}>
-          Board có thể đã bị xoá, hoặc bạn không có quyền xem.
+          {t('board.notFoundBody')}
         </div>
       </Centered>
     );
@@ -237,8 +247,8 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
 
   const memberCount = collaborators.length + (owner ? 1 : 0);
   const subtitle = isOwner
-    ? 'Bạn là chủ board — mời, đổi vai trò, gỡ người khác.'
-    : 'Bạn là cộng tác viên — chỉ xem danh sách.';
+    ? t('board.ownerHint')
+    : t('board.collabHint');
 
   /**
    * Người đã ở trong board thì nút Mời khoá lại (guard §4.6 — mời trùng làm
@@ -265,11 +275,11 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
         onClick={() => router.push(`/board/${boardId}`)}
         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13.5, color: 'var(--color-muted)', fontWeight: 600, padding: 0, marginBottom: 14 }}
       >
-        ← Quay lại board
+        ← {t('board.backToBoard')}
       </button>
 
       <h1 style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 24, margin: '0 0 4px', color: 'var(--color-foreground)' }}>
-        Cộng tác viên
+        {t('board.collaborators')}
       </h1>
       {canManage && (
         <p style={{ fontSize: 13.5, color: 'var(--color-muted)', margin: '0 0 18px' }}>{subtitle}</p>
@@ -306,13 +316,13 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
             }}
           >
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: 'var(--color-foreground)' }}>
-              Mời người vào board
+              {t('board.invitePeople')}
             </div>
             <input
               value={rawQuery}
               onChange={(e) => setRawQuery(e.target.value)}
-              placeholder="Gõ tên hoặc @username"
-              aria-label="Tìm người để mời"
+              placeholder={t('board.invitePlaceholder')}
+              aria-label={t('board.inviteSearchAria')}
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
@@ -327,11 +337,11 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
             />
             {/* Mời bằng userId nên không có ô email — chép ý bản vẽ. */}
             <div style={{ fontSize: 11.5, color: 'var(--color-muted)', lineHeight: 1.6, marginTop: 10 }}>
-              Mời xong vào thẳng danh sách, không có trạng thái chờ đồng ý.
+              {t('board.inviteNoPending')}
             </div>
 
             {debounced !== '' && searchResults.loading && searchResults.items.length === 0 && (
-              <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--color-muted)' }}>Đang tìm…</div>
+              <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--color-muted)' }}>{t('board.searching')}</div>
             )}
 
             {debounced !== '' && !searchResults.loading && searchResults.items.length === 0 && (
@@ -345,11 +355,11 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                 }}
               >
                 <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--color-foreground)' }}>
-                  Không tìm thấy ai khớp “{debounced}”
+                  {t('board.noPeopleMatch', { query: debounced })}
                 </div>
                 {/* Bản vẽ gõ sai "hoạc" — sửa thành "hoặc" (§0c, đã duyệt). */}
                 <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginTop: 4 }}>
-                  Thử tên hoặc @username khác.
+                  {t('board.tryAnotherName')}
                 </div>
               </div>
             )}
@@ -381,7 +391,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                         type="button"
                         onClick={() => void onInvite(u)}
                         disabled={already || busy}
-                        title={already ? 'Người này đã ở trong board.' : undefined}
+                        title={already ? t('board.alreadyMember') : undefined}
                         style={{
                           padding: '8px 16px',
                           borderRadius: 999,
@@ -395,7 +405,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                           flex: 'none',
                         }}
                       >
-                        Mời
+                        {t('board.invite')}
                       </button>
                     </div>
                   );
@@ -416,7 +426,10 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
             }}
           >
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: 'var(--color-foreground)' }}>
-              {formatCount(memberCount)} người trong board
+              {t('board.memberCount', {
+                count: memberCount,
+                countText: formatCount(memberCount),
+              })}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -451,7 +464,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                       flex: 'none',
                     }}
                   >
-                    Chủ board
+                    {t('board.owner')}
                   </span>
                 </div>
               )}
@@ -479,7 +492,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                     value={c.role}
                     onChange={(e) => void onChangeRole(c.user.id, e.target.value as CollaboratorRole)}
                     disabled={!isOwner || busy}
-                    aria-label={`Vai trò của ${c.user.name ?? c.user.username}`}
+                    aria-label={t('board.roleOf', { name: c.user.name ?? c.user.username ?? '' })}
                     style={{
                       padding: '8px 10px',
                       borderRadius: 10,
@@ -493,8 +506,8 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                       flex: 'none',
                     }}
                   >
-                    <option value="VIEWER">Người xem</option>
-                    <option value="EDITOR">Người sửa</option>
+                    <option value="VIEWER">{t('board.roleViewer')}</option>
+                    <option value="EDITOR">{t('board.roleEditor')}</option>
                   </select>
                   {isOwner && (
                     <button
@@ -513,7 +526,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                         flex: 'none',
                       }}
                     >
-                      Gỡ
+                      {t('board.removeYes')}
                     </button>
                   )}
                 </div>
@@ -521,7 +534,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
 
               {collaborators.length === 0 && (
                 <div style={{ fontSize: 13, color: 'var(--color-muted)', lineHeight: 1.6 }}>
-                  Board này chưa có cộng tác viên nào.
+                  {t('board.noCollaborators')}
                 </div>
               )}
             </div>
@@ -545,7 +558,7 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
                   cursor: busy ? 'not-allowed' : 'pointer',
                 }}
               >
-                Rời board
+                {t('board.leaveYes')}
               </button>
             )}
           </div>

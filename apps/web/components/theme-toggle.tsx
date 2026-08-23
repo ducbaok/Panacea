@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * ThemeToggle 3 trạng thái (QĐ-6b).
@@ -30,10 +32,14 @@ type ThemeChoice = 'light' | 'dark' | 'system';
 
 const STORAGE_KEY = 'theme';
 
-const CHOICES: ReadonlyArray<{ value: ThemeChoice; label: string; title: string }> = [
-  { value: 'light', label: 'Sáng', title: 'Giao diện sáng' },
-  { value: 'dark', label: 'Tối', title: 'Giao diện tối' },
-  { value: 'system', label: 'Auto', title: 'Theo hệ thống' },
+/**
+ * i18n (23/08/2026): bảng chỉ giữ KEY, chữ do `t()` trong component dựng.
+ * Trước đây là chuỗi Việt cứng ⇒ chip đứng yên tiếng Việt khi chọn English.
+ */
+const CHOICES: ReadonlyArray<{ value: ThemeChoice; labelKey: TranslationKey; titleKey: TranslationKey }> = [
+  { value: 'light', labelKey: 'settings.themeLight', titleKey: 'settings.themeLightTitle' },
+  { value: 'dark', labelKey: 'settings.themeDark', titleKey: 'settings.themeDarkTitle' },
+  { value: 'system', labelKey: 'settings.themeAuto', titleKey: 'settings.themeAutoTitle' },
 ];
 
 function readStoredChoice(): ThemeChoice {
@@ -67,6 +73,7 @@ function applyChoice(choice: ThemeChoice) {
 }
 
 export function ThemeToggle() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const [choice, setChoice] = useState<ThemeChoice>('system');
 
@@ -91,14 +98,16 @@ export function ThemeToggle() {
     return (
       <div
         role="group"
-        aria-label="Chế độ hiển thị"
+        aria-label={t('settings.themeGroupLabel')}
         aria-hidden
         style={{ visibility: 'hidden' }}
         className="inline-flex items-center gap-1 rounded-full p-1"
       >
-        <span className="px-3 py-1.5 text-xs">Sáng</span>
-        <span className="px-3 py-1.5 text-xs">Tối</span>
-        <span className="px-3 py-1.5 text-xs">Auto</span>
+        {CHOICES.map((c) => (
+          <span key={c.value} className="px-3 py-1.5 text-xs">
+            {t(c.labelKey)}
+          </span>
+        ))}
       </div>
     );
   }
@@ -106,7 +115,7 @@ export function ThemeToggle() {
   return (
     <div
       role="group"
-      aria-label="Chế độ hiển thị"
+      aria-label={t('settings.themeGroupLabel')}
       className="inline-flex items-center gap-1 rounded-full p-1"
       style={{ background: 'var(--color-surface-muted)' }}
     >
@@ -116,7 +125,7 @@ export function ThemeToggle() {
           <button
             key={c.value}
             type="button"
-            title={c.title}
+            title={t(c.titleKey)}
             aria-pressed={active}
             onClick={() => pick(c.value)}
             className="px-3 py-1.5 text-xs font-semibold rounded-full transition-colors"
@@ -126,7 +135,7 @@ export function ThemeToggle() {
               boxShadow: active ? 'var(--shadow-card)' : 'none',
             }}
           >
-            {c.label}
+            {t(c.labelKey)}
           </button>
         );
       })}

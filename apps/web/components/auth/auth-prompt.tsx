@@ -2,6 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/lib/i18n/provider';
+import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * AuthPromptModal (mockup `showAuthPrompt`) — khách bấm hành động cần đăng nhập
@@ -14,19 +16,29 @@ import { useRouter } from 'next/navigation';
  *
  * z-index: dùng token `--z-modal` (=60), KHÔNG chép `z-index:90` của mockup (bẫy #3).
  */
-type Ctx = { openAuthPrompt: (action: string) => void };
+/**
+ * i18n (23/08/2026) — `openAuthPrompt` nhận KEY, không nhận chữ.
+ * Trước đây màn gọi `openAuthPrompt('lưu pin này')` ⇒ tiêu đề modal đứng yên
+ * tiếng Việt kể cả khi app đang chạy English. Kiểu `TranslationKey` bắt gõ sai
+ * key ở thì biên dịch.
+ */
+type Ctx = { openAuthPrompt: (actionKey: TranslationKey) => void };
 const AuthPromptContext = createContext<Ctx>({ openAuthPrompt: () => {} });
 export const useAuthPrompt = () => useContext(AuthPromptContext);
 
 export const RETURN_SCROLL_KEY = 'auth:returnScroll';
 
 export function AuthPromptProvider({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const router = useRouter();
-  const [action, setAction] = useState<string | null>(null);
-  const open = action !== null;
+  const [actionKey, setActionKey] = useState<TranslationKey | null>(null);
+  const open = actionKey !== null;
 
-  const openAuthPrompt = useCallback((a: string) => setAction(a && a.trim() ? a : 'tiếp tục'), []);
-  const close = useCallback(() => setAction(null), []);
+  const openAuthPrompt = useCallback(
+    (key: TranslationKey) => setActionKey(key || 'auth.actionDefault'),
+    [],
+  );
+  const close = useCallback(() => setActionKey(null), []);
 
   useEffect(() => {
     if (!open) return;
@@ -45,7 +57,7 @@ export function AuthPromptProvider({ children }: { children: React.ReactNode }) 
       } catch {
         /* sessionStorage không dùng được — bỏ qua khôi phục cuộn, không chặn login */
       }
-      setAction(null);
+      setActionKey(null);
       router.push(`${base}?callbackUrl=${encodeURIComponent(cb)}`);
     },
     [router],
@@ -86,10 +98,10 @@ export function AuthPromptProvider({ children }: { children: React.ReactNode }) 
               Panacea
             </div>
             <div style={{ fontSize: 17, fontWeight: 700, marginTop: 14, color: 'var(--color-foreground)' }}>
-              Đăng nhập để {action}
+              {t('auth.promptTitle', { action: t(actionKey) })}
             </div>
             <div style={{ fontSize: 13.5, color: 'var(--color-muted)', lineHeight: 1.6, marginTop: 8 }}>
-              Bạn sẽ quay lại đúng chỗ đang xem, không mất vị trí cuộn.
+              {t('auth.promptBody')}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 22 }}>
               <button
@@ -106,7 +118,7 @@ export function AuthPromptProvider({ children }: { children: React.ReactNode }) 
                   cursor: 'pointer',
                 }}
               >
-                Đăng nhập
+                {t('auth.login')}
               </button>
               <button
                 type="button"
@@ -122,7 +134,7 @@ export function AuthPromptProvider({ children }: { children: React.ReactNode }) 
                   cursor: 'pointer',
                 }}
               >
-                Tạo tài khoản
+                {t('auth.createAccount')}
               </button>
               <button
                 type="button"
@@ -136,7 +148,7 @@ export function AuthPromptProvider({ children }: { children: React.ReactNode }) 
                   cursor: 'pointer',
                 }}
               >
-                Để sau
+                {t('auth.later')}
               </button>
             </div>
           </div>
