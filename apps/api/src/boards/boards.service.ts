@@ -16,6 +16,12 @@ import {
   keysetOrderBy,
   keysetPage,
 } from '../common/pagination';
+// XH-2 (21/08/2026) — board là bề mặt rò rỉ số 5 trong PLAN_XAHOI.md §3:
+// `isSecret` SỬA ĐƯỢC qua updateBoard, nên "chỉ lưu vào board riêng tư"
+// (XH-QĐ-4) là rào chắn UX chứ không phải ranh giới an toàn — đường ĐỌC vẫn
+// phải lọc.
+import { visiblePinWhere, isPinVisibleInCtx, GUEST_AUDIENCE_CTX } from '../common/blocking';
+import type { PinAudienceCtx } from '../common/blocking';
 
 @Injectable()
 export class BoardsService {
@@ -129,7 +135,14 @@ export class BoardsService {
    * trang mà người khác reorder sẽ thấy lặp/thiếu. Cố hữu của keyset trên
    * khoá mutable, không sửa được — ghi tài liệu chứ đừng cố workaround.
    */
-  async getBoardPins(boardId: string, sectionId: string | null | undefined, pagination: CursorPaginationArgs, currentUserId?: string, blockedIds: string[] = []) {
+  async getBoardPins(
+    boardId: string,
+    sectionId: string | null | undefined,
+    pagination: CursorPaginationArgs,
+    currentUserId?: string,
+    blockedIds: string[] = [],
+    audienceCtx: PinAudienceCtx = GUEST_AUDIENCE_CTX,
+  ) {
     await this.checkBoardAccess(boardId, currentUserId);
 
     const { first, after } = pagination;
@@ -139,7 +152,14 @@ export class BoardsService {
       // REVIEW-1 — board là một đường vòng để pin của người đã chặn lọt vào
       // mắt viewer (ai cũng lưu được pin của bất kỳ ai vào board của mình).
       // Lọc theo creator của pin, không phải theo chủ board.
-      ...(blockedIds.length ? { pin: { creatorId: { notIn: blockedIds } } } : {}),
+      //
+      // XH-2 — cùng đường vòng đó cho pin giới hạn: lưu vào board bí mật rồi
+      // LẬT board thành công khai (bẫy 5). Lọc khán giả LÚC ĐỌC, trong SQL
+      // (relation filter một-một, không phá keyset 3 thành phần).
+      pin: {
+        ...(blockedIds.length ? { creatorId: { notIn: blockedIds } } : {}),
+        AND: [visiblePinWhere(audienceCtx)],
+      },
     };
 
     const savedPins = await this.prisma.savedPin.findMany({
@@ -179,6 +199,7 @@ export class BoardsService {
     pagination: CursorPaginationArgs,
     currentUserId?: string,
     blockedIds: string[] = [],
+    audienceCtx: PinAudienceCtx = GUEST_AUDIENCE_CTX,
   ) {
     const { first, after } = pagination;
 
@@ -193,6 +214,10 @@ export class BoardsService {
       pin: {
         deletedAt: null,
         ...(blockedIds.length ? { creatorId: { notIn: blockedIds } } : {}),
+        // XH-2 — "lưu không board" (boardId=null) là cửa sau đi vòng XH-QĐ-4
+        // (luật §4.6): mệnh đề OR bên dưới không che được nó, bộ lọc khán giả
+        // trên chính pin mới che.
+        AND: [visiblePinWhere(audienceCtx)],
       },
       OR: [
         { boardId: null },
@@ -300,7 +325,7 @@ export class BoardsService {
 
   // ─── Saved Pins ───────────────────────────────────────────────────────────
 
-  async savePin(userId: string, input: SavePinInput) {
+  async savePin(userId: string, input: SavePinInput, audienceCtx: PinAudienceCtx = GUEST_AUDIENCE_CTX) {
     if (input.boardId) {
       // Check limit 2000 pins/board
       const count = await this.prisma.savedPin.count({ where: { boardId: input.boardId } });
@@ -313,6 +338,29 @@ export class BoardsService {
     // Check if pin exists
     const pin = await this.prisma.pin.findFirst({ where: { id: input.pinId, deletedAt: null } });
     if (!pin) throw new NotFoundException('Pin not found');
+
+    // XH-2 — người lưu phải THẤY được pin đã: pin ngoài khán giả 404 y như
+    // không tồn tại (chính chủ đi qua, kể cả pin trong kho).
+    if (pin.creatorId !== userId && !isPinVisibleInCtx(pin, audienceCtx)) {
+      throw new NotFoundException('Pin not found');
+    }
+
+    // XH-QĐ-4 + luật §4.6 (PLAN_XAHOI.md) — pin giới hạn CHỈ lưu được vào board
+    // BÍ MẬT của CHÍNH người lưu. Chặn cả "lưu không board" (boardId=null): đó
+    // là cửa sau đi vòng qua luật. Đây là RÀO CHẮN UX (lỗi ồn ào, người lưu vốn
+    // đã thấy pin nên không có gì để che) — ranh giới an toàn thật nằm ở bộ lọc
+    // đường đọc (getBoardPins/getUserSavedPins), vì isSecret lật được qua
+    // updateBoard (bẫy 5).
+    if (pin.visibility !== 'PUBLIC') {
+      const restrictedMsg = 'Restricted pins can only be saved to your own secret board';
+      if (!input.boardId) throw new BadRequestException(restrictedMsg);
+      const board = await this.prisma.board.findFirst({
+        where: { id: input.boardId, deletedAt: null },
+      });
+      if (!board || board.userId !== userId || !board.isSecret) {
+        throw new BadRequestException(restrictedMsg);
+      }
+    }
 
     // Create SavedPin. Upsert if already exists in the same board/profile.
     // Dựa theo schema: @@unique([userId, pinId, boardId]) -> nhưng boardId có thể null.

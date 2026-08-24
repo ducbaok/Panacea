@@ -58,7 +58,8 @@ export class BoardsResolver {
     @CurrentUser() user: AuthUser | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.boardsService.getBoardPins(boardId, sectionId, pagination, user?.userId, blockedIds);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.boardsService.getBoardPins(boardId, sectionId, pagination, user?.userId, blockedIds, audienceCtx);
   }
 
   /**
@@ -78,7 +79,8 @@ export class BoardsResolver {
     @CurrentUser() user: AuthUser | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.boardsService.getUserSavedPins(userId, pagination, user?.userId, blockedIds);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.boardsService.getUserSavedPins(userId, pagination, user?.userId, blockedIds, audienceCtx);
   }
 
   // ─── Mutations ────────────────────────────────────────────────────────────
@@ -122,7 +124,10 @@ export class BoardsResolver {
   @Mutation(() => SavedPin)
   @UseGuards(GqlAuthGuard)
   async savePin(@Args('input') input: SavePinInput, @CurrentUser() user: AuthUser) {
-    return this.boardsService.savePin(user.userId, input);
+    // XH-2 — savePin cần biết người lưu có THẤY pin không (404 nếu không) và
+    // pin có phải hàng giới hạn không (XH-QĐ-4: chỉ board bí mật của chính mình).
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user.userId);
+    return this.boardsService.savePin(user.userId, input, audienceCtx);
   }
 
   @Mutation(() => Boolean)
@@ -204,10 +209,17 @@ export class BoardsResolver {
     return this.dataloaderService.userByIdLoader.load(board.userId);
   }
 
+  /**
+   * XH-2 — ẢNH BÌA phải lọc theo viewer: cover của board bí mật có thể là pin
+   * giới hạn, và board thì LẬT được thành công khai qua updateBoard (bẫy 5).
+   * `buildVisiblePinLoader` trả `null` cho pin ngoài khán giả — với FE thì hệt
+   * board chưa có cover. Guard của query cha có hiệu lực toàn request nên
+   * `@CurrentUser()` đọc được ở đây (cùng cơ chế các field viewer-aware khác).
+   */
   @ResolveField('coverPin', () => Pin, { nullable: true })
-  async getCoverPin(@Parent() board: Board) {
+  async getCoverPin(@Parent() board: Board, @CurrentUser() viewer: AuthUser | null) {
     if (!board.coverPinId) return null;
-    return this.dataloaderService.pinByIdLoader.load(board.coverPinId);
+    return this.dataloaderService.buildVisiblePinLoader(viewer?.userId).load(board.coverPinId);
   }
 
   @ResolveField('sections', () => [BoardSection])
@@ -242,8 +254,14 @@ export class BoardCollaboratorsResolver {
 export class SavedPinsResolver {
   constructor(private readonly dataloaderService: DataloaderService) {}
 
+  /**
+   * XH-2 — hàng `SavedPin` đã được `getBoardPins`/`getUserSavedPins` lọc trong
+   * SQL, nhưng field này vẫn đi qua loader lọc-theo-viewer làm lớp thứ hai:
+   * nếu mai kia có một đường đọc SavedPin mới quên lọc, pin giới hạn vẫn ra
+   * `null` thay vì lộ nguyên con.
+   */
   @ResolveField('pin', () => Pin, { nullable: true })
-  async getPin(@Parent() savedPin: SavedPin) {
-    return this.dataloaderService.pinByIdLoader.load(savedPin.pinId);
+  async getPin(@Parent() savedPin: SavedPin, @CurrentUser() viewer: AuthUser | null) {
+    return this.dataloaderService.buildVisiblePinLoader(viewer?.userId).load(savedPin.pinId);
   }
 }

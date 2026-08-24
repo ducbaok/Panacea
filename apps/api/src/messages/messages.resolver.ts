@@ -144,6 +144,32 @@ export class MessagesResolver {
     @Args('conversationId') conversationId: string,
   ) {
     await this.messagesService.assertConversationMember(user.userId, conversationId);
-    return this.pubSub.asyncIterableIterator('messageReceived');
+
+    // XH-2 (21/08/2026) — lớp THỨ BA, riêng cho ảnh đính kèm: payload publish
+    // dùng chung cho mọi subscriber, nhưng quyền xem pin đính kèm thì theo
+    // TỪNG người nhận (người ngoài vòng nhận tin realtime phải thấy
+    // attachedPin = null, y như đọc lại bằng getMessages). Bọc iterator theo
+    // từng subscriber vì method này chạy một lần cho MỖI subscription — đúng
+    // chỗ duy nhất biết viewer là ai. `shapeMessageForViewer` trả BẢN SAO khi
+    // giấu, không đột biến payload chung.
+    const source = this.pubSub.asyncIterableIterator('messageReceived');
+    const shape = (payload: { messageReceived: Message; memberIds?: string[] }) =>
+      this.messagesService
+        .shapeMessageForViewer(payload.messageReceived as any, user.userId)
+        .then((shaped) =>
+          shaped === payload.messageReceived ? payload : { ...payload, messageReceived: shaped },
+        );
+
+    return (async function* () {
+      try {
+        for await (const payload of source as AsyncIterable<any>) {
+          yield await shape(payload);
+        }
+      } finally {
+        // Client ngắt subscription ⇒ generator bị .return() ⇒ đóng nguồn thật,
+        // nếu không iterator Redis sống mồ côi tới hết process.
+        await (source as any).return?.();
+      }
+    })();
   }
 }

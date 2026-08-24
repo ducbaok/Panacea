@@ -85,7 +85,10 @@ export class PinsResolver {
     // này quên lọc thì bộ lọc vô nghĩa: mở thẳng link pin là lách được, và
     // không phép kiểm nào của feed phát hiện ra.
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.pinsService.findById(id, blockedIds);
+    // XH-2 — ngữ cảnh khán giả đi cùng blockedIds ở MỌI call-site đọc pin:
+    // hai bộ lọc cộng dồn AND, cùng memo theo request.
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.pinsService.findById(id, blockedIds, audienceCtx);
   }
 
   /**
@@ -103,7 +106,8 @@ export class PinsResolver {
     @CurrentUser() user?: AuthUser | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.pinsService.exploreFeed(pagination, blockedIds, { categorySlug, tagName });
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.pinsService.exploreFeed(pagination, blockedIds, audienceCtx, { categorySlug, tagName });
   }
 
   /**
@@ -119,7 +123,8 @@ export class PinsResolver {
     @CurrentUser() user?: AuthUser | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.pinsService.userPins(userId, pagination, blockedIds);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.pinsService.userPins(userId, pagination, blockedIds, audienceCtx);
   }
 
   /**
@@ -141,7 +146,8 @@ export class PinsResolver {
     // Cùng một mảng `blockedIds` (2 chiều, từ `common/blocking/`) dùng cho CẢ
     // pin gốc lẫn pin kết quả — service lo phần đó. Đừng viết nhánh lọc mới.
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.pinsService.relatedPins(pinId, pagination, blockedIds);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.pinsService.relatedPins(pinId, pagination, blockedIds, audienceCtx);
   }
 
   /**
@@ -168,7 +174,8 @@ export class PinsResolver {
     // `PinsService` không được inject `DataloaderService` — nó là Scope.REQUEST
     // và sẽ kéo cả `PinsController` theo.
     const blockedIds = await this.dataloaderService.blockedUserIds(user.userId);
-    return this.pinsService.homeFeed(user.userId, pagination, blockedIds, source);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user.userId);
+    return this.pinsService.homeFeed(user.userId, pagination, blockedIds, audienceCtx, source);
   }
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
@@ -236,7 +243,8 @@ export class PinsResolver {
     @Args('type', { type: () => ReactionType }) type: ReactionType,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.pinsService.toggleReaction(user.userId, pinId, type);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user.userId);
+    return this.pinsService.toggleReaction(user.userId, pinId, type, audienceCtx);
   }
 
   // ─── B-4: view / click tracking ──────────────────────────────────────────────
@@ -264,7 +272,8 @@ export class PinsResolver {
     @AnonId() anonId?: string | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.pinsService.trackPinView(pinId, this._identity(user, anonId), blockedIds);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.pinsService.trackPinView(pinId, this._identity(user, anonId), blockedIds, audienceCtx);
   }
 
   /** Đếm lượt BẤM LINK NGOÀI (chỉ pin có `sourceUrl`). */
@@ -276,7 +285,8 @@ export class PinsResolver {
     @AnonId() anonId?: string | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.pinsService.trackPinClick(pinId, this._identity(user, anonId), blockedIds);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.pinsService.trackPinClick(pinId, this._identity(user, anonId), blockedIds, audienceCtx);
   }
 
   /**

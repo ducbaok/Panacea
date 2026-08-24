@@ -35,6 +35,16 @@ enum CollaboratorRole {
   EDITOR
 }
 
+// XH-1 (21/08/2026) — khán giả của pin, PLAN_XAHOI.md §2.
+// FOLLOWERS = "người theo dõi TÁC GIẢ được xem" (điều kiện đọc là
+// creatorId IN myFollowingIds của NGƯỜI XEM — chiều dễ viết ngược).
+enum Visibility {
+  PUBLIC
+  FOLLOWERS
+  CIRCLE
+  ONLY_ME
+}
+
 // ==================== CORE MODELS ====================
 
 model User {
@@ -79,6 +89,9 @@ model User {
   categories           Category[]        @relation("UserCategories")
   blockedUsers         BlockedUser[]     @relation("Blocker")
   blockedBy            BlockedUser[]     @relation("Blocked")
+  circles              Circle[]          @relation("CircleOwner")
+  circleMemberships    CircleMember[]
+  pinViews             PinView[]
 
   @@map("User")
 }
@@ -184,6 +197,59 @@ model BlockedUser {
   @@map("BlockedUser")
 }
 
+// XH-1 (21/08/2026) — vòng tròn bạn bè, PLAN_XAHOI.md §2.
+// MỘT CHIỀU (XH-QĐ-1): chủ tự lập danh sách, không có lời mời.
+// "Level thân thiết" = vòng có rank — một cơ chế, hai cách trình bày (không bảng riêng).
+model Circle {
+  id         String   @id @default(cuid())
+  ownerId    String
+  name       String
+  rank       Int?     // null = vòng tự đặt tên; có số = level thân thiết
+  isAdHoc    Boolean  @default(false) // XH-QĐ-5: khán giả chọn tại chỗ, ẩn khỏi settings
+  memberHash String?  // băm tập thành viên (sort + sha256) để tái dùng vòng ad-hoc trùng
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner   User           @relation("CircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members CircleMember[]
+  pins    Pin[]          @relation("PinAudience")
+
+  // Postgres coi NULL ≠ NULL nên unique này chỉ ràng vòng CÓ memberHash —
+  // vòng đặt tên (memberHash null) không đụng nhau. Đúng chủ đích.
+  @@unique([ownerId, memberHash])
+  @@index([ownerId])
+  @@map("Circle")
+}
+
+model CircleMember {
+  circleId String
+  userId   String
+  addedAt  DateTime @default(now())
+
+  circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([circleId, userId])
+  // Chiều "vòng tôi là thành viên" — getVisiblePinWhere lấy myCircleIds mỗi request
+  @@index([userId])
+  @@map("CircleMember")
+}
+
+// XH-1 (21/08/2026) — "ai đã xem", PLAN_XAHOI.md §4 luật 1:
+// CHỈ ghi khi pin non-PUBLIC (ghi cho pin công khai vừa đắt vừa phản cảm).
+model PinView {
+  pinId         String
+  viewerId      String
+  firstViewedAt DateTime @default(now())
+
+  pin    Pin  @relation(fields: [pinId], references: [id], onDelete: Cascade)
+  viewer User @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@id([pinId, viewerId])
+  @@index([viewerId])
+  @@map("PinView")
+}
+
 // ==================== CONTENT ====================
 
 model Category {
@@ -221,11 +287,19 @@ model Pin {
   viewCount    Int       @default(0)
   clickCount   Int       @default(0)
   creatorId    String
+  // XH-1 (21/08/2026) — PLAN_XAHOI.md §2. audienceCircleId CHỈ có nghĩa khi
+  // visibility = CIRCLE. Xoá Circle ⇒ SetNull ⇒ fail-closed: chỉ chủ pin còn thấy
+  // (điều kiện đọc là audienceCircleId IN myCircleIds — null không IN gì cả).
+  visibility       Visibility @default(PUBLIC)
+  audienceCircleId String?
+  expiresAt        DateTime?  // null = pin thường; hết hạn ĐÁNH GIÁ LÚC ĐỌC (XH-QĐ-7), không cron
   deletedAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   creator      User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  audienceCircle Circle?  @relation("PinAudience", fields: [audienceCircleId], references: [id], onDelete: SetNull)
+  views        PinView[]
   tags         Tag[]      @relation("PinToTag")
   categories   Category[] @relation("PinToCategory")
   savedBy      SavedPin[]

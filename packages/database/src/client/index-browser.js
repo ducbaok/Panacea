@@ -201,6 +201,29 @@ exports.Prisma.BlockedUserScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.CircleScalarFieldEnum = {
+  id: 'id',
+  ownerId: 'ownerId',
+  name: 'name',
+  rank: 'rank',
+  isAdHoc: 'isAdHoc',
+  memberHash: 'memberHash',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CircleMemberScalarFieldEnum = {
+  circleId: 'circleId',
+  userId: 'userId',
+  addedAt: 'addedAt'
+};
+
+exports.Prisma.PinViewScalarFieldEnum = {
+  pinId: 'pinId',
+  viewerId: 'viewerId',
+  firstViewedAt: 'firstViewedAt'
+};
+
 exports.Prisma.CategoryScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -227,6 +250,9 @@ exports.Prisma.PinScalarFieldEnum = {
   viewCount: 'viewCount',
   clickCount: 'clickCount',
   creatorId: 'creatorId',
+  visibility: 'visibility',
+  audienceCircleId: 'audienceCircleId',
+  expiresAt: 'expiresAt',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -348,6 +374,13 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.Visibility = exports.$Enums.Visibility = {
+  PUBLIC: 'PUBLIC',
+  FOLLOWERS: 'FOLLOWERS',
+  CIRCLE: 'CIRCLE',
+  ONLY_ME: 'ONLY_ME'
+};
+
 exports.CollaboratorRole = exports.$Enums.CollaboratorRole = {
   VIEWER: 'VIEWER',
   EDITOR: 'EDITOR'
@@ -379,6 +412,9 @@ exports.Prisma.ModelName = {
   DeviceToken: 'DeviceToken',
   Follows: 'Follows',
   BlockedUser: 'BlockedUser',
+  Circle: 'Circle',
+  CircleMember: 'CircleMember',
+  PinView: 'PinView',
   Category: 'Category',
   Tag: 'Tag',
   Pin: 'Pin',

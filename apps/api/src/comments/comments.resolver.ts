@@ -45,7 +45,9 @@ export class CommentsResolver {
     @CurrentUser() user: AuthUser,
     @Args('input') input: CreateCommentInput,
   ) {
-    return this.commentsService.createComment(user.userId, input);
+    // XH-2 — bình luận trên pin ngoài khán giả phải 404 (existence-oracle).
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user.userId);
+    return this.commentsService.createComment(user.userId, input, audienceCtx);
   }
 
   @UseGuards(GqlAuthGuard)
@@ -105,7 +107,8 @@ export class CommentsResolver {
     @CurrentUser() user?: AuthUser | null,
   ) {
     const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
-    return this.commentsService.getPinComments(pinId, limit, cursor, blockedIds);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.commentsService.getPinComments(pinId, limit, cursor, blockedIds, audienceCtx);
   }
 
   @Query(() => PaginatedComments)

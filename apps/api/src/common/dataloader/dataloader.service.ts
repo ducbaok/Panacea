@@ -20,7 +20,13 @@ import { Injectable, Scope } from '@nestjs/common';
 import DataLoader from 'dataloader';
 import { PrismaService } from '../../prisma/prisma.service';
 import { groupRows, mapCounts, mapExists, mapValues } from './dataloader.util';
-import { getBlockedUserIds } from '../blocking';
+import {
+  getBlockedUserIds,
+  getPinAudienceCtx,
+  visiblePinWhere,
+  GUEST_AUDIENCE_CTX,
+} from '../blocking';
+import type { PinAudienceCtx } from '../blocking';
 // Enum của Prisma (union string literal), KHÔNG phải enum GraphQL cùng tên ở
 // comments/entities/reaction-type.enum.ts. Ở tầng loader ta trả thẳng giá trị
 // đọc từ DB nên dùng kiểu của DB mới đúng; enum GraphQL chỉ cần ở tầng schema.
@@ -107,6 +113,57 @@ export class DataloaderService {
       this._blockedUserIds.set(viewerId, p);
     }
     return p;
+  }
+
+  // ─── Ngữ cảnh khán giả của pin (XH-2, 21/08/2026) ──────────────────────────
+
+  /**
+   * Memo theo viewer cho ngữ cảnh khán giả (`followingIds` + `memberCircleIds`).
+   * Cùng khuôn với `_blockedUserIds` ngay trên: LƯU `Promise` chứ không lưu giá
+   * trị đã await, Map ở CẤP INSTANCE — hai cảnh báo ở đó áp nguyên vào đây.
+   */
+  private _pinAudienceCtx = new Map<string, Promise<PinAudienceCtx>>();
+
+  /**
+   * Ngữ cảnh khán giả để lọc pin theo XH-2. Khách vãng lai (`undefined`) trả
+   * hằng `GUEST_AUDIENCE_CTX` và KHÔNG chạm database — fail-closed: chỉ PUBLIC.
+   */
+  pinAudienceCtx(viewerId?: string): Promise<PinAudienceCtx> {
+    if (!viewerId) return Promise.resolve(GUEST_AUDIENCE_CTX);
+
+    let p = this._pinAudienceCtx.get(viewerId);
+    if (!p) {
+      p = getPinAudienceCtx(this.prisma, viewerId);
+      this._pinAudienceCtx.set(viewerId, p);
+    }
+    return p;
+  }
+
+  /**
+   * Batch fetch pin theo id, LỌC theo quyền xem của viewer — pin ngoài khán
+   * giả (hoặc đã hết hạn) trả `null`, không phân biệt được với pin không tồn
+   * tại. Dùng cho `Board.coverPin` và `SavedPin.pin`: hai đường mà một pin
+   * giới hạn có thể lọt ra ngoài sau khi lưới đã lọc (PLAN_XAHOI.md §3 bẫy 5 —
+   * board lật quyền qua `updateBoard.isSecret`).
+   *
+   * Khoá `'(guest)'` cho khách vãng lai KHÔNG vi phạm cảnh báo "khoá rỗng" của
+   * pins.resolver: ở đó khoá rỗng là vô nghĩa vì kết quả đã biết trước; ở đây
+   * mọi khách vãng lai CÙNG một quyền xem (chỉ PUBLIC) nên dùng chung một
+   * loader trong request là đúng và còn batch tốt hơn.
+   */
+  buildVisiblePinLoader(viewerId?: string): DataLoader<string, any> {
+    return this.perViewer('visiblePin', viewerId ?? '(guest)', () => {
+      return new DataLoader<string, any>(async (pinIds) => {
+        const ctx = await this.pinAudienceCtx(viewerId);
+        // Middleware soft-delete đã lọc `deletedAt` cho findMany — cùng chủ
+        // đích với `pinByIdLoader` bên dưới, không nhân đôi quy tắc.
+        const pins = await this.prisma.pin.findMany({
+          where: { id: { in: [...pinIds] }, AND: [visiblePinWhere(ctx)] },
+        });
+
+        return mapValues(pinIds, pins, (p) => p.id);
+      });
+    });
   }
 
   // ─── User By ID ────────────────────────────────────────────────────────────

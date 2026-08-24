@@ -30,7 +30,7 @@ import {
 // Đợt 3e — thân hàm `getBlockedUserIds` trước đây nằm ngay trong class này
 // (`private`, :30-41). Chuyển ra common/blocking để PinsService dùng chung
 // CÙNG một định nghĩa "ai bị chặn". Hành vi giữ nguyên từng chữ.
-import { getBlockedUserIds } from '../common/blocking';
+import { getBlockedUserIds, getPinAudienceCtx, visiblePinSql } from '../common/blocking';
 
 @Injectable()
 export class SearchService {
@@ -77,10 +77,17 @@ export class SearchService {
    */
   async searchPins(userId: string | undefined, query: string, limit: number, cursor?: string) {
     const blockedIds = await getBlockedUserIds(this.prisma, userId);
+    // XH-2 — search từng là "nơi duy nhất điều kiện quyền riêng tư phải viết
+    // tay lần thứ hai" (PLAN_XAHOI.md §3 bẫy 4). Nay KHÔNG còn bản chép tay:
+    // cả search lẫn 4 hàm feed của PinsService cùng gọi `visiblePinSql` từ
+    // common/blocking — inline điều kiện này vào đây là tạo lại đúng cái lỗ đó.
+    // (Gọi thẳng helper, không qua DataloaderService — cùng lý do vòng đời với
+    // getBlockedUserIds ngay trên.)
+    const audienceCtx = await getPinAudienceCtx(this.prisma, userId);
     const take = limit + 1;
 
     const q = this._sqlParams();
-    const where = ['"deletedAt" IS NULL'];
+    const where = ['"deletedAt" IS NULL', visiblePinSql(audienceCtx, q)];
 
     // Biểu thức FTS PHẢI trùng khít định nghĩa index — xem doc trên hàm.
     where.push(

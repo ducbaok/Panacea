@@ -32,6 +32,12 @@ import {
   toPaginatedResult,
 } from '../common/pagination';
 import { getBlockedUserIds } from '../common/blocking/blocked-users.util';
+// XH-2 (21/08/2026) — bình luận là bề mặt rò rỉ thứ 11, NGOÀI danh sách 10 của
+// PLAN_XAHOI.md §3 (đã báo chủ dự án để sửa brief): đọc `pinComments` của một
+// pin giới hạn là đọc được nội dung quanh nó, còn `createComment` thành công
+// trên pin ngoài khán giả là một existence-oracle (vi phạm chính sách 404).
+import { isPinVisibleInCtx } from '../common/blocking';
+import type { PinAudienceCtx } from '../common/blocking';
 
 const MAX_MENTIONS_PER_COMMENT = 10;
 const MENTION_REGEX = /@([a-z0-9_]{3,20})/gi;
@@ -43,11 +49,16 @@ export class CommentsService {
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async createComment(userId: string, input: CreateCommentInput) {
+  async createComment(userId: string, input: CreateCommentInput, audienceCtx: PinAudienceCtx) {
     const { pinId, content, parentId } = input;
 
     const pin = await this.prisma.pin.findFirst({ where: { id: pinId } });
     if (!pin) throw new NotFoundException('Pin not found');
+    // XH-2 — pin ngoài khán giả: 404 y như không tồn tại. Chính chủ đi qua
+    // (bình luận được trong kho của mình — xahoi-tinh-nang.md §5).
+    if (pin.creatorId !== userId && !isPinVisibleInCtx(pin, audienceCtx)) {
+      throw new NotFoundException('Pin not found');
+    }
 
     let parent: any = null;
     if (parentId) {
@@ -289,7 +300,25 @@ export class CommentsService {
    * sang khuôn `perViewer`. Hệ quả nhìn thấy được: nút "Xem 2 trả lời" có thể
    * mở ra ít hơn 2. Đã đăng ký `PLAN_HOAN_THIEN.md` B-21.
    */
-  async getPinComments(pinId: string, limit: number, cursor?: string, blockedIds: string[] = []) {
+  async getPinComments(
+    pinId: string,
+    limit: number,
+    cursor: string | undefined,
+    blockedIds: string[] = [],
+    audienceCtx?: PinAudienceCtx,
+  ) {
+    // XH-2 — chặn từ CỬA chứ không lọc từng dòng: bình luận thuộc về pin, pin
+    // ngoài khán giả thì cả thread 404. Chính chủ đi qua (đọc được bình luận
+    // trên pin đã hết hạn trong kho). `audienceCtx` optional chỉ để không gãy
+    // chữ ký cũ ở test nội bộ — thiếu ctx coi như khách (fail-closed).
+    const pin = await this.prisma.pin.findFirst({ where: { id: pinId } });
+    if (!pin || pin.deletedAt) throw new NotFoundException('Pin not found');
+    const ctx: PinAudienceCtx =
+      audienceCtx ?? { viewerId: null, followingIds: [], memberCircleIds: [] };
+    if (pin.creatorId !== ctx.viewerId && !isPinVisibleInCtx(pin, ctx)) {
+      throw new NotFoundException('Pin not found');
+    }
+
     const comments = await this.prisma.comment.findMany({
       where: {
         pinId,

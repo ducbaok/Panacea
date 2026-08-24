@@ -54,6 +54,21 @@ export type Follows = $Result.DefaultSelection<Prisma.$FollowsPayload>
  */
 export type BlockedUser = $Result.DefaultSelection<Prisma.$BlockedUserPayload>
 /**
+ * Model Circle
+ * 
+ */
+export type Circle = $Result.DefaultSelection<Prisma.$CirclePayload>
+/**
+ * Model CircleMember
+ * 
+ */
+export type CircleMember = $Result.DefaultSelection<Prisma.$CircleMemberPayload>
+/**
+ * Model PinView
+ * 
+ */
+export type PinView = $Result.DefaultSelection<Prisma.$PinViewPayload>
+/**
  * Model Category
  * 
  */
@@ -128,7 +143,17 @@ export type Notification = $Result.DefaultSelection<Prisma.$NotificationPayload>
  * Enums
  */
 export namespace $Enums {
-  export const CollaboratorRole: {
+  export const Visibility: {
+  PUBLIC: 'PUBLIC',
+  FOLLOWERS: 'FOLLOWERS',
+  CIRCLE: 'CIRCLE',
+  ONLY_ME: 'ONLY_ME'
+};
+
+export type Visibility = (typeof Visibility)[keyof typeof Visibility]
+
+
+export const CollaboratorRole: {
   VIEWER: 'VIEWER',
   EDITOR: 'EDITOR'
 };
@@ -159,6 +184,10 @@ export const NotificationType: {
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
 }
+
+export type Visibility = $Enums.Visibility
+
+export const Visibility: typeof $Enums.Visibility
 
 export type CollaboratorRole = $Enums.CollaboratorRole
 
@@ -374,6 +403,36 @@ export class PrismaClient<
     * ```
     */
   get blockedUser(): Prisma.BlockedUserDelegate<ExtArgs>;
+
+  /**
+   * `prisma.circle`: Exposes CRUD operations for the **Circle** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Circles
+    * const circles = await prisma.circle.findMany()
+    * ```
+    */
+  get circle(): Prisma.CircleDelegate<ExtArgs>;
+
+  /**
+   * `prisma.circleMember`: Exposes CRUD operations for the **CircleMember** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CircleMembers
+    * const circleMembers = await prisma.circleMember.findMany()
+    * ```
+    */
+  get circleMember(): Prisma.CircleMemberDelegate<ExtArgs>;
+
+  /**
+   * `prisma.pinView`: Exposes CRUD operations for the **PinView** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PinViews
+    * const pinViews = await prisma.pinView.findMany()
+    * ```
+    */
+  get pinView(): Prisma.PinViewDelegate<ExtArgs>;
 
   /**
    * `prisma.category`: Exposes CRUD operations for the **Category** model.
@@ -963,6 +1022,9 @@ export namespace Prisma {
     DeviceToken: 'DeviceToken',
     Follows: 'Follows',
     BlockedUser: 'BlockedUser',
+    Circle: 'Circle',
+    CircleMember: 'CircleMember',
+    PinView: 'PinView',
     Category: 'Category',
     Tag: 'Tag',
     Pin: 'Pin',
@@ -992,7 +1054,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "account" | "session" | "verificationToken" | "refreshToken" | "deviceToken" | "follows" | "blockedUser" | "category" | "tag" | "pin" | "board" | "boardSection" | "boardCollaborator" | "savedPin" | "reaction" | "comment" | "commentReaction" | "conversation" | "conversationMember" | "message" | "notification"
+      modelProps: "user" | "account" | "session" | "verificationToken" | "refreshToken" | "deviceToken" | "follows" | "blockedUser" | "circle" | "circleMember" | "pinView" | "category" | "tag" | "pin" | "board" | "boardSection" | "boardCollaborator" | "savedPin" | "reaction" | "comment" | "commentReaction" | "conversation" | "conversationMember" | "message" | "notification"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1553,6 +1615,216 @@ export namespace Prisma {
           count: {
             args: Prisma.BlockedUserCountArgs<ExtArgs>
             result: $Utils.Optional<BlockedUserCountAggregateOutputType> | number
+          }
+        }
+      }
+      Circle: {
+        payload: Prisma.$CirclePayload<ExtArgs>
+        fields: Prisma.CircleFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CircleFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CircleFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>
+          }
+          findFirst: {
+            args: Prisma.CircleFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CircleFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>
+          }
+          findMany: {
+            args: Prisma.CircleFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>[]
+          }
+          create: {
+            args: Prisma.CircleCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>
+          }
+          createMany: {
+            args: Prisma.CircleCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CircleCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>[]
+          }
+          delete: {
+            args: Prisma.CircleDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>
+          }
+          update: {
+            args: Prisma.CircleUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>
+          }
+          deleteMany: {
+            args: Prisma.CircleDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CircleUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.CircleUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CirclePayload>
+          }
+          aggregate: {
+            args: Prisma.CircleAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCircle>
+          }
+          groupBy: {
+            args: Prisma.CircleGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CircleGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CircleCountArgs<ExtArgs>
+            result: $Utils.Optional<CircleCountAggregateOutputType> | number
+          }
+        }
+      }
+      CircleMember: {
+        payload: Prisma.$CircleMemberPayload<ExtArgs>
+        fields: Prisma.CircleMemberFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CircleMemberFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CircleMemberFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>
+          }
+          findFirst: {
+            args: Prisma.CircleMemberFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CircleMemberFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>
+          }
+          findMany: {
+            args: Prisma.CircleMemberFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>[]
+          }
+          create: {
+            args: Prisma.CircleMemberCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>
+          }
+          createMany: {
+            args: Prisma.CircleMemberCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CircleMemberCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>[]
+          }
+          delete: {
+            args: Prisma.CircleMemberDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>
+          }
+          update: {
+            args: Prisma.CircleMemberUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>
+          }
+          deleteMany: {
+            args: Prisma.CircleMemberDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CircleMemberUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.CircleMemberUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CircleMemberPayload>
+          }
+          aggregate: {
+            args: Prisma.CircleMemberAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCircleMember>
+          }
+          groupBy: {
+            args: Prisma.CircleMemberGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CircleMemberGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CircleMemberCountArgs<ExtArgs>
+            result: $Utils.Optional<CircleMemberCountAggregateOutputType> | number
+          }
+        }
+      }
+      PinView: {
+        payload: Prisma.$PinViewPayload<ExtArgs>
+        fields: Prisma.PinViewFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PinViewFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PinViewFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>
+          }
+          findFirst: {
+            args: Prisma.PinViewFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PinViewFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>
+          }
+          findMany: {
+            args: Prisma.PinViewFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>[]
+          }
+          create: {
+            args: Prisma.PinViewCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>
+          }
+          createMany: {
+            args: Prisma.PinViewCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PinViewCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>[]
+          }
+          delete: {
+            args: Prisma.PinViewDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>
+          }
+          update: {
+            args: Prisma.PinViewUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>
+          }
+          deleteMany: {
+            args: Prisma.PinViewDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PinViewUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PinViewUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PinViewPayload>
+          }
+          aggregate: {
+            args: Prisma.PinViewAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePinView>
+          }
+          groupBy: {
+            args: Prisma.PinViewGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PinViewGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PinViewCountArgs<ExtArgs>
+            result: $Utils.Optional<PinViewCountAggregateOutputType> | number
           }
         }
       }
@@ -2718,6 +2990,9 @@ export namespace Prisma {
     categories: number
     blockedUsers: number
     blockedBy: number
+    circles: number
+    circleMemberships: number
+    pinViews: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2742,6 +3017,9 @@ export namespace Prisma {
     categories?: boolean | UserCountOutputTypeCountCategoriesArgs
     blockedUsers?: boolean | UserCountOutputTypeCountBlockedUsersArgs
     blockedBy?: boolean | UserCountOutputTypeCountBlockedByArgs
+    circles?: boolean | UserCountOutputTypeCountCirclesArgs
+    circleMemberships?: boolean | UserCountOutputTypeCountCircleMembershipsArgs
+    pinViews?: boolean | UserCountOutputTypeCountPinViewsArgs
   }
 
   // Custom InputTypes
@@ -2902,6 +3180,67 @@ export namespace Prisma {
     where?: BlockedUserWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountCirclesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CircleWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountCircleMembershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CircleMemberWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountPinViewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PinViewWhereInput
+  }
+
+
+  /**
+   * Count Type CircleCountOutputType
+   */
+
+  export type CircleCountOutputType = {
+    members: number
+    pins: number
+  }
+
+  export type CircleCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    members?: boolean | CircleCountOutputTypeCountMembersArgs
+    pins?: boolean | CircleCountOutputTypeCountPinsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * CircleCountOutputType without action
+   */
+  export type CircleCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleCountOutputType
+     */
+    select?: CircleCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * CircleCountOutputType without action
+   */
+  export type CircleCountOutputTypeCountMembersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CircleMemberWhereInput
+  }
+
+  /**
+   * CircleCountOutputType without action
+   */
+  export type CircleCountOutputTypeCountPinsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PinWhereInput
+  }
+
 
   /**
    * Count Type CategoryCountOutputType
@@ -2979,6 +3318,7 @@ export namespace Prisma {
    */
 
   export type PinCountOutputType = {
+    views: number
     tags: number
     categories: number
     savedBy: number
@@ -2990,6 +3330,7 @@ export namespace Prisma {
   }
 
   export type PinCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    views?: boolean | PinCountOutputTypeCountViewsArgs
     tags?: boolean | PinCountOutputTypeCountTagsArgs
     categories?: boolean | PinCountOutputTypeCountCategoriesArgs
     savedBy?: boolean | PinCountOutputTypeCountSavedByArgs
@@ -3009,6 +3350,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the PinCountOutputType
      */
     select?: PinCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PinCountOutputType without action
+   */
+  export type PinCountOutputTypeCountViewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PinViewWhereInput
   }
 
   /**
@@ -3514,6 +3862,9 @@ export namespace Prisma {
     categories?: boolean | User$categoriesArgs<ExtArgs>
     blockedUsers?: boolean | User$blockedUsersArgs<ExtArgs>
     blockedBy?: boolean | User$blockedByArgs<ExtArgs>
+    circles?: boolean | User$circlesArgs<ExtArgs>
+    circleMemberships?: boolean | User$circleMembershipsArgs<ExtArgs>
+    pinViews?: boolean | User$pinViewsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -3577,6 +3928,9 @@ export namespace Prisma {
     categories?: boolean | User$categoriesArgs<ExtArgs>
     blockedUsers?: boolean | User$blockedUsersArgs<ExtArgs>
     blockedBy?: boolean | User$blockedByArgs<ExtArgs>
+    circles?: boolean | User$circlesArgs<ExtArgs>
+    circleMemberships?: boolean | User$circleMembershipsArgs<ExtArgs>
+    pinViews?: boolean | User$pinViewsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3605,6 +3959,9 @@ export namespace Prisma {
       categories: Prisma.$CategoryPayload<ExtArgs>[]
       blockedUsers: Prisma.$BlockedUserPayload<ExtArgs>[]
       blockedBy: Prisma.$BlockedUserPayload<ExtArgs>[]
+      circles: Prisma.$CirclePayload<ExtArgs>[]
+      circleMemberships: Prisma.$CircleMemberPayload<ExtArgs>[]
+      pinViews: Prisma.$PinViewPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -4008,6 +4365,9 @@ export namespace Prisma {
     categories<T extends User$categoriesArgs<ExtArgs> = {}>(args?: Subset<T, User$categoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findMany"> | Null>
     blockedUsers<T extends User$blockedUsersArgs<ExtArgs> = {}>(args?: Subset<T, User$blockedUsersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findMany"> | Null>
     blockedBy<T extends User$blockedByArgs<ExtArgs> = {}>(args?: Subset<T, User$blockedByArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findMany"> | Null>
+    circles<T extends User$circlesArgs<ExtArgs> = {}>(args?: Subset<T, User$circlesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findMany"> | Null>
+    circleMemberships<T extends User$circleMembershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$circleMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "findMany"> | Null>
+    pinViews<T extends User$pinViewsArgs<ExtArgs> = {}>(args?: Subset<T, User$pinViewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4784,6 +5144,66 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: BlockedUserScalarFieldEnum | BlockedUserScalarFieldEnum[]
+  }
+
+  /**
+   * User.circles
+   */
+  export type User$circlesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    where?: CircleWhereInput
+    orderBy?: CircleOrderByWithRelationInput | CircleOrderByWithRelationInput[]
+    cursor?: CircleWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CircleScalarFieldEnum | CircleScalarFieldEnum[]
+  }
+
+  /**
+   * User.circleMemberships
+   */
+  export type User$circleMembershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    where?: CircleMemberWhereInput
+    orderBy?: CircleMemberOrderByWithRelationInput | CircleMemberOrderByWithRelationInput[]
+    cursor?: CircleMemberWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CircleMemberScalarFieldEnum | CircleMemberScalarFieldEnum[]
+  }
+
+  /**
+   * User.pinViews
+   */
+  export type User$pinViewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    where?: PinViewWhereInput
+    orderBy?: PinViewOrderByWithRelationInput | PinViewOrderByWithRelationInput[]
+    cursor?: PinViewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PinViewScalarFieldEnum | PinViewScalarFieldEnum[]
   }
 
   /**
@@ -11442,6 +11862,2889 @@ export namespace Prisma {
 
 
   /**
+   * Model Circle
+   */
+
+  export type AggregateCircle = {
+    _count: CircleCountAggregateOutputType | null
+    _avg: CircleAvgAggregateOutputType | null
+    _sum: CircleSumAggregateOutputType | null
+    _min: CircleMinAggregateOutputType | null
+    _max: CircleMaxAggregateOutputType | null
+  }
+
+  export type CircleAvgAggregateOutputType = {
+    rank: number | null
+  }
+
+  export type CircleSumAggregateOutputType = {
+    rank: number | null
+  }
+
+  export type CircleMinAggregateOutputType = {
+    id: string | null
+    ownerId: string | null
+    name: string | null
+    rank: number | null
+    isAdHoc: boolean | null
+    memberHash: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CircleMaxAggregateOutputType = {
+    id: string | null
+    ownerId: string | null
+    name: string | null
+    rank: number | null
+    isAdHoc: boolean | null
+    memberHash: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CircleCountAggregateOutputType = {
+    id: number
+    ownerId: number
+    name: number
+    rank: number
+    isAdHoc: number
+    memberHash: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CircleAvgAggregateInputType = {
+    rank?: true
+  }
+
+  export type CircleSumAggregateInputType = {
+    rank?: true
+  }
+
+  export type CircleMinAggregateInputType = {
+    id?: true
+    ownerId?: true
+    name?: true
+    rank?: true
+    isAdHoc?: true
+    memberHash?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CircleMaxAggregateInputType = {
+    id?: true
+    ownerId?: true
+    name?: true
+    rank?: true
+    isAdHoc?: true
+    memberHash?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CircleCountAggregateInputType = {
+    id?: true
+    ownerId?: true
+    name?: true
+    rank?: true
+    isAdHoc?: true
+    memberHash?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CircleAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Circle to aggregate.
+     */
+    where?: CircleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Circles to fetch.
+     */
+    orderBy?: CircleOrderByWithRelationInput | CircleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CircleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Circles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Circles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Circles
+    **/
+    _count?: true | CircleCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CircleAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CircleSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CircleMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CircleMaxAggregateInputType
+  }
+
+  export type GetCircleAggregateType<T extends CircleAggregateArgs> = {
+        [P in keyof T & keyof AggregateCircle]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCircle[P]>
+      : GetScalarType<T[P], AggregateCircle[P]>
+  }
+
+
+
+
+  export type CircleGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CircleWhereInput
+    orderBy?: CircleOrderByWithAggregationInput | CircleOrderByWithAggregationInput[]
+    by: CircleScalarFieldEnum[] | CircleScalarFieldEnum
+    having?: CircleScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CircleCountAggregateInputType | true
+    _avg?: CircleAvgAggregateInputType
+    _sum?: CircleSumAggregateInputType
+    _min?: CircleMinAggregateInputType
+    _max?: CircleMaxAggregateInputType
+  }
+
+  export type CircleGroupByOutputType = {
+    id: string
+    ownerId: string
+    name: string
+    rank: number | null
+    isAdHoc: boolean
+    memberHash: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: CircleCountAggregateOutputType | null
+    _avg: CircleAvgAggregateOutputType | null
+    _sum: CircleSumAggregateOutputType | null
+    _min: CircleMinAggregateOutputType | null
+    _max: CircleMaxAggregateOutputType | null
+  }
+
+  type GetCircleGroupByPayload<T extends CircleGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CircleGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CircleGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CircleGroupByOutputType[P]>
+            : GetScalarType<T[P], CircleGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CircleSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerId?: boolean
+    name?: boolean
+    rank?: boolean
+    isAdHoc?: boolean
+    memberHash?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    members?: boolean | Circle$membersArgs<ExtArgs>
+    pins?: boolean | Circle$pinsArgs<ExtArgs>
+    _count?: boolean | CircleCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["circle"]>
+
+  export type CircleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerId?: boolean
+    name?: boolean
+    rank?: boolean
+    isAdHoc?: boolean
+    memberHash?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["circle"]>
+
+  export type CircleSelectScalar = {
+    id?: boolean
+    ownerId?: boolean
+    name?: boolean
+    rank?: boolean
+    isAdHoc?: boolean
+    memberHash?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CircleInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    members?: boolean | Circle$membersArgs<ExtArgs>
+    pins?: boolean | Circle$pinsArgs<ExtArgs>
+    _count?: boolean | CircleCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type CircleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $CirclePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Circle"
+    objects: {
+      owner: Prisma.$UserPayload<ExtArgs>
+      members: Prisma.$CircleMemberPayload<ExtArgs>[]
+      pins: Prisma.$PinPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ownerId: string
+      name: string
+      rank: number | null
+      isAdHoc: boolean
+      memberHash: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["circle"]>
+    composites: {}
+  }
+
+  type CircleGetPayload<S extends boolean | null | undefined | CircleDefaultArgs> = $Result.GetResult<Prisma.$CirclePayload, S>
+
+  type CircleCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<CircleFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: CircleCountAggregateInputType | true
+    }
+
+  export interface CircleDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Circle'], meta: { name: 'Circle' } }
+    /**
+     * Find zero or one Circle that matches the filter.
+     * @param {CircleFindUniqueArgs} args - Arguments to find a Circle
+     * @example
+     * // Get one Circle
+     * const circle = await prisma.circle.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CircleFindUniqueArgs>(args: SelectSubset<T, CircleFindUniqueArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Circle that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {CircleFindUniqueOrThrowArgs} args - Arguments to find a Circle
+     * @example
+     * // Get one Circle
+     * const circle = await prisma.circle.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CircleFindUniqueOrThrowArgs>(args: SelectSubset<T, CircleFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Circle that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleFindFirstArgs} args - Arguments to find a Circle
+     * @example
+     * // Get one Circle
+     * const circle = await prisma.circle.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CircleFindFirstArgs>(args?: SelectSubset<T, CircleFindFirstArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Circle that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleFindFirstOrThrowArgs} args - Arguments to find a Circle
+     * @example
+     * // Get one Circle
+     * const circle = await prisma.circle.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CircleFindFirstOrThrowArgs>(args?: SelectSubset<T, CircleFindFirstOrThrowArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Circles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Circles
+     * const circles = await prisma.circle.findMany()
+     * 
+     * // Get first 10 Circles
+     * const circles = await prisma.circle.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const circleWithIdOnly = await prisma.circle.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CircleFindManyArgs>(args?: SelectSubset<T, CircleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Circle.
+     * @param {CircleCreateArgs} args - Arguments to create a Circle.
+     * @example
+     * // Create one Circle
+     * const Circle = await prisma.circle.create({
+     *   data: {
+     *     // ... data to create a Circle
+     *   }
+     * })
+     * 
+     */
+    create<T extends CircleCreateArgs>(args: SelectSubset<T, CircleCreateArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Circles.
+     * @param {CircleCreateManyArgs} args - Arguments to create many Circles.
+     * @example
+     * // Create many Circles
+     * const circle = await prisma.circle.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CircleCreateManyArgs>(args?: SelectSubset<T, CircleCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Circles and returns the data saved in the database.
+     * @param {CircleCreateManyAndReturnArgs} args - Arguments to create many Circles.
+     * @example
+     * // Create many Circles
+     * const circle = await prisma.circle.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Circles and only return the `id`
+     * const circleWithIdOnly = await prisma.circle.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CircleCreateManyAndReturnArgs>(args?: SelectSubset<T, CircleCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a Circle.
+     * @param {CircleDeleteArgs} args - Arguments to delete one Circle.
+     * @example
+     * // Delete one Circle
+     * const Circle = await prisma.circle.delete({
+     *   where: {
+     *     // ... filter to delete one Circle
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CircleDeleteArgs>(args: SelectSubset<T, CircleDeleteArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Circle.
+     * @param {CircleUpdateArgs} args - Arguments to update one Circle.
+     * @example
+     * // Update one Circle
+     * const circle = await prisma.circle.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CircleUpdateArgs>(args: SelectSubset<T, CircleUpdateArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Circles.
+     * @param {CircleDeleteManyArgs} args - Arguments to filter Circles to delete.
+     * @example
+     * // Delete a few Circles
+     * const { count } = await prisma.circle.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CircleDeleteManyArgs>(args?: SelectSubset<T, CircleDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Circles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Circles
+     * const circle = await prisma.circle.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CircleUpdateManyArgs>(args: SelectSubset<T, CircleUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Circle.
+     * @param {CircleUpsertArgs} args - Arguments to update or create a Circle.
+     * @example
+     * // Update or create a Circle
+     * const circle = await prisma.circle.upsert({
+     *   create: {
+     *     // ... data to create a Circle
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Circle we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CircleUpsertArgs>(args: SelectSubset<T, CircleUpsertArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Circles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleCountArgs} args - Arguments to filter Circles to count.
+     * @example
+     * // Count the number of Circles
+     * const count = await prisma.circle.count({
+     *   where: {
+     *     // ... the filter for the Circles we want to count
+     *   }
+     * })
+    **/
+    count<T extends CircleCountArgs>(
+      args?: Subset<T, CircleCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CircleCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Circle.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CircleAggregateArgs>(args: Subset<T, CircleAggregateArgs>): Prisma.PrismaPromise<GetCircleAggregateType<T>>
+
+    /**
+     * Group by Circle.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CircleGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CircleGroupByArgs['orderBy'] }
+        : { orderBy?: CircleGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CircleGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCircleGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Circle model
+   */
+  readonly fields: CircleFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Circle.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CircleClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    owner<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    members<T extends Circle$membersArgs<ExtArgs> = {}>(args?: Subset<T, Circle$membersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "findMany"> | Null>
+    pins<T extends Circle$pinsArgs<ExtArgs> = {}>(args?: Subset<T, Circle$pinsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PinPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Circle model
+   */ 
+  interface CircleFieldRefs {
+    readonly id: FieldRef<"Circle", 'String'>
+    readonly ownerId: FieldRef<"Circle", 'String'>
+    readonly name: FieldRef<"Circle", 'String'>
+    readonly rank: FieldRef<"Circle", 'Int'>
+    readonly isAdHoc: FieldRef<"Circle", 'Boolean'>
+    readonly memberHash: FieldRef<"Circle", 'String'>
+    readonly createdAt: FieldRef<"Circle", 'DateTime'>
+    readonly updatedAt: FieldRef<"Circle", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Circle findUnique
+   */
+  export type CircleFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * Filter, which Circle to fetch.
+     */
+    where: CircleWhereUniqueInput
+  }
+
+  /**
+   * Circle findUniqueOrThrow
+   */
+  export type CircleFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * Filter, which Circle to fetch.
+     */
+    where: CircleWhereUniqueInput
+  }
+
+  /**
+   * Circle findFirst
+   */
+  export type CircleFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * Filter, which Circle to fetch.
+     */
+    where?: CircleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Circles to fetch.
+     */
+    orderBy?: CircleOrderByWithRelationInput | CircleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Circles.
+     */
+    cursor?: CircleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Circles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Circles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Circles.
+     */
+    distinct?: CircleScalarFieldEnum | CircleScalarFieldEnum[]
+  }
+
+  /**
+   * Circle findFirstOrThrow
+   */
+  export type CircleFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * Filter, which Circle to fetch.
+     */
+    where?: CircleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Circles to fetch.
+     */
+    orderBy?: CircleOrderByWithRelationInput | CircleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Circles.
+     */
+    cursor?: CircleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Circles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Circles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Circles.
+     */
+    distinct?: CircleScalarFieldEnum | CircleScalarFieldEnum[]
+  }
+
+  /**
+   * Circle findMany
+   */
+  export type CircleFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * Filter, which Circles to fetch.
+     */
+    where?: CircleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Circles to fetch.
+     */
+    orderBy?: CircleOrderByWithRelationInput | CircleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Circles.
+     */
+    cursor?: CircleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Circles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Circles.
+     */
+    skip?: number
+    distinct?: CircleScalarFieldEnum | CircleScalarFieldEnum[]
+  }
+
+  /**
+   * Circle create
+   */
+  export type CircleCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Circle.
+     */
+    data: XOR<CircleCreateInput, CircleUncheckedCreateInput>
+  }
+
+  /**
+   * Circle createMany
+   */
+  export type CircleCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Circles.
+     */
+    data: CircleCreateManyInput | CircleCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Circle createManyAndReturn
+   */
+  export type CircleCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many Circles.
+     */
+    data: CircleCreateManyInput | CircleCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Circle update
+   */
+  export type CircleUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Circle.
+     */
+    data: XOR<CircleUpdateInput, CircleUncheckedUpdateInput>
+    /**
+     * Choose, which Circle to update.
+     */
+    where: CircleWhereUniqueInput
+  }
+
+  /**
+   * Circle updateMany
+   */
+  export type CircleUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Circles.
+     */
+    data: XOR<CircleUpdateManyMutationInput, CircleUncheckedUpdateManyInput>
+    /**
+     * Filter which Circles to update
+     */
+    where?: CircleWhereInput
+  }
+
+  /**
+   * Circle upsert
+   */
+  export type CircleUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Circle to update in case it exists.
+     */
+    where: CircleWhereUniqueInput
+    /**
+     * In case the Circle found by the `where` argument doesn't exist, create a new Circle with this data.
+     */
+    create: XOR<CircleCreateInput, CircleUncheckedCreateInput>
+    /**
+     * In case the Circle was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CircleUpdateInput, CircleUncheckedUpdateInput>
+  }
+
+  /**
+   * Circle delete
+   */
+  export type CircleDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    /**
+     * Filter which Circle to delete.
+     */
+    where: CircleWhereUniqueInput
+  }
+
+  /**
+   * Circle deleteMany
+   */
+  export type CircleDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Circles to delete
+     */
+    where?: CircleWhereInput
+  }
+
+  /**
+   * Circle.members
+   */
+  export type Circle$membersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    where?: CircleMemberWhereInput
+    orderBy?: CircleMemberOrderByWithRelationInput | CircleMemberOrderByWithRelationInput[]
+    cursor?: CircleMemberWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CircleMemberScalarFieldEnum | CircleMemberScalarFieldEnum[]
+  }
+
+  /**
+   * Circle.pins
+   */
+  export type Circle$pinsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Pin
+     */
+    select?: PinSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinInclude<ExtArgs> | null
+    where?: PinWhereInput
+    orderBy?: PinOrderByWithRelationInput | PinOrderByWithRelationInput[]
+    cursor?: PinWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PinScalarFieldEnum | PinScalarFieldEnum[]
+  }
+
+  /**
+   * Circle without action
+   */
+  export type CircleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CircleMember
+   */
+
+  export type AggregateCircleMember = {
+    _count: CircleMemberCountAggregateOutputType | null
+    _min: CircleMemberMinAggregateOutputType | null
+    _max: CircleMemberMaxAggregateOutputType | null
+  }
+
+  export type CircleMemberMinAggregateOutputType = {
+    circleId: string | null
+    userId: string | null
+    addedAt: Date | null
+  }
+
+  export type CircleMemberMaxAggregateOutputType = {
+    circleId: string | null
+    userId: string | null
+    addedAt: Date | null
+  }
+
+  export type CircleMemberCountAggregateOutputType = {
+    circleId: number
+    userId: number
+    addedAt: number
+    _all: number
+  }
+
+
+  export type CircleMemberMinAggregateInputType = {
+    circleId?: true
+    userId?: true
+    addedAt?: true
+  }
+
+  export type CircleMemberMaxAggregateInputType = {
+    circleId?: true
+    userId?: true
+    addedAt?: true
+  }
+
+  export type CircleMemberCountAggregateInputType = {
+    circleId?: true
+    userId?: true
+    addedAt?: true
+    _all?: true
+  }
+
+  export type CircleMemberAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CircleMember to aggregate.
+     */
+    where?: CircleMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CircleMembers to fetch.
+     */
+    orderBy?: CircleMemberOrderByWithRelationInput | CircleMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CircleMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CircleMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CircleMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CircleMembers
+    **/
+    _count?: true | CircleMemberCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CircleMemberMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CircleMemberMaxAggregateInputType
+  }
+
+  export type GetCircleMemberAggregateType<T extends CircleMemberAggregateArgs> = {
+        [P in keyof T & keyof AggregateCircleMember]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCircleMember[P]>
+      : GetScalarType<T[P], AggregateCircleMember[P]>
+  }
+
+
+
+
+  export type CircleMemberGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CircleMemberWhereInput
+    orderBy?: CircleMemberOrderByWithAggregationInput | CircleMemberOrderByWithAggregationInput[]
+    by: CircleMemberScalarFieldEnum[] | CircleMemberScalarFieldEnum
+    having?: CircleMemberScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CircleMemberCountAggregateInputType | true
+    _min?: CircleMemberMinAggregateInputType
+    _max?: CircleMemberMaxAggregateInputType
+  }
+
+  export type CircleMemberGroupByOutputType = {
+    circleId: string
+    userId: string
+    addedAt: Date
+    _count: CircleMemberCountAggregateOutputType | null
+    _min: CircleMemberMinAggregateOutputType | null
+    _max: CircleMemberMaxAggregateOutputType | null
+  }
+
+  type GetCircleMemberGroupByPayload<T extends CircleMemberGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CircleMemberGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CircleMemberGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CircleMemberGroupByOutputType[P]>
+            : GetScalarType<T[P], CircleMemberGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CircleMemberSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    circleId?: boolean
+    userId?: boolean
+    addedAt?: boolean
+    circle?: boolean | CircleDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["circleMember"]>
+
+  export type CircleMemberSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    circleId?: boolean
+    userId?: boolean
+    addedAt?: boolean
+    circle?: boolean | CircleDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["circleMember"]>
+
+  export type CircleMemberSelectScalar = {
+    circleId?: boolean
+    userId?: boolean
+    addedAt?: boolean
+  }
+
+  export type CircleMemberInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    circle?: boolean | CircleDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type CircleMemberIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    circle?: boolean | CircleDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $CircleMemberPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CircleMember"
+    objects: {
+      circle: Prisma.$CirclePayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      circleId: string
+      userId: string
+      addedAt: Date
+    }, ExtArgs["result"]["circleMember"]>
+    composites: {}
+  }
+
+  type CircleMemberGetPayload<S extends boolean | null | undefined | CircleMemberDefaultArgs> = $Result.GetResult<Prisma.$CircleMemberPayload, S>
+
+  type CircleMemberCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<CircleMemberFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: CircleMemberCountAggregateInputType | true
+    }
+
+  export interface CircleMemberDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CircleMember'], meta: { name: 'CircleMember' } }
+    /**
+     * Find zero or one CircleMember that matches the filter.
+     * @param {CircleMemberFindUniqueArgs} args - Arguments to find a CircleMember
+     * @example
+     * // Get one CircleMember
+     * const circleMember = await prisma.circleMember.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CircleMemberFindUniqueArgs>(args: SelectSubset<T, CircleMemberFindUniqueArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one CircleMember that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {CircleMemberFindUniqueOrThrowArgs} args - Arguments to find a CircleMember
+     * @example
+     * // Get one CircleMember
+     * const circleMember = await prisma.circleMember.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CircleMemberFindUniqueOrThrowArgs>(args: SelectSubset<T, CircleMemberFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first CircleMember that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleMemberFindFirstArgs} args - Arguments to find a CircleMember
+     * @example
+     * // Get one CircleMember
+     * const circleMember = await prisma.circleMember.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CircleMemberFindFirstArgs>(args?: SelectSubset<T, CircleMemberFindFirstArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first CircleMember that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleMemberFindFirstOrThrowArgs} args - Arguments to find a CircleMember
+     * @example
+     * // Get one CircleMember
+     * const circleMember = await prisma.circleMember.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CircleMemberFindFirstOrThrowArgs>(args?: SelectSubset<T, CircleMemberFindFirstOrThrowArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more CircleMembers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleMemberFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CircleMembers
+     * const circleMembers = await prisma.circleMember.findMany()
+     * 
+     * // Get first 10 CircleMembers
+     * const circleMembers = await prisma.circleMember.findMany({ take: 10 })
+     * 
+     * // Only select the `circleId`
+     * const circleMemberWithCircleIdOnly = await prisma.circleMember.findMany({ select: { circleId: true } })
+     * 
+     */
+    findMany<T extends CircleMemberFindManyArgs>(args?: SelectSubset<T, CircleMemberFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a CircleMember.
+     * @param {CircleMemberCreateArgs} args - Arguments to create a CircleMember.
+     * @example
+     * // Create one CircleMember
+     * const CircleMember = await prisma.circleMember.create({
+     *   data: {
+     *     // ... data to create a CircleMember
+     *   }
+     * })
+     * 
+     */
+    create<T extends CircleMemberCreateArgs>(args: SelectSubset<T, CircleMemberCreateArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many CircleMembers.
+     * @param {CircleMemberCreateManyArgs} args - Arguments to create many CircleMembers.
+     * @example
+     * // Create many CircleMembers
+     * const circleMember = await prisma.circleMember.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CircleMemberCreateManyArgs>(args?: SelectSubset<T, CircleMemberCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CircleMembers and returns the data saved in the database.
+     * @param {CircleMemberCreateManyAndReturnArgs} args - Arguments to create many CircleMembers.
+     * @example
+     * // Create many CircleMembers
+     * const circleMember = await prisma.circleMember.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CircleMembers and only return the `circleId`
+     * const circleMemberWithCircleIdOnly = await prisma.circleMember.createManyAndReturn({ 
+     *   select: { circleId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CircleMemberCreateManyAndReturnArgs>(args?: SelectSubset<T, CircleMemberCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a CircleMember.
+     * @param {CircleMemberDeleteArgs} args - Arguments to delete one CircleMember.
+     * @example
+     * // Delete one CircleMember
+     * const CircleMember = await prisma.circleMember.delete({
+     *   where: {
+     *     // ... filter to delete one CircleMember
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CircleMemberDeleteArgs>(args: SelectSubset<T, CircleMemberDeleteArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one CircleMember.
+     * @param {CircleMemberUpdateArgs} args - Arguments to update one CircleMember.
+     * @example
+     * // Update one CircleMember
+     * const circleMember = await prisma.circleMember.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CircleMemberUpdateArgs>(args: SelectSubset<T, CircleMemberUpdateArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more CircleMembers.
+     * @param {CircleMemberDeleteManyArgs} args - Arguments to filter CircleMembers to delete.
+     * @example
+     * // Delete a few CircleMembers
+     * const { count } = await prisma.circleMember.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CircleMemberDeleteManyArgs>(args?: SelectSubset<T, CircleMemberDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CircleMembers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleMemberUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CircleMembers
+     * const circleMember = await prisma.circleMember.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CircleMemberUpdateManyArgs>(args: SelectSubset<T, CircleMemberUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one CircleMember.
+     * @param {CircleMemberUpsertArgs} args - Arguments to update or create a CircleMember.
+     * @example
+     * // Update or create a CircleMember
+     * const circleMember = await prisma.circleMember.upsert({
+     *   create: {
+     *     // ... data to create a CircleMember
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CircleMember we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CircleMemberUpsertArgs>(args: SelectSubset<T, CircleMemberUpsertArgs<ExtArgs>>): Prisma__CircleMemberClient<$Result.GetResult<Prisma.$CircleMemberPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of CircleMembers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleMemberCountArgs} args - Arguments to filter CircleMembers to count.
+     * @example
+     * // Count the number of CircleMembers
+     * const count = await prisma.circleMember.count({
+     *   where: {
+     *     // ... the filter for the CircleMembers we want to count
+     *   }
+     * })
+    **/
+    count<T extends CircleMemberCountArgs>(
+      args?: Subset<T, CircleMemberCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CircleMemberCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CircleMember.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleMemberAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CircleMemberAggregateArgs>(args: Subset<T, CircleMemberAggregateArgs>): Prisma.PrismaPromise<GetCircleMemberAggregateType<T>>
+
+    /**
+     * Group by CircleMember.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CircleMemberGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CircleMemberGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CircleMemberGroupByArgs['orderBy'] }
+        : { orderBy?: CircleMemberGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CircleMemberGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCircleMemberGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CircleMember model
+   */
+  readonly fields: CircleMemberFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CircleMember.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CircleMemberClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    circle<T extends CircleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CircleDefaultArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CircleMember model
+   */ 
+  interface CircleMemberFieldRefs {
+    readonly circleId: FieldRef<"CircleMember", 'String'>
+    readonly userId: FieldRef<"CircleMember", 'String'>
+    readonly addedAt: FieldRef<"CircleMember", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CircleMember findUnique
+   */
+  export type CircleMemberFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which CircleMember to fetch.
+     */
+    where: CircleMemberWhereUniqueInput
+  }
+
+  /**
+   * CircleMember findUniqueOrThrow
+   */
+  export type CircleMemberFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which CircleMember to fetch.
+     */
+    where: CircleMemberWhereUniqueInput
+  }
+
+  /**
+   * CircleMember findFirst
+   */
+  export type CircleMemberFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which CircleMember to fetch.
+     */
+    where?: CircleMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CircleMembers to fetch.
+     */
+    orderBy?: CircleMemberOrderByWithRelationInput | CircleMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CircleMembers.
+     */
+    cursor?: CircleMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CircleMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CircleMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CircleMembers.
+     */
+    distinct?: CircleMemberScalarFieldEnum | CircleMemberScalarFieldEnum[]
+  }
+
+  /**
+   * CircleMember findFirstOrThrow
+   */
+  export type CircleMemberFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which CircleMember to fetch.
+     */
+    where?: CircleMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CircleMembers to fetch.
+     */
+    orderBy?: CircleMemberOrderByWithRelationInput | CircleMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CircleMembers.
+     */
+    cursor?: CircleMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CircleMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CircleMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CircleMembers.
+     */
+    distinct?: CircleMemberScalarFieldEnum | CircleMemberScalarFieldEnum[]
+  }
+
+  /**
+   * CircleMember findMany
+   */
+  export type CircleMemberFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * Filter, which CircleMembers to fetch.
+     */
+    where?: CircleMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CircleMembers to fetch.
+     */
+    orderBy?: CircleMemberOrderByWithRelationInput | CircleMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CircleMembers.
+     */
+    cursor?: CircleMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CircleMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CircleMembers.
+     */
+    skip?: number
+    distinct?: CircleMemberScalarFieldEnum | CircleMemberScalarFieldEnum[]
+  }
+
+  /**
+   * CircleMember create
+   */
+  export type CircleMemberCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CircleMember.
+     */
+    data: XOR<CircleMemberCreateInput, CircleMemberUncheckedCreateInput>
+  }
+
+  /**
+   * CircleMember createMany
+   */
+  export type CircleMemberCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CircleMembers.
+     */
+    data: CircleMemberCreateManyInput | CircleMemberCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CircleMember createManyAndReturn
+   */
+  export type CircleMemberCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many CircleMembers.
+     */
+    data: CircleMemberCreateManyInput | CircleMemberCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CircleMember update
+   */
+  export type CircleMemberUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CircleMember.
+     */
+    data: XOR<CircleMemberUpdateInput, CircleMemberUncheckedUpdateInput>
+    /**
+     * Choose, which CircleMember to update.
+     */
+    where: CircleMemberWhereUniqueInput
+  }
+
+  /**
+   * CircleMember updateMany
+   */
+  export type CircleMemberUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CircleMembers.
+     */
+    data: XOR<CircleMemberUpdateManyMutationInput, CircleMemberUncheckedUpdateManyInput>
+    /**
+     * Filter which CircleMembers to update
+     */
+    where?: CircleMemberWhereInput
+  }
+
+  /**
+   * CircleMember upsert
+   */
+  export type CircleMemberUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CircleMember to update in case it exists.
+     */
+    where: CircleMemberWhereUniqueInput
+    /**
+     * In case the CircleMember found by the `where` argument doesn't exist, create a new CircleMember with this data.
+     */
+    create: XOR<CircleMemberCreateInput, CircleMemberUncheckedCreateInput>
+    /**
+     * In case the CircleMember was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CircleMemberUpdateInput, CircleMemberUncheckedUpdateInput>
+  }
+
+  /**
+   * CircleMember delete
+   */
+  export type CircleMemberDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+    /**
+     * Filter which CircleMember to delete.
+     */
+    where: CircleMemberWhereUniqueInput
+  }
+
+  /**
+   * CircleMember deleteMany
+   */
+  export type CircleMemberDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CircleMembers to delete
+     */
+    where?: CircleMemberWhereInput
+  }
+
+  /**
+   * CircleMember without action
+   */
+  export type CircleMemberDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CircleMember
+     */
+    select?: CircleMemberSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleMemberInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PinView
+   */
+
+  export type AggregatePinView = {
+    _count: PinViewCountAggregateOutputType | null
+    _min: PinViewMinAggregateOutputType | null
+    _max: PinViewMaxAggregateOutputType | null
+  }
+
+  export type PinViewMinAggregateOutputType = {
+    pinId: string | null
+    viewerId: string | null
+    firstViewedAt: Date | null
+  }
+
+  export type PinViewMaxAggregateOutputType = {
+    pinId: string | null
+    viewerId: string | null
+    firstViewedAt: Date | null
+  }
+
+  export type PinViewCountAggregateOutputType = {
+    pinId: number
+    viewerId: number
+    firstViewedAt: number
+    _all: number
+  }
+
+
+  export type PinViewMinAggregateInputType = {
+    pinId?: true
+    viewerId?: true
+    firstViewedAt?: true
+  }
+
+  export type PinViewMaxAggregateInputType = {
+    pinId?: true
+    viewerId?: true
+    firstViewedAt?: true
+  }
+
+  export type PinViewCountAggregateInputType = {
+    pinId?: true
+    viewerId?: true
+    firstViewedAt?: true
+    _all?: true
+  }
+
+  export type PinViewAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PinView to aggregate.
+     */
+    where?: PinViewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PinViews to fetch.
+     */
+    orderBy?: PinViewOrderByWithRelationInput | PinViewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PinViewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PinViews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PinViews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PinViews
+    **/
+    _count?: true | PinViewCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PinViewMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PinViewMaxAggregateInputType
+  }
+
+  export type GetPinViewAggregateType<T extends PinViewAggregateArgs> = {
+        [P in keyof T & keyof AggregatePinView]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePinView[P]>
+      : GetScalarType<T[P], AggregatePinView[P]>
+  }
+
+
+
+
+  export type PinViewGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PinViewWhereInput
+    orderBy?: PinViewOrderByWithAggregationInput | PinViewOrderByWithAggregationInput[]
+    by: PinViewScalarFieldEnum[] | PinViewScalarFieldEnum
+    having?: PinViewScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PinViewCountAggregateInputType | true
+    _min?: PinViewMinAggregateInputType
+    _max?: PinViewMaxAggregateInputType
+  }
+
+  export type PinViewGroupByOutputType = {
+    pinId: string
+    viewerId: string
+    firstViewedAt: Date
+    _count: PinViewCountAggregateOutputType | null
+    _min: PinViewMinAggregateOutputType | null
+    _max: PinViewMaxAggregateOutputType | null
+  }
+
+  type GetPinViewGroupByPayload<T extends PinViewGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PinViewGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PinViewGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PinViewGroupByOutputType[P]>
+            : GetScalarType<T[P], PinViewGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PinViewSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    pinId?: boolean
+    viewerId?: boolean
+    firstViewedAt?: boolean
+    pin?: boolean | PinDefaultArgs<ExtArgs>
+    viewer?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pinView"]>
+
+  export type PinViewSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    pinId?: boolean
+    viewerId?: boolean
+    firstViewedAt?: boolean
+    pin?: boolean | PinDefaultArgs<ExtArgs>
+    viewer?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pinView"]>
+
+  export type PinViewSelectScalar = {
+    pinId?: boolean
+    viewerId?: boolean
+    firstViewedAt?: boolean
+  }
+
+  export type PinViewInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    pin?: boolean | PinDefaultArgs<ExtArgs>
+    viewer?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type PinViewIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    pin?: boolean | PinDefaultArgs<ExtArgs>
+    viewer?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $PinViewPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PinView"
+    objects: {
+      pin: Prisma.$PinPayload<ExtArgs>
+      viewer: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      pinId: string
+      viewerId: string
+      firstViewedAt: Date
+    }, ExtArgs["result"]["pinView"]>
+    composites: {}
+  }
+
+  type PinViewGetPayload<S extends boolean | null | undefined | PinViewDefaultArgs> = $Result.GetResult<Prisma.$PinViewPayload, S>
+
+  type PinViewCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PinViewFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PinViewCountAggregateInputType | true
+    }
+
+  export interface PinViewDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PinView'], meta: { name: 'PinView' } }
+    /**
+     * Find zero or one PinView that matches the filter.
+     * @param {PinViewFindUniqueArgs} args - Arguments to find a PinView
+     * @example
+     * // Get one PinView
+     * const pinView = await prisma.pinView.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PinViewFindUniqueArgs>(args: SelectSubset<T, PinViewFindUniqueArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PinView that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PinViewFindUniqueOrThrowArgs} args - Arguments to find a PinView
+     * @example
+     * // Get one PinView
+     * const pinView = await prisma.pinView.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PinViewFindUniqueOrThrowArgs>(args: SelectSubset<T, PinViewFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PinView that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PinViewFindFirstArgs} args - Arguments to find a PinView
+     * @example
+     * // Get one PinView
+     * const pinView = await prisma.pinView.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PinViewFindFirstArgs>(args?: SelectSubset<T, PinViewFindFirstArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PinView that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PinViewFindFirstOrThrowArgs} args - Arguments to find a PinView
+     * @example
+     * // Get one PinView
+     * const pinView = await prisma.pinView.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PinViewFindFirstOrThrowArgs>(args?: SelectSubset<T, PinViewFindFirstOrThrowArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PinViews that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PinViewFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PinViews
+     * const pinViews = await prisma.pinView.findMany()
+     * 
+     * // Get first 10 PinViews
+     * const pinViews = await prisma.pinView.findMany({ take: 10 })
+     * 
+     * // Only select the `pinId`
+     * const pinViewWithPinIdOnly = await prisma.pinView.findMany({ select: { pinId: true } })
+     * 
+     */
+    findMany<T extends PinViewFindManyArgs>(args?: SelectSubset<T, PinViewFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PinView.
+     * @param {PinViewCreateArgs} args - Arguments to create a PinView.
+     * @example
+     * // Create one PinView
+     * const PinView = await prisma.pinView.create({
+     *   data: {
+     *     // ... data to create a PinView
+     *   }
+     * })
+     * 
+     */
+    create<T extends PinViewCreateArgs>(args: SelectSubset<T, PinViewCreateArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PinViews.
+     * @param {PinViewCreateManyArgs} args - Arguments to create many PinViews.
+     * @example
+     * // Create many PinViews
+     * const pinView = await prisma.pinView.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PinViewCreateManyArgs>(args?: SelectSubset<T, PinViewCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PinViews and returns the data saved in the database.
+     * @param {PinViewCreateManyAndReturnArgs} args - Arguments to create many PinViews.
+     * @example
+     * // Create many PinViews
+     * const pinView = await prisma.pinView.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PinViews and only return the `pinId`
+     * const pinViewWithPinIdOnly = await prisma.pinView.createManyAndReturn({ 
+     *   select: { pinId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PinViewCreateManyAndReturnArgs>(args?: SelectSubset<T, PinViewCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PinView.
+     * @param {PinViewDeleteArgs} args - Arguments to delete one PinView.
+     * @example
+     * // Delete one PinView
+     * const PinView = await prisma.pinView.delete({
+     *   where: {
+     *     // ... filter to delete one PinView
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PinViewDeleteArgs>(args: SelectSubset<T, PinViewDeleteArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PinView.
+     * @param {PinViewUpdateArgs} args - Arguments to update one PinView.
+     * @example
+     * // Update one PinView
+     * const pinView = await prisma.pinView.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PinViewUpdateArgs>(args: SelectSubset<T, PinViewUpdateArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PinViews.
+     * @param {PinViewDeleteManyArgs} args - Arguments to filter PinViews to delete.
+     * @example
+     * // Delete a few PinViews
+     * const { count } = await prisma.pinView.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PinViewDeleteManyArgs>(args?: SelectSubset<T, PinViewDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PinViews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PinViewUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PinViews
+     * const pinView = await prisma.pinView.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PinViewUpdateManyArgs>(args: SelectSubset<T, PinViewUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PinView.
+     * @param {PinViewUpsertArgs} args - Arguments to update or create a PinView.
+     * @example
+     * // Update or create a PinView
+     * const pinView = await prisma.pinView.upsert({
+     *   create: {
+     *     // ... data to create a PinView
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PinView we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PinViewUpsertArgs>(args: SelectSubset<T, PinViewUpsertArgs<ExtArgs>>): Prisma__PinViewClient<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PinViews.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PinViewCountArgs} args - Arguments to filter PinViews to count.
+     * @example
+     * // Count the number of PinViews
+     * const count = await prisma.pinView.count({
+     *   where: {
+     *     // ... the filter for the PinViews we want to count
+     *   }
+     * })
+    **/
+    count<T extends PinViewCountArgs>(
+      args?: Subset<T, PinViewCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PinViewCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PinView.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PinViewAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PinViewAggregateArgs>(args: Subset<T, PinViewAggregateArgs>): Prisma.PrismaPromise<GetPinViewAggregateType<T>>
+
+    /**
+     * Group by PinView.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PinViewGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PinViewGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PinViewGroupByArgs['orderBy'] }
+        : { orderBy?: PinViewGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PinViewGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPinViewGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PinView model
+   */
+  readonly fields: PinViewFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PinView.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PinViewClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    pin<T extends PinDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PinDefaultArgs<ExtArgs>>): Prisma__PinClient<$Result.GetResult<Prisma.$PinPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    viewer<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PinView model
+   */ 
+  interface PinViewFieldRefs {
+    readonly pinId: FieldRef<"PinView", 'String'>
+    readonly viewerId: FieldRef<"PinView", 'String'>
+    readonly firstViewedAt: FieldRef<"PinView", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PinView findUnique
+   */
+  export type PinViewFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * Filter, which PinView to fetch.
+     */
+    where: PinViewWhereUniqueInput
+  }
+
+  /**
+   * PinView findUniqueOrThrow
+   */
+  export type PinViewFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * Filter, which PinView to fetch.
+     */
+    where: PinViewWhereUniqueInput
+  }
+
+  /**
+   * PinView findFirst
+   */
+  export type PinViewFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * Filter, which PinView to fetch.
+     */
+    where?: PinViewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PinViews to fetch.
+     */
+    orderBy?: PinViewOrderByWithRelationInput | PinViewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PinViews.
+     */
+    cursor?: PinViewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PinViews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PinViews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PinViews.
+     */
+    distinct?: PinViewScalarFieldEnum | PinViewScalarFieldEnum[]
+  }
+
+  /**
+   * PinView findFirstOrThrow
+   */
+  export type PinViewFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * Filter, which PinView to fetch.
+     */
+    where?: PinViewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PinViews to fetch.
+     */
+    orderBy?: PinViewOrderByWithRelationInput | PinViewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PinViews.
+     */
+    cursor?: PinViewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PinViews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PinViews.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PinViews.
+     */
+    distinct?: PinViewScalarFieldEnum | PinViewScalarFieldEnum[]
+  }
+
+  /**
+   * PinView findMany
+   */
+  export type PinViewFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * Filter, which PinViews to fetch.
+     */
+    where?: PinViewWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PinViews to fetch.
+     */
+    orderBy?: PinViewOrderByWithRelationInput | PinViewOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PinViews.
+     */
+    cursor?: PinViewWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PinViews from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PinViews.
+     */
+    skip?: number
+    distinct?: PinViewScalarFieldEnum | PinViewScalarFieldEnum[]
+  }
+
+  /**
+   * PinView create
+   */
+  export type PinViewCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PinView.
+     */
+    data: XOR<PinViewCreateInput, PinViewUncheckedCreateInput>
+  }
+
+  /**
+   * PinView createMany
+   */
+  export type PinViewCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PinViews.
+     */
+    data: PinViewCreateManyInput | PinViewCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PinView createManyAndReturn
+   */
+  export type PinViewCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PinViews.
+     */
+    data: PinViewCreateManyInput | PinViewCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PinView update
+   */
+  export type PinViewUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PinView.
+     */
+    data: XOR<PinViewUpdateInput, PinViewUncheckedUpdateInput>
+    /**
+     * Choose, which PinView to update.
+     */
+    where: PinViewWhereUniqueInput
+  }
+
+  /**
+   * PinView updateMany
+   */
+  export type PinViewUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PinViews.
+     */
+    data: XOR<PinViewUpdateManyMutationInput, PinViewUncheckedUpdateManyInput>
+    /**
+     * Filter which PinViews to update
+     */
+    where?: PinViewWhereInput
+  }
+
+  /**
+   * PinView upsert
+   */
+  export type PinViewUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PinView to update in case it exists.
+     */
+    where: PinViewWhereUniqueInput
+    /**
+     * In case the PinView found by the `where` argument doesn't exist, create a new PinView with this data.
+     */
+    create: XOR<PinViewCreateInput, PinViewUncheckedCreateInput>
+    /**
+     * In case the PinView was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PinViewUpdateInput, PinViewUncheckedUpdateInput>
+  }
+
+  /**
+   * PinView delete
+   */
+  export type PinViewDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    /**
+     * Filter which PinView to delete.
+     */
+    where: PinViewWhereUniqueInput
+  }
+
+  /**
+   * PinView deleteMany
+   */
+  export type PinViewDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PinViews to delete
+     */
+    where?: PinViewWhereInput
+  }
+
+  /**
+   * PinView without action
+   */
+  export type PinViewDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model Category
    */
 
@@ -13353,6 +16656,9 @@ export namespace Prisma {
     viewCount: number | null
     clickCount: number | null
     creatorId: string | null
+    visibility: $Enums.Visibility | null
+    audienceCircleId: string | null
+    expiresAt: Date | null
     deletedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -13372,6 +16678,9 @@ export namespace Prisma {
     viewCount: number | null
     clickCount: number | null
     creatorId: string | null
+    visibility: $Enums.Visibility | null
+    audienceCircleId: string | null
+    expiresAt: Date | null
     deletedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -13391,6 +16700,9 @@ export namespace Prisma {
     viewCount: number
     clickCount: number
     creatorId: number
+    visibility: number
+    audienceCircleId: number
+    expiresAt: number
     deletedAt: number
     createdAt: number
     updatedAt: number
@@ -13426,6 +16738,9 @@ export namespace Prisma {
     viewCount?: true
     clickCount?: true
     creatorId?: true
+    visibility?: true
+    audienceCircleId?: true
+    expiresAt?: true
     deletedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -13445,6 +16760,9 @@ export namespace Prisma {
     viewCount?: true
     clickCount?: true
     creatorId?: true
+    visibility?: true
+    audienceCircleId?: true
+    expiresAt?: true
     deletedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -13464,6 +16782,9 @@ export namespace Prisma {
     viewCount?: true
     clickCount?: true
     creatorId?: true
+    visibility?: true
+    audienceCircleId?: true
+    expiresAt?: true
     deletedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -13570,6 +16891,9 @@ export namespace Prisma {
     viewCount: number
     clickCount: number
     creatorId: string
+    visibility: $Enums.Visibility
+    audienceCircleId: string | null
+    expiresAt: Date | null
     deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -13608,10 +16932,15 @@ export namespace Prisma {
     viewCount?: boolean
     clickCount?: boolean
     creatorId?: boolean
+    visibility?: boolean
+    audienceCircleId?: boolean
+    expiresAt?: boolean
     deletedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
+    audienceCircle?: boolean | Pin$audienceCircleArgs<ExtArgs>
+    views?: boolean | Pin$viewsArgs<ExtArgs>
     tags?: boolean | Pin$tagsArgs<ExtArgs>
     categories?: boolean | Pin$categoriesArgs<ExtArgs>
     savedBy?: boolean | Pin$savedByArgs<ExtArgs>
@@ -13637,10 +16966,14 @@ export namespace Prisma {
     viewCount?: boolean
     clickCount?: boolean
     creatorId?: boolean
+    visibility?: boolean
+    audienceCircleId?: boolean
+    expiresAt?: boolean
     deletedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
+    audienceCircle?: boolean | Pin$audienceCircleArgs<ExtArgs>
   }, ExtArgs["result"]["pin"]>
 
   export type PinSelectScalar = {
@@ -13657,6 +16990,9 @@ export namespace Prisma {
     viewCount?: boolean
     clickCount?: boolean
     creatorId?: boolean
+    visibility?: boolean
+    audienceCircleId?: boolean
+    expiresAt?: boolean
     deletedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -13664,6 +17000,8 @@ export namespace Prisma {
 
   export type PinInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
+    audienceCircle?: boolean | Pin$audienceCircleArgs<ExtArgs>
+    views?: boolean | Pin$viewsArgs<ExtArgs>
     tags?: boolean | Pin$tagsArgs<ExtArgs>
     categories?: boolean | Pin$categoriesArgs<ExtArgs>
     savedBy?: boolean | Pin$savedByArgs<ExtArgs>
@@ -13676,12 +17014,15 @@ export namespace Prisma {
   }
   export type PinIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
+    audienceCircle?: boolean | Pin$audienceCircleArgs<ExtArgs>
   }
 
   export type $PinPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Pin"
     objects: {
       creator: Prisma.$UserPayload<ExtArgs>
+      audienceCircle: Prisma.$CirclePayload<ExtArgs> | null
+      views: Prisma.$PinViewPayload<ExtArgs>[]
       tags: Prisma.$TagPayload<ExtArgs>[]
       categories: Prisma.$CategoryPayload<ExtArgs>[]
       savedBy: Prisma.$SavedPinPayload<ExtArgs>[]
@@ -13705,6 +17046,9 @@ export namespace Prisma {
       viewCount: number
       clickCount: number
       creatorId: string
+      visibility: $Enums.Visibility
+      audienceCircleId: string | null
+      expiresAt: Date | null
       deletedAt: Date | null
       createdAt: Date
       updatedAt: Date
@@ -14073,6 +17417,8 @@ export namespace Prisma {
   export interface Prisma__PinClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     creator<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    audienceCircle<T extends Pin$audienceCircleArgs<ExtArgs> = {}>(args?: Subset<T, Pin$audienceCircleArgs<ExtArgs>>): Prisma__CircleClient<$Result.GetResult<Prisma.$CirclePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    views<T extends Pin$viewsArgs<ExtArgs> = {}>(args?: Subset<T, Pin$viewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PinViewPayload<ExtArgs>, T, "findMany"> | Null>
     tags<T extends Pin$tagsArgs<ExtArgs> = {}>(args?: Subset<T, Pin$tagsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TagPayload<ExtArgs>, T, "findMany"> | Null>
     categories<T extends Pin$categoriesArgs<ExtArgs> = {}>(args?: Subset<T, Pin$categoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findMany"> | Null>
     savedBy<T extends Pin$savedByArgs<ExtArgs> = {}>(args?: Subset<T, Pin$savedByArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SavedPinPayload<ExtArgs>, T, "findMany"> | Null>
@@ -14123,6 +17469,9 @@ export namespace Prisma {
     readonly viewCount: FieldRef<"Pin", 'Int'>
     readonly clickCount: FieldRef<"Pin", 'Int'>
     readonly creatorId: FieldRef<"Pin", 'String'>
+    readonly visibility: FieldRef<"Pin", 'Visibility'>
+    readonly audienceCircleId: FieldRef<"Pin", 'String'>
+    readonly expiresAt: FieldRef<"Pin", 'DateTime'>
     readonly deletedAt: FieldRef<"Pin", 'DateTime'>
     readonly createdAt: FieldRef<"Pin", 'DateTime'>
     readonly updatedAt: FieldRef<"Pin", 'DateTime'>
@@ -14441,6 +17790,41 @@ export namespace Prisma {
      * Filter which Pins to delete
      */
     where?: PinWhereInput
+  }
+
+  /**
+   * Pin.audienceCircle
+   */
+  export type Pin$audienceCircleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Circle
+     */
+    select?: CircleSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CircleInclude<ExtArgs> | null
+    where?: CircleWhereInput
+  }
+
+  /**
+   * Pin.views
+   */
+  export type Pin$viewsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PinView
+     */
+    select?: PinViewSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PinViewInclude<ExtArgs> | null
+    where?: PinViewWhereInput
+    orderBy?: PinViewOrderByWithRelationInput | PinViewOrderByWithRelationInput[]
+    cursor?: PinViewWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PinViewScalarFieldEnum | PinViewScalarFieldEnum[]
   }
 
   /**
@@ -25642,6 +29026,38 @@ export namespace Prisma {
   export type BlockedUserScalarFieldEnum = (typeof BlockedUserScalarFieldEnum)[keyof typeof BlockedUserScalarFieldEnum]
 
 
+  export const CircleScalarFieldEnum: {
+    id: 'id',
+    ownerId: 'ownerId',
+    name: 'name',
+    rank: 'rank',
+    isAdHoc: 'isAdHoc',
+    memberHash: 'memberHash',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CircleScalarFieldEnum = (typeof CircleScalarFieldEnum)[keyof typeof CircleScalarFieldEnum]
+
+
+  export const CircleMemberScalarFieldEnum: {
+    circleId: 'circleId',
+    userId: 'userId',
+    addedAt: 'addedAt'
+  };
+
+  export type CircleMemberScalarFieldEnum = (typeof CircleMemberScalarFieldEnum)[keyof typeof CircleMemberScalarFieldEnum]
+
+
+  export const PinViewScalarFieldEnum: {
+    pinId: 'pinId',
+    viewerId: 'viewerId',
+    firstViewedAt: 'firstViewedAt'
+  };
+
+  export type PinViewScalarFieldEnum = (typeof PinViewScalarFieldEnum)[keyof typeof PinViewScalarFieldEnum]
+
+
   export const CategoryScalarFieldEnum: {
     id: 'id',
     name: 'name',
@@ -25674,6 +29090,9 @@ export namespace Prisma {
     viewCount: 'viewCount',
     clickCount: 'clickCount',
     creatorId: 'creatorId',
+    visibility: 'visibility',
+    audienceCircleId: 'audienceCircleId',
+    expiresAt: 'expiresAt',
     deletedAt: 'deletedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -25896,6 +29315,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Visibility'
+   */
+  export type EnumVisibilityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Visibility'>
+    
+
+
+  /**
+   * Reference to a field of type 'Visibility[]'
+   */
+  export type ListEnumVisibilityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Visibility[]'>
+    
+
+
+  /**
    * Reference to a field of type 'CollaboratorRole'
    */
   export type EnumCollaboratorRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CollaboratorRole'>
@@ -25995,6 +29428,9 @@ export namespace Prisma {
     categories?: CategoryListRelationFilter
     blockedUsers?: BlockedUserListRelationFilter
     blockedBy?: BlockedUserListRelationFilter
+    circles?: CircleListRelationFilter
+    circleMemberships?: CircleMemberListRelationFilter
+    pinViews?: PinViewListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -26035,6 +29471,9 @@ export namespace Prisma {
     categories?: CategoryOrderByRelationAggregateInput
     blockedUsers?: BlockedUserOrderByRelationAggregateInput
     blockedBy?: BlockedUserOrderByRelationAggregateInput
+    circles?: CircleOrderByRelationAggregateInput
+    circleMemberships?: CircleMemberOrderByRelationAggregateInput
+    pinViews?: PinViewOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -26078,6 +29517,9 @@ export namespace Prisma {
     categories?: CategoryListRelationFilter
     blockedUsers?: BlockedUserListRelationFilter
     blockedBy?: BlockedUserListRelationFilter
+    circles?: CircleListRelationFilter
+    circleMemberships?: CircleMemberListRelationFilter
+    pinViews?: PinViewListRelationFilter
   }, "id" | "email" | "username">
 
   export type UserOrderByWithAggregationInput = {
@@ -26541,6 +29983,183 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"BlockedUser"> | Date | string
   }
 
+  export type CircleWhereInput = {
+    AND?: CircleWhereInput | CircleWhereInput[]
+    OR?: CircleWhereInput[]
+    NOT?: CircleWhereInput | CircleWhereInput[]
+    id?: StringFilter<"Circle"> | string
+    ownerId?: StringFilter<"Circle"> | string
+    name?: StringFilter<"Circle"> | string
+    rank?: IntNullableFilter<"Circle"> | number | null
+    isAdHoc?: BoolFilter<"Circle"> | boolean
+    memberHash?: StringNullableFilter<"Circle"> | string | null
+    createdAt?: DateTimeFilter<"Circle"> | Date | string
+    updatedAt?: DateTimeFilter<"Circle"> | Date | string
+    owner?: XOR<UserRelationFilter, UserWhereInput>
+    members?: CircleMemberListRelationFilter
+    pins?: PinListRelationFilter
+  }
+
+  export type CircleOrderByWithRelationInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    name?: SortOrder
+    rank?: SortOrderInput | SortOrder
+    isAdHoc?: SortOrder
+    memberHash?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    owner?: UserOrderByWithRelationInput
+    members?: CircleMemberOrderByRelationAggregateInput
+    pins?: PinOrderByRelationAggregateInput
+  }
+
+  export type CircleWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    ownerId_memberHash?: CircleOwnerIdMemberHashCompoundUniqueInput
+    AND?: CircleWhereInput | CircleWhereInput[]
+    OR?: CircleWhereInput[]
+    NOT?: CircleWhereInput | CircleWhereInput[]
+    ownerId?: StringFilter<"Circle"> | string
+    name?: StringFilter<"Circle"> | string
+    rank?: IntNullableFilter<"Circle"> | number | null
+    isAdHoc?: BoolFilter<"Circle"> | boolean
+    memberHash?: StringNullableFilter<"Circle"> | string | null
+    createdAt?: DateTimeFilter<"Circle"> | Date | string
+    updatedAt?: DateTimeFilter<"Circle"> | Date | string
+    owner?: XOR<UserRelationFilter, UserWhereInput>
+    members?: CircleMemberListRelationFilter
+    pins?: PinListRelationFilter
+  }, "id" | "ownerId_memberHash">
+
+  export type CircleOrderByWithAggregationInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    name?: SortOrder
+    rank?: SortOrderInput | SortOrder
+    isAdHoc?: SortOrder
+    memberHash?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CircleCountOrderByAggregateInput
+    _avg?: CircleAvgOrderByAggregateInput
+    _max?: CircleMaxOrderByAggregateInput
+    _min?: CircleMinOrderByAggregateInput
+    _sum?: CircleSumOrderByAggregateInput
+  }
+
+  export type CircleScalarWhereWithAggregatesInput = {
+    AND?: CircleScalarWhereWithAggregatesInput | CircleScalarWhereWithAggregatesInput[]
+    OR?: CircleScalarWhereWithAggregatesInput[]
+    NOT?: CircleScalarWhereWithAggregatesInput | CircleScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Circle"> | string
+    ownerId?: StringWithAggregatesFilter<"Circle"> | string
+    name?: StringWithAggregatesFilter<"Circle"> | string
+    rank?: IntNullableWithAggregatesFilter<"Circle"> | number | null
+    isAdHoc?: BoolWithAggregatesFilter<"Circle"> | boolean
+    memberHash?: StringNullableWithAggregatesFilter<"Circle"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Circle"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Circle"> | Date | string
+  }
+
+  export type CircleMemberWhereInput = {
+    AND?: CircleMemberWhereInput | CircleMemberWhereInput[]
+    OR?: CircleMemberWhereInput[]
+    NOT?: CircleMemberWhereInput | CircleMemberWhereInput[]
+    circleId?: StringFilter<"CircleMember"> | string
+    userId?: StringFilter<"CircleMember"> | string
+    addedAt?: DateTimeFilter<"CircleMember"> | Date | string
+    circle?: XOR<CircleRelationFilter, CircleWhereInput>
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }
+
+  export type CircleMemberOrderByWithRelationInput = {
+    circleId?: SortOrder
+    userId?: SortOrder
+    addedAt?: SortOrder
+    circle?: CircleOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type CircleMemberWhereUniqueInput = Prisma.AtLeast<{
+    circleId_userId?: CircleMemberCircleIdUserIdCompoundUniqueInput
+    AND?: CircleMemberWhereInput | CircleMemberWhereInput[]
+    OR?: CircleMemberWhereInput[]
+    NOT?: CircleMemberWhereInput | CircleMemberWhereInput[]
+    circleId?: StringFilter<"CircleMember"> | string
+    userId?: StringFilter<"CircleMember"> | string
+    addedAt?: DateTimeFilter<"CircleMember"> | Date | string
+    circle?: XOR<CircleRelationFilter, CircleWhereInput>
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }, "circleId_userId">
+
+  export type CircleMemberOrderByWithAggregationInput = {
+    circleId?: SortOrder
+    userId?: SortOrder
+    addedAt?: SortOrder
+    _count?: CircleMemberCountOrderByAggregateInput
+    _max?: CircleMemberMaxOrderByAggregateInput
+    _min?: CircleMemberMinOrderByAggregateInput
+  }
+
+  export type CircleMemberScalarWhereWithAggregatesInput = {
+    AND?: CircleMemberScalarWhereWithAggregatesInput | CircleMemberScalarWhereWithAggregatesInput[]
+    OR?: CircleMemberScalarWhereWithAggregatesInput[]
+    NOT?: CircleMemberScalarWhereWithAggregatesInput | CircleMemberScalarWhereWithAggregatesInput[]
+    circleId?: StringWithAggregatesFilter<"CircleMember"> | string
+    userId?: StringWithAggregatesFilter<"CircleMember"> | string
+    addedAt?: DateTimeWithAggregatesFilter<"CircleMember"> | Date | string
+  }
+
+  export type PinViewWhereInput = {
+    AND?: PinViewWhereInput | PinViewWhereInput[]
+    OR?: PinViewWhereInput[]
+    NOT?: PinViewWhereInput | PinViewWhereInput[]
+    pinId?: StringFilter<"PinView"> | string
+    viewerId?: StringFilter<"PinView"> | string
+    firstViewedAt?: DateTimeFilter<"PinView"> | Date | string
+    pin?: XOR<PinRelationFilter, PinWhereInput>
+    viewer?: XOR<UserRelationFilter, UserWhereInput>
+  }
+
+  export type PinViewOrderByWithRelationInput = {
+    pinId?: SortOrder
+    viewerId?: SortOrder
+    firstViewedAt?: SortOrder
+    pin?: PinOrderByWithRelationInput
+    viewer?: UserOrderByWithRelationInput
+  }
+
+  export type PinViewWhereUniqueInput = Prisma.AtLeast<{
+    pinId_viewerId?: PinViewPinIdViewerIdCompoundUniqueInput
+    AND?: PinViewWhereInput | PinViewWhereInput[]
+    OR?: PinViewWhereInput[]
+    NOT?: PinViewWhereInput | PinViewWhereInput[]
+    pinId?: StringFilter<"PinView"> | string
+    viewerId?: StringFilter<"PinView"> | string
+    firstViewedAt?: DateTimeFilter<"PinView"> | Date | string
+    pin?: XOR<PinRelationFilter, PinWhereInput>
+    viewer?: XOR<UserRelationFilter, UserWhereInput>
+  }, "pinId_viewerId">
+
+  export type PinViewOrderByWithAggregationInput = {
+    pinId?: SortOrder
+    viewerId?: SortOrder
+    firstViewedAt?: SortOrder
+    _count?: PinViewCountOrderByAggregateInput
+    _max?: PinViewMaxOrderByAggregateInput
+    _min?: PinViewMinOrderByAggregateInput
+  }
+
+  export type PinViewScalarWhereWithAggregatesInput = {
+    AND?: PinViewScalarWhereWithAggregatesInput | PinViewScalarWhereWithAggregatesInput[]
+    OR?: PinViewScalarWhereWithAggregatesInput[]
+    NOT?: PinViewScalarWhereWithAggregatesInput | PinViewScalarWhereWithAggregatesInput[]
+    pinId?: StringWithAggregatesFilter<"PinView"> | string
+    viewerId?: StringWithAggregatesFilter<"PinView"> | string
+    firstViewedAt?: DateTimeWithAggregatesFilter<"PinView"> | Date | string
+  }
+
   export type CategoryWhereInput = {
     AND?: CategoryWhereInput | CategoryWhereInput[]
     OR?: CategoryWhereInput[]
@@ -26651,10 +30270,15 @@ export namespace Prisma {
     viewCount?: IntFilter<"Pin"> | number
     clickCount?: IntFilter<"Pin"> | number
     creatorId?: StringFilter<"Pin"> | string
+    visibility?: EnumVisibilityFilter<"Pin"> | $Enums.Visibility
+    audienceCircleId?: StringNullableFilter<"Pin"> | string | null
+    expiresAt?: DateTimeNullableFilter<"Pin"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Pin"> | Date | string | null
     createdAt?: DateTimeFilter<"Pin"> | Date | string
     updatedAt?: DateTimeFilter<"Pin"> | Date | string
     creator?: XOR<UserRelationFilter, UserWhereInput>
+    audienceCircle?: XOR<CircleNullableRelationFilter, CircleWhereInput> | null
+    views?: PinViewListRelationFilter
     tags?: TagListRelationFilter
     categories?: CategoryListRelationFilter
     savedBy?: SavedPinListRelationFilter
@@ -26679,10 +30303,15 @@ export namespace Prisma {
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
+    visibility?: SortOrder
+    audienceCircleId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
     deletedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     creator?: UserOrderByWithRelationInput
+    audienceCircle?: CircleOrderByWithRelationInput
+    views?: PinViewOrderByRelationAggregateInput
     tags?: TagOrderByRelationAggregateInput
     categories?: CategoryOrderByRelationAggregateInput
     savedBy?: SavedPinOrderByRelationAggregateInput
@@ -26710,10 +30339,15 @@ export namespace Prisma {
     viewCount?: IntFilter<"Pin"> | number
     clickCount?: IntFilter<"Pin"> | number
     creatorId?: StringFilter<"Pin"> | string
+    visibility?: EnumVisibilityFilter<"Pin"> | $Enums.Visibility
+    audienceCircleId?: StringNullableFilter<"Pin"> | string | null
+    expiresAt?: DateTimeNullableFilter<"Pin"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Pin"> | Date | string | null
     createdAt?: DateTimeFilter<"Pin"> | Date | string
     updatedAt?: DateTimeFilter<"Pin"> | Date | string
     creator?: XOR<UserRelationFilter, UserWhereInput>
+    audienceCircle?: XOR<CircleNullableRelationFilter, CircleWhereInput> | null
+    views?: PinViewListRelationFilter
     tags?: TagListRelationFilter
     categories?: CategoryListRelationFilter
     savedBy?: SavedPinListRelationFilter
@@ -26738,6 +30372,9 @@ export namespace Prisma {
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
+    visibility?: SortOrder
+    audienceCircleId?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
     deletedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -26765,6 +30402,9 @@ export namespace Prisma {
     viewCount?: IntWithAggregatesFilter<"Pin"> | number
     clickCount?: IntWithAggregatesFilter<"Pin"> | number
     creatorId?: StringWithAggregatesFilter<"Pin"> | string
+    visibility?: EnumVisibilityWithAggregatesFilter<"Pin"> | $Enums.Visibility
+    audienceCircleId?: StringNullableWithAggregatesFilter<"Pin"> | string | null
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"Pin"> | Date | string | null
     deletedAt?: DateTimeNullableWithAggregatesFilter<"Pin"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Pin"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Pin"> | Date | string
@@ -27561,6 +31201,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -27601,6 +31244,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserUpdateInput = {
@@ -27641,6 +31287,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -27681,6 +31330,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -28151,6 +31803,170 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type CircleCreateInput = {
+    id?: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    owner: UserCreateNestedOneWithoutCirclesInput
+    members?: CircleMemberCreateNestedManyWithoutCircleInput
+    pins?: PinCreateNestedManyWithoutAudienceCircleInput
+  }
+
+  export type CircleUncheckedCreateInput = {
+    id?: string
+    ownerId: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: CircleMemberUncheckedCreateNestedManyWithoutCircleInput
+    pins?: PinUncheckedCreateNestedManyWithoutAudienceCircleInput
+  }
+
+  export type CircleUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: UserUpdateOneRequiredWithoutCirclesNestedInput
+    members?: CircleMemberUpdateManyWithoutCircleNestedInput
+    pins?: PinUpdateManyWithoutAudienceCircleNestedInput
+  }
+
+  export type CircleUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: CircleMemberUncheckedUpdateManyWithoutCircleNestedInput
+    pins?: PinUncheckedUpdateManyWithoutAudienceCircleNestedInput
+  }
+
+  export type CircleCreateManyInput = {
+    id?: string
+    ownerId: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CircleUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleMemberCreateInput = {
+    addedAt?: Date | string
+    circle: CircleCreateNestedOneWithoutMembersInput
+    user: UserCreateNestedOneWithoutCircleMembershipsInput
+  }
+
+  export type CircleMemberUncheckedCreateInput = {
+    circleId: string
+    userId: string
+    addedAt?: Date | string
+  }
+
+  export type CircleMemberUpdateInput = {
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    circle?: CircleUpdateOneRequiredWithoutMembersNestedInput
+    user?: UserUpdateOneRequiredWithoutCircleMembershipsNestedInput
+  }
+
+  export type CircleMemberUncheckedUpdateInput = {
+    circleId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleMemberCreateManyInput = {
+    circleId: string
+    userId: string
+    addedAt?: Date | string
+  }
+
+  export type CircleMemberUpdateManyMutationInput = {
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleMemberUncheckedUpdateManyInput = {
+    circleId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinViewCreateInput = {
+    firstViewedAt?: Date | string
+    pin: PinCreateNestedOneWithoutViewsInput
+    viewer: UserCreateNestedOneWithoutPinViewsInput
+  }
+
+  export type PinViewUncheckedCreateInput = {
+    pinId: string
+    viewerId: string
+    firstViewedAt?: Date | string
+  }
+
+  export type PinViewUpdateInput = {
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pin?: PinUpdateOneRequiredWithoutViewsNestedInput
+    viewer?: UserUpdateOneRequiredWithoutPinViewsNestedInput
+  }
+
+  export type PinViewUncheckedUpdateInput = {
+    pinId?: StringFieldUpdateOperationsInput | string
+    viewerId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinViewCreateManyInput = {
+    pinId: string
+    viewerId: string
+    firstViewedAt?: Date | string
+  }
+
+  export type PinViewUpdateManyMutationInput = {
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinViewUncheckedUpdateManyInput = {
+    pinId?: StringFieldUpdateOperationsInput | string
+    viewerId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type CategoryCreateInput = {
     id?: string
     name: string
@@ -28260,10 +32076,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
@@ -28288,9 +32108,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
@@ -28314,10 +32138,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
@@ -28342,9 +32170,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
@@ -28369,6 +32201,9 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -28387,6 +32222,8 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -28406,6 +32243,9 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29301,6 +33141,24 @@ export namespace Prisma {
     none?: BlockedUserWhereInput
   }
 
+  export type CircleListRelationFilter = {
+    every?: CircleWhereInput
+    some?: CircleWhereInput
+    none?: CircleWhereInput
+  }
+
+  export type CircleMemberListRelationFilter = {
+    every?: CircleMemberWhereInput
+    some?: CircleMemberWhereInput
+    none?: CircleMemberWhereInput
+  }
+
+  export type PinViewListRelationFilter = {
+    every?: PinViewWhereInput
+    some?: PinViewWhereInput
+    none?: PinViewWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -29375,6 +33233,18 @@ export namespace Prisma {
   }
 
   export type BlockedUserOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CircleOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CircleMemberOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PinViewOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -29752,6 +33622,108 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type CircleOwnerIdMemberHashCompoundUniqueInput = {
+    ownerId: string
+    memberHash: string
+  }
+
+  export type CircleCountOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    name?: SortOrder
+    rank?: SortOrder
+    isAdHoc?: SortOrder
+    memberHash?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CircleAvgOrderByAggregateInput = {
+    rank?: SortOrder
+  }
+
+  export type CircleMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    name?: SortOrder
+    rank?: SortOrder
+    isAdHoc?: SortOrder
+    memberHash?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CircleMinOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    name?: SortOrder
+    rank?: SortOrder
+    isAdHoc?: SortOrder
+    memberHash?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CircleSumOrderByAggregateInput = {
+    rank?: SortOrder
+  }
+
+  export type CircleRelationFilter = {
+    is?: CircleWhereInput
+    isNot?: CircleWhereInput
+  }
+
+  export type CircleMemberCircleIdUserIdCompoundUniqueInput = {
+    circleId: string
+    userId: string
+  }
+
+  export type CircleMemberCountOrderByAggregateInput = {
+    circleId?: SortOrder
+    userId?: SortOrder
+    addedAt?: SortOrder
+  }
+
+  export type CircleMemberMaxOrderByAggregateInput = {
+    circleId?: SortOrder
+    userId?: SortOrder
+    addedAt?: SortOrder
+  }
+
+  export type CircleMemberMinOrderByAggregateInput = {
+    circleId?: SortOrder
+    userId?: SortOrder
+    addedAt?: SortOrder
+  }
+
+  export type PinRelationFilter = {
+    is?: PinWhereInput
+    isNot?: PinWhereInput
+  }
+
+  export type PinViewPinIdViewerIdCompoundUniqueInput = {
+    pinId: string
+    viewerId: string
+  }
+
+  export type PinViewCountOrderByAggregateInput = {
+    pinId?: SortOrder
+    viewerId?: SortOrder
+    firstViewedAt?: SortOrder
+  }
+
+  export type PinViewMaxOrderByAggregateInput = {
+    pinId?: SortOrder
+    viewerId?: SortOrder
+    firstViewedAt?: SortOrder
+  }
+
+  export type PinViewMinOrderByAggregateInput = {
+    pinId?: SortOrder
+    viewerId?: SortOrder
+    firstViewedAt?: SortOrder
+  }
+
   export type UserListRelationFilter = {
     every?: UserWhereInput
     some?: UserWhereInput
@@ -29809,6 +33781,18 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type EnumVisibilityFilter<$PrismaModel = never> = {
+    equals?: $Enums.Visibility | EnumVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumVisibilityFilter<$PrismaModel> | $Enums.Visibility
+  }
+
+  export type CircleNullableRelationFilter = {
+    is?: CircleWhereInput | null
+    isNot?: CircleWhereInput | null
+  }
+
   export type TagListRelationFilter = {
     every?: TagWhereInput
     some?: TagWhereInput
@@ -29833,6 +33817,9 @@ export namespace Prisma {
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
+    visibility?: SortOrder
+    audienceCircleId?: SortOrder
+    expiresAt?: SortOrder
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -29859,6 +33846,9 @@ export namespace Prisma {
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
+    visibility?: SortOrder
+    audienceCircleId?: SortOrder
+    expiresAt?: SortOrder
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -29878,6 +33868,9 @@ export namespace Prisma {
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
+    visibility?: SortOrder
+    audienceCircleId?: SortOrder
+    expiresAt?: SortOrder
     deletedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -29904,6 +33897,16 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type EnumVisibilityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.Visibility | EnumVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumVisibilityWithAggregatesFilter<$PrismaModel> | $Enums.Visibility
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumVisibilityFilter<$PrismaModel>
+    _max?: NestedEnumVisibilityFilter<$PrismaModel>
   }
 
   export type PinNullableRelationFilter = {
@@ -30038,11 +34041,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumCollaboratorRoleFilter<$PrismaModel>
     _max?: NestedEnumCollaboratorRoleFilter<$PrismaModel>
-  }
-
-  export type PinRelationFilter = {
-    is?: PinWhereInput
-    isNot?: PinWhereInput
   }
 
   export type BoardNullableRelationFilter = {
@@ -30501,6 +34499,27 @@ export namespace Prisma {
     connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
   }
 
+  export type CircleCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<CircleCreateWithoutOwnerInput, CircleUncheckedCreateWithoutOwnerInput> | CircleCreateWithoutOwnerInput[] | CircleUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: CircleCreateOrConnectWithoutOwnerInput | CircleCreateOrConnectWithoutOwnerInput[]
+    createMany?: CircleCreateManyOwnerInputEnvelope
+    connect?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+  }
+
+  export type CircleMemberCreateNestedManyWithoutUserInput = {
+    create?: XOR<CircleMemberCreateWithoutUserInput, CircleMemberUncheckedCreateWithoutUserInput> | CircleMemberCreateWithoutUserInput[] | CircleMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutUserInput | CircleMemberCreateOrConnectWithoutUserInput[]
+    createMany?: CircleMemberCreateManyUserInputEnvelope
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+  }
+
+  export type PinViewCreateNestedManyWithoutViewerInput = {
+    create?: XOR<PinViewCreateWithoutViewerInput, PinViewUncheckedCreateWithoutViewerInput> | PinViewCreateWithoutViewerInput[] | PinViewUncheckedCreateWithoutViewerInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutViewerInput | PinViewCreateOrConnectWithoutViewerInput[]
+    createMany?: PinViewCreateManyViewerInputEnvelope
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -30645,6 +34664,27 @@ export namespace Prisma {
     connectOrCreate?: BlockedUserCreateOrConnectWithoutBlockedInput | BlockedUserCreateOrConnectWithoutBlockedInput[]
     createMany?: BlockedUserCreateManyBlockedInputEnvelope
     connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+  }
+
+  export type CircleUncheckedCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<CircleCreateWithoutOwnerInput, CircleUncheckedCreateWithoutOwnerInput> | CircleCreateWithoutOwnerInput[] | CircleUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: CircleCreateOrConnectWithoutOwnerInput | CircleCreateOrConnectWithoutOwnerInput[]
+    createMany?: CircleCreateManyOwnerInputEnvelope
+    connect?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+  }
+
+  export type CircleMemberUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<CircleMemberCreateWithoutUserInput, CircleMemberUncheckedCreateWithoutUserInput> | CircleMemberCreateWithoutUserInput[] | CircleMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutUserInput | CircleMemberCreateOrConnectWithoutUserInput[]
+    createMany?: CircleMemberCreateManyUserInputEnvelope
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+  }
+
+  export type PinViewUncheckedCreateNestedManyWithoutViewerInput = {
+    create?: XOR<PinViewCreateWithoutViewerInput, PinViewUncheckedCreateWithoutViewerInput> | PinViewCreateWithoutViewerInput[] | PinViewUncheckedCreateWithoutViewerInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutViewerInput | PinViewCreateOrConnectWithoutViewerInput[]
+    createMany?: PinViewCreateManyViewerInputEnvelope
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -30960,6 +35000,48 @@ export namespace Prisma {
     deleteMany?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
   }
 
+  export type CircleUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<CircleCreateWithoutOwnerInput, CircleUncheckedCreateWithoutOwnerInput> | CircleCreateWithoutOwnerInput[] | CircleUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: CircleCreateOrConnectWithoutOwnerInput | CircleCreateOrConnectWithoutOwnerInput[]
+    upsert?: CircleUpsertWithWhereUniqueWithoutOwnerInput | CircleUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: CircleCreateManyOwnerInputEnvelope
+    set?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    disconnect?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    delete?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    connect?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    update?: CircleUpdateWithWhereUniqueWithoutOwnerInput | CircleUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: CircleUpdateManyWithWhereWithoutOwnerInput | CircleUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: CircleScalarWhereInput | CircleScalarWhereInput[]
+  }
+
+  export type CircleMemberUpdateManyWithoutUserNestedInput = {
+    create?: XOR<CircleMemberCreateWithoutUserInput, CircleMemberUncheckedCreateWithoutUserInput> | CircleMemberCreateWithoutUserInput[] | CircleMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutUserInput | CircleMemberCreateOrConnectWithoutUserInput[]
+    upsert?: CircleMemberUpsertWithWhereUniqueWithoutUserInput | CircleMemberUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: CircleMemberCreateManyUserInputEnvelope
+    set?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    disconnect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    delete?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    update?: CircleMemberUpdateWithWhereUniqueWithoutUserInput | CircleMemberUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: CircleMemberUpdateManyWithWhereWithoutUserInput | CircleMemberUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: CircleMemberScalarWhereInput | CircleMemberScalarWhereInput[]
+  }
+
+  export type PinViewUpdateManyWithoutViewerNestedInput = {
+    create?: XOR<PinViewCreateWithoutViewerInput, PinViewUncheckedCreateWithoutViewerInput> | PinViewCreateWithoutViewerInput[] | PinViewUncheckedCreateWithoutViewerInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutViewerInput | PinViewCreateOrConnectWithoutViewerInput[]
+    upsert?: PinViewUpsertWithWhereUniqueWithoutViewerInput | PinViewUpsertWithWhereUniqueWithoutViewerInput[]
+    createMany?: PinViewCreateManyViewerInputEnvelope
+    set?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    disconnect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    delete?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    update?: PinViewUpdateWithWhereUniqueWithoutViewerInput | PinViewUpdateWithWhereUniqueWithoutViewerInput[]
+    updateMany?: PinViewUpdateManyWithWhereWithoutViewerInput | PinViewUpdateManyWithWhereWithoutViewerInput[]
+    deleteMany?: PinViewScalarWhereInput | PinViewScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -31253,6 +35335,48 @@ export namespace Prisma {
     deleteMany?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
   }
 
+  export type CircleUncheckedUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<CircleCreateWithoutOwnerInput, CircleUncheckedCreateWithoutOwnerInput> | CircleCreateWithoutOwnerInput[] | CircleUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: CircleCreateOrConnectWithoutOwnerInput | CircleCreateOrConnectWithoutOwnerInput[]
+    upsert?: CircleUpsertWithWhereUniqueWithoutOwnerInput | CircleUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: CircleCreateManyOwnerInputEnvelope
+    set?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    disconnect?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    delete?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    connect?: CircleWhereUniqueInput | CircleWhereUniqueInput[]
+    update?: CircleUpdateWithWhereUniqueWithoutOwnerInput | CircleUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: CircleUpdateManyWithWhereWithoutOwnerInput | CircleUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: CircleScalarWhereInput | CircleScalarWhereInput[]
+  }
+
+  export type CircleMemberUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<CircleMemberCreateWithoutUserInput, CircleMemberUncheckedCreateWithoutUserInput> | CircleMemberCreateWithoutUserInput[] | CircleMemberUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutUserInput | CircleMemberCreateOrConnectWithoutUserInput[]
+    upsert?: CircleMemberUpsertWithWhereUniqueWithoutUserInput | CircleMemberUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: CircleMemberCreateManyUserInputEnvelope
+    set?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    disconnect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    delete?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    update?: CircleMemberUpdateWithWhereUniqueWithoutUserInput | CircleMemberUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: CircleMemberUpdateManyWithWhereWithoutUserInput | CircleMemberUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: CircleMemberScalarWhereInput | CircleMemberScalarWhereInput[]
+  }
+
+  export type PinViewUncheckedUpdateManyWithoutViewerNestedInput = {
+    create?: XOR<PinViewCreateWithoutViewerInput, PinViewUncheckedCreateWithoutViewerInput> | PinViewCreateWithoutViewerInput[] | PinViewUncheckedCreateWithoutViewerInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutViewerInput | PinViewCreateOrConnectWithoutViewerInput[]
+    upsert?: PinViewUpsertWithWhereUniqueWithoutViewerInput | PinViewUpsertWithWhereUniqueWithoutViewerInput[]
+    createMany?: PinViewCreateManyViewerInputEnvelope
+    set?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    disconnect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    delete?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    update?: PinViewUpdateWithWhereUniqueWithoutViewerInput | PinViewUpdateWithWhereUniqueWithoutViewerInput[]
+    updateMany?: PinViewUpdateManyWithWhereWithoutViewerInput | PinViewUpdateManyWithWhereWithoutViewerInput[]
+    deleteMany?: PinViewScalarWhereInput | PinViewScalarWhereInput[]
+  }
+
   export type UserCreateNestedOneWithoutAccountsInput = {
     create?: XOR<UserCreateWithoutAccountsInput, UserUncheckedCreateWithoutAccountsInput>
     connectOrCreate?: UserCreateOrConnectWithoutAccountsInput
@@ -31389,6 +35513,160 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutBlockedByInput, UserUpdateWithoutBlockedByInput>, UserUncheckedUpdateWithoutBlockedByInput>
   }
 
+  export type UserCreateNestedOneWithoutCirclesInput = {
+    create?: XOR<UserCreateWithoutCirclesInput, UserUncheckedCreateWithoutCirclesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCirclesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type CircleMemberCreateNestedManyWithoutCircleInput = {
+    create?: XOR<CircleMemberCreateWithoutCircleInput, CircleMemberUncheckedCreateWithoutCircleInput> | CircleMemberCreateWithoutCircleInput[] | CircleMemberUncheckedCreateWithoutCircleInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutCircleInput | CircleMemberCreateOrConnectWithoutCircleInput[]
+    createMany?: CircleMemberCreateManyCircleInputEnvelope
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+  }
+
+  export type PinCreateNestedManyWithoutAudienceCircleInput = {
+    create?: XOR<PinCreateWithoutAudienceCircleInput, PinUncheckedCreateWithoutAudienceCircleInput> | PinCreateWithoutAudienceCircleInput[] | PinUncheckedCreateWithoutAudienceCircleInput[]
+    connectOrCreate?: PinCreateOrConnectWithoutAudienceCircleInput | PinCreateOrConnectWithoutAudienceCircleInput[]
+    createMany?: PinCreateManyAudienceCircleInputEnvelope
+    connect?: PinWhereUniqueInput | PinWhereUniqueInput[]
+  }
+
+  export type CircleMemberUncheckedCreateNestedManyWithoutCircleInput = {
+    create?: XOR<CircleMemberCreateWithoutCircleInput, CircleMemberUncheckedCreateWithoutCircleInput> | CircleMemberCreateWithoutCircleInput[] | CircleMemberUncheckedCreateWithoutCircleInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutCircleInput | CircleMemberCreateOrConnectWithoutCircleInput[]
+    createMany?: CircleMemberCreateManyCircleInputEnvelope
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+  }
+
+  export type PinUncheckedCreateNestedManyWithoutAudienceCircleInput = {
+    create?: XOR<PinCreateWithoutAudienceCircleInput, PinUncheckedCreateWithoutAudienceCircleInput> | PinCreateWithoutAudienceCircleInput[] | PinUncheckedCreateWithoutAudienceCircleInput[]
+    connectOrCreate?: PinCreateOrConnectWithoutAudienceCircleInput | PinCreateOrConnectWithoutAudienceCircleInput[]
+    createMany?: PinCreateManyAudienceCircleInputEnvelope
+    connect?: PinWhereUniqueInput | PinWhereUniqueInput[]
+  }
+
+  export type UserUpdateOneRequiredWithoutCirclesNestedInput = {
+    create?: XOR<UserCreateWithoutCirclesInput, UserUncheckedCreateWithoutCirclesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCirclesInput
+    upsert?: UserUpsertWithoutCirclesInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCirclesInput, UserUpdateWithoutCirclesInput>, UserUncheckedUpdateWithoutCirclesInput>
+  }
+
+  export type CircleMemberUpdateManyWithoutCircleNestedInput = {
+    create?: XOR<CircleMemberCreateWithoutCircleInput, CircleMemberUncheckedCreateWithoutCircleInput> | CircleMemberCreateWithoutCircleInput[] | CircleMemberUncheckedCreateWithoutCircleInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutCircleInput | CircleMemberCreateOrConnectWithoutCircleInput[]
+    upsert?: CircleMemberUpsertWithWhereUniqueWithoutCircleInput | CircleMemberUpsertWithWhereUniqueWithoutCircleInput[]
+    createMany?: CircleMemberCreateManyCircleInputEnvelope
+    set?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    disconnect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    delete?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    update?: CircleMemberUpdateWithWhereUniqueWithoutCircleInput | CircleMemberUpdateWithWhereUniqueWithoutCircleInput[]
+    updateMany?: CircleMemberUpdateManyWithWhereWithoutCircleInput | CircleMemberUpdateManyWithWhereWithoutCircleInput[]
+    deleteMany?: CircleMemberScalarWhereInput | CircleMemberScalarWhereInput[]
+  }
+
+  export type PinUpdateManyWithoutAudienceCircleNestedInput = {
+    create?: XOR<PinCreateWithoutAudienceCircleInput, PinUncheckedCreateWithoutAudienceCircleInput> | PinCreateWithoutAudienceCircleInput[] | PinUncheckedCreateWithoutAudienceCircleInput[]
+    connectOrCreate?: PinCreateOrConnectWithoutAudienceCircleInput | PinCreateOrConnectWithoutAudienceCircleInput[]
+    upsert?: PinUpsertWithWhereUniqueWithoutAudienceCircleInput | PinUpsertWithWhereUniqueWithoutAudienceCircleInput[]
+    createMany?: PinCreateManyAudienceCircleInputEnvelope
+    set?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    disconnect?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    delete?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    connect?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    update?: PinUpdateWithWhereUniqueWithoutAudienceCircleInput | PinUpdateWithWhereUniqueWithoutAudienceCircleInput[]
+    updateMany?: PinUpdateManyWithWhereWithoutAudienceCircleInput | PinUpdateManyWithWhereWithoutAudienceCircleInput[]
+    deleteMany?: PinScalarWhereInput | PinScalarWhereInput[]
+  }
+
+  export type CircleMemberUncheckedUpdateManyWithoutCircleNestedInput = {
+    create?: XOR<CircleMemberCreateWithoutCircleInput, CircleMemberUncheckedCreateWithoutCircleInput> | CircleMemberCreateWithoutCircleInput[] | CircleMemberUncheckedCreateWithoutCircleInput[]
+    connectOrCreate?: CircleMemberCreateOrConnectWithoutCircleInput | CircleMemberCreateOrConnectWithoutCircleInput[]
+    upsert?: CircleMemberUpsertWithWhereUniqueWithoutCircleInput | CircleMemberUpsertWithWhereUniqueWithoutCircleInput[]
+    createMany?: CircleMemberCreateManyCircleInputEnvelope
+    set?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    disconnect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    delete?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    connect?: CircleMemberWhereUniqueInput | CircleMemberWhereUniqueInput[]
+    update?: CircleMemberUpdateWithWhereUniqueWithoutCircleInput | CircleMemberUpdateWithWhereUniqueWithoutCircleInput[]
+    updateMany?: CircleMemberUpdateManyWithWhereWithoutCircleInput | CircleMemberUpdateManyWithWhereWithoutCircleInput[]
+    deleteMany?: CircleMemberScalarWhereInput | CircleMemberScalarWhereInput[]
+  }
+
+  export type PinUncheckedUpdateManyWithoutAudienceCircleNestedInput = {
+    create?: XOR<PinCreateWithoutAudienceCircleInput, PinUncheckedCreateWithoutAudienceCircleInput> | PinCreateWithoutAudienceCircleInput[] | PinUncheckedCreateWithoutAudienceCircleInput[]
+    connectOrCreate?: PinCreateOrConnectWithoutAudienceCircleInput | PinCreateOrConnectWithoutAudienceCircleInput[]
+    upsert?: PinUpsertWithWhereUniqueWithoutAudienceCircleInput | PinUpsertWithWhereUniqueWithoutAudienceCircleInput[]
+    createMany?: PinCreateManyAudienceCircleInputEnvelope
+    set?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    disconnect?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    delete?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    connect?: PinWhereUniqueInput | PinWhereUniqueInput[]
+    update?: PinUpdateWithWhereUniqueWithoutAudienceCircleInput | PinUpdateWithWhereUniqueWithoutAudienceCircleInput[]
+    updateMany?: PinUpdateManyWithWhereWithoutAudienceCircleInput | PinUpdateManyWithWhereWithoutAudienceCircleInput[]
+    deleteMany?: PinScalarWhereInput | PinScalarWhereInput[]
+  }
+
+  export type CircleCreateNestedOneWithoutMembersInput = {
+    create?: XOR<CircleCreateWithoutMembersInput, CircleUncheckedCreateWithoutMembersInput>
+    connectOrCreate?: CircleCreateOrConnectWithoutMembersInput
+    connect?: CircleWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutCircleMembershipsInput = {
+    create?: XOR<UserCreateWithoutCircleMembershipsInput, UserUncheckedCreateWithoutCircleMembershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCircleMembershipsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type CircleUpdateOneRequiredWithoutMembersNestedInput = {
+    create?: XOR<CircleCreateWithoutMembersInput, CircleUncheckedCreateWithoutMembersInput>
+    connectOrCreate?: CircleCreateOrConnectWithoutMembersInput
+    upsert?: CircleUpsertWithoutMembersInput
+    connect?: CircleWhereUniqueInput
+    update?: XOR<XOR<CircleUpdateToOneWithWhereWithoutMembersInput, CircleUpdateWithoutMembersInput>, CircleUncheckedUpdateWithoutMembersInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutCircleMembershipsNestedInput = {
+    create?: XOR<UserCreateWithoutCircleMembershipsInput, UserUncheckedCreateWithoutCircleMembershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCircleMembershipsInput
+    upsert?: UserUpsertWithoutCircleMembershipsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCircleMembershipsInput, UserUpdateWithoutCircleMembershipsInput>, UserUncheckedUpdateWithoutCircleMembershipsInput>
+  }
+
+  export type PinCreateNestedOneWithoutViewsInput = {
+    create?: XOR<PinCreateWithoutViewsInput, PinUncheckedCreateWithoutViewsInput>
+    connectOrCreate?: PinCreateOrConnectWithoutViewsInput
+    connect?: PinWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutPinViewsInput = {
+    create?: XOR<UserCreateWithoutPinViewsInput, UserUncheckedCreateWithoutPinViewsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPinViewsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type PinUpdateOneRequiredWithoutViewsNestedInput = {
+    create?: XOR<PinCreateWithoutViewsInput, PinUncheckedCreateWithoutViewsInput>
+    connectOrCreate?: PinCreateOrConnectWithoutViewsInput
+    upsert?: PinUpsertWithoutViewsInput
+    connect?: PinWhereUniqueInput
+    update?: XOR<XOR<PinUpdateToOneWithWhereWithoutViewsInput, PinUpdateWithoutViewsInput>, PinUncheckedUpdateWithoutViewsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutPinViewsNestedInput = {
+    create?: XOR<UserCreateWithoutPinViewsInput, UserUncheckedCreateWithoutPinViewsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPinViewsInput
+    upsert?: UserUpsertWithoutPinViewsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPinViewsInput, UserUpdateWithoutPinViewsInput>, UserUncheckedUpdateWithoutPinViewsInput>
+  }
+
   export type PinCreateNestedManyWithoutCategoriesInput = {
     create?: XOR<PinCreateWithoutCategoriesInput, PinUncheckedCreateWithoutCategoriesInput> | PinCreateWithoutCategoriesInput[] | PinUncheckedCreateWithoutCategoriesInput[]
     connectOrCreate?: PinCreateOrConnectWithoutCategoriesInput | PinCreateOrConnectWithoutCategoriesInput[]
@@ -31509,6 +35787,19 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type CircleCreateNestedOneWithoutPinsInput = {
+    create?: XOR<CircleCreateWithoutPinsInput, CircleUncheckedCreateWithoutPinsInput>
+    connectOrCreate?: CircleCreateOrConnectWithoutPinsInput
+    connect?: CircleWhereUniqueInput
+  }
+
+  export type PinViewCreateNestedManyWithoutPinInput = {
+    create?: XOR<PinViewCreateWithoutPinInput, PinViewUncheckedCreateWithoutPinInput> | PinViewCreateWithoutPinInput[] | PinViewUncheckedCreateWithoutPinInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutPinInput | PinViewCreateOrConnectWithoutPinInput[]
+    createMany?: PinViewCreateManyPinInputEnvelope
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+  }
+
   export type TagCreateNestedManyWithoutPinsInput = {
     create?: XOR<TagCreateWithoutPinsInput, TagUncheckedCreateWithoutPinsInput> | TagCreateWithoutPinsInput[] | TagUncheckedCreateWithoutPinsInput[]
     connectOrCreate?: TagCreateOrConnectWithoutPinsInput | TagCreateOrConnectWithoutPinsInput[]
@@ -31561,6 +35852,13 @@ export namespace Prisma {
     connectOrCreate?: MessageCreateOrConnectWithoutAttachedPinInput | MessageCreateOrConnectWithoutAttachedPinInput[]
     createMany?: MessageCreateManyAttachedPinInputEnvelope
     connect?: MessageWhereUniqueInput | MessageWhereUniqueInput[]
+  }
+
+  export type PinViewUncheckedCreateNestedManyWithoutPinInput = {
+    create?: XOR<PinViewCreateWithoutPinInput, PinViewUncheckedCreateWithoutPinInput> | PinViewCreateWithoutPinInput[] | PinViewUncheckedCreateWithoutPinInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutPinInput | PinViewCreateOrConnectWithoutPinInput[]
+    createMany?: PinViewCreateManyPinInputEnvelope
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
   }
 
   export type TagUncheckedCreateNestedManyWithoutPinsInput = {
@@ -31625,12 +35923,40 @@ export namespace Prisma {
     divide?: number
   }
 
+  export type EnumVisibilityFieldUpdateOperationsInput = {
+    set?: $Enums.Visibility
+  }
+
   export type UserUpdateOneRequiredWithoutPinsNestedInput = {
     create?: XOR<UserCreateWithoutPinsInput, UserUncheckedCreateWithoutPinsInput>
     connectOrCreate?: UserCreateOrConnectWithoutPinsInput
     upsert?: UserUpsertWithoutPinsInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPinsInput, UserUpdateWithoutPinsInput>, UserUncheckedUpdateWithoutPinsInput>
+  }
+
+  export type CircleUpdateOneWithoutPinsNestedInput = {
+    create?: XOR<CircleCreateWithoutPinsInput, CircleUncheckedCreateWithoutPinsInput>
+    connectOrCreate?: CircleCreateOrConnectWithoutPinsInput
+    upsert?: CircleUpsertWithoutPinsInput
+    disconnect?: CircleWhereInput | boolean
+    delete?: CircleWhereInput | boolean
+    connect?: CircleWhereUniqueInput
+    update?: XOR<XOR<CircleUpdateToOneWithWhereWithoutPinsInput, CircleUpdateWithoutPinsInput>, CircleUncheckedUpdateWithoutPinsInput>
+  }
+
+  export type PinViewUpdateManyWithoutPinNestedInput = {
+    create?: XOR<PinViewCreateWithoutPinInput, PinViewUncheckedCreateWithoutPinInput> | PinViewCreateWithoutPinInput[] | PinViewUncheckedCreateWithoutPinInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutPinInput | PinViewCreateOrConnectWithoutPinInput[]
+    upsert?: PinViewUpsertWithWhereUniqueWithoutPinInput | PinViewUpsertWithWhereUniqueWithoutPinInput[]
+    createMany?: PinViewCreateManyPinInputEnvelope
+    set?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    disconnect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    delete?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    update?: PinViewUpdateWithWhereUniqueWithoutPinInput | PinViewUpdateWithWhereUniqueWithoutPinInput[]
+    updateMany?: PinViewUpdateManyWithWhereWithoutPinInput | PinViewUpdateManyWithWhereWithoutPinInput[]
+    deleteMany?: PinViewScalarWhereInput | PinViewScalarWhereInput[]
   }
 
   export type TagUpdateManyWithoutPinsNestedInput = {
@@ -31741,6 +36067,20 @@ export namespace Prisma {
     update?: MessageUpdateWithWhereUniqueWithoutAttachedPinInput | MessageUpdateWithWhereUniqueWithoutAttachedPinInput[]
     updateMany?: MessageUpdateManyWithWhereWithoutAttachedPinInput | MessageUpdateManyWithWhereWithoutAttachedPinInput[]
     deleteMany?: MessageScalarWhereInput | MessageScalarWhereInput[]
+  }
+
+  export type PinViewUncheckedUpdateManyWithoutPinNestedInput = {
+    create?: XOR<PinViewCreateWithoutPinInput, PinViewUncheckedCreateWithoutPinInput> | PinViewCreateWithoutPinInput[] | PinViewUncheckedCreateWithoutPinInput[]
+    connectOrCreate?: PinViewCreateOrConnectWithoutPinInput | PinViewCreateOrConnectWithoutPinInput[]
+    upsert?: PinViewUpsertWithWhereUniqueWithoutPinInput | PinViewUpsertWithWhereUniqueWithoutPinInput[]
+    createMany?: PinViewCreateManyPinInputEnvelope
+    set?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    disconnect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    delete?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    connect?: PinViewWhereUniqueInput | PinViewWhereUniqueInput[]
+    update?: PinViewUpdateWithWhereUniqueWithoutPinInput | PinViewUpdateWithWhereUniqueWithoutPinInput[]
+    updateMany?: PinViewUpdateManyWithWhereWithoutPinInput | PinViewUpdateManyWithWhereWithoutPinInput[]
+    deleteMany?: PinViewScalarWhereInput | PinViewScalarWhereInput[]
   }
 
   export type TagUncheckedUpdateManyWithoutPinsNestedInput = {
@@ -32781,6 +37121,13 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedEnumVisibilityFilter<$PrismaModel = never> = {
+    equals?: $Enums.Visibility | EnumVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumVisibilityFilter<$PrismaModel> | $Enums.Visibility
+  }
+
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -32806,6 +37153,16 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedEnumVisibilityWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.Visibility | EnumVisibilityFieldRefInput<$PrismaModel>
+    in?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    notIn?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
+    not?: NestedEnumVisibilityWithAggregatesFilter<$PrismaModel> | $Enums.Visibility
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumVisibilityFilter<$PrismaModel>
+    _max?: NestedEnumVisibilityFilter<$PrismaModel>
   }
 
   export type NestedEnumCollaboratorRoleFilter<$PrismaModel = never> = {
@@ -33006,9 +37363,13 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
@@ -33032,9 +37393,13 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
@@ -33450,6 +37815,80 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type CircleCreateWithoutOwnerInput = {
+    id?: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: CircleMemberCreateNestedManyWithoutCircleInput
+    pins?: PinCreateNestedManyWithoutAudienceCircleInput
+  }
+
+  export type CircleUncheckedCreateWithoutOwnerInput = {
+    id?: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: CircleMemberUncheckedCreateNestedManyWithoutCircleInput
+    pins?: PinUncheckedCreateNestedManyWithoutAudienceCircleInput
+  }
+
+  export type CircleCreateOrConnectWithoutOwnerInput = {
+    where: CircleWhereUniqueInput
+    create: XOR<CircleCreateWithoutOwnerInput, CircleUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type CircleCreateManyOwnerInputEnvelope = {
+    data: CircleCreateManyOwnerInput | CircleCreateManyOwnerInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CircleMemberCreateWithoutUserInput = {
+    addedAt?: Date | string
+    circle: CircleCreateNestedOneWithoutMembersInput
+  }
+
+  export type CircleMemberUncheckedCreateWithoutUserInput = {
+    circleId: string
+    addedAt?: Date | string
+  }
+
+  export type CircleMemberCreateOrConnectWithoutUserInput = {
+    where: CircleMemberWhereUniqueInput
+    create: XOR<CircleMemberCreateWithoutUserInput, CircleMemberUncheckedCreateWithoutUserInput>
+  }
+
+  export type CircleMemberCreateManyUserInputEnvelope = {
+    data: CircleMemberCreateManyUserInput | CircleMemberCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PinViewCreateWithoutViewerInput = {
+    firstViewedAt?: Date | string
+    pin: PinCreateNestedOneWithoutViewsInput
+  }
+
+  export type PinViewUncheckedCreateWithoutViewerInput = {
+    pinId: string
+    firstViewedAt?: Date | string
+  }
+
+  export type PinViewCreateOrConnectWithoutViewerInput = {
+    where: PinViewWhereUniqueInput
+    create: XOR<PinViewCreateWithoutViewerInput, PinViewUncheckedCreateWithoutViewerInput>
+  }
+
+  export type PinViewCreateManyViewerInputEnvelope = {
+    data: PinViewCreateManyViewerInput | PinViewCreateManyViewerInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -33625,6 +38064,9 @@ export namespace Prisma {
     viewCount?: IntFilter<"Pin"> | number
     clickCount?: IntFilter<"Pin"> | number
     creatorId?: StringFilter<"Pin"> | string
+    visibility?: EnumVisibilityFilter<"Pin"> | $Enums.Visibility
+    audienceCircleId?: StringNullableFilter<"Pin"> | string | null
+    expiresAt?: DateTimeNullableFilter<"Pin"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Pin"> | Date | string | null
     createdAt?: DateTimeFilter<"Pin"> | Date | string
     updatedAt?: DateTimeFilter<"Pin"> | Date | string
@@ -34014,6 +38456,86 @@ export namespace Prisma {
     data: XOR<BlockedUserUpdateManyMutationInput, BlockedUserUncheckedUpdateManyWithoutBlockedInput>
   }
 
+  export type CircleUpsertWithWhereUniqueWithoutOwnerInput = {
+    where: CircleWhereUniqueInput
+    update: XOR<CircleUpdateWithoutOwnerInput, CircleUncheckedUpdateWithoutOwnerInput>
+    create: XOR<CircleCreateWithoutOwnerInput, CircleUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type CircleUpdateWithWhereUniqueWithoutOwnerInput = {
+    where: CircleWhereUniqueInput
+    data: XOR<CircleUpdateWithoutOwnerInput, CircleUncheckedUpdateWithoutOwnerInput>
+  }
+
+  export type CircleUpdateManyWithWhereWithoutOwnerInput = {
+    where: CircleScalarWhereInput
+    data: XOR<CircleUpdateManyMutationInput, CircleUncheckedUpdateManyWithoutOwnerInput>
+  }
+
+  export type CircleScalarWhereInput = {
+    AND?: CircleScalarWhereInput | CircleScalarWhereInput[]
+    OR?: CircleScalarWhereInput[]
+    NOT?: CircleScalarWhereInput | CircleScalarWhereInput[]
+    id?: StringFilter<"Circle"> | string
+    ownerId?: StringFilter<"Circle"> | string
+    name?: StringFilter<"Circle"> | string
+    rank?: IntNullableFilter<"Circle"> | number | null
+    isAdHoc?: BoolFilter<"Circle"> | boolean
+    memberHash?: StringNullableFilter<"Circle"> | string | null
+    createdAt?: DateTimeFilter<"Circle"> | Date | string
+    updatedAt?: DateTimeFilter<"Circle"> | Date | string
+  }
+
+  export type CircleMemberUpsertWithWhereUniqueWithoutUserInput = {
+    where: CircleMemberWhereUniqueInput
+    update: XOR<CircleMemberUpdateWithoutUserInput, CircleMemberUncheckedUpdateWithoutUserInput>
+    create: XOR<CircleMemberCreateWithoutUserInput, CircleMemberUncheckedCreateWithoutUserInput>
+  }
+
+  export type CircleMemberUpdateWithWhereUniqueWithoutUserInput = {
+    where: CircleMemberWhereUniqueInput
+    data: XOR<CircleMemberUpdateWithoutUserInput, CircleMemberUncheckedUpdateWithoutUserInput>
+  }
+
+  export type CircleMemberUpdateManyWithWhereWithoutUserInput = {
+    where: CircleMemberScalarWhereInput
+    data: XOR<CircleMemberUpdateManyMutationInput, CircleMemberUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type CircleMemberScalarWhereInput = {
+    AND?: CircleMemberScalarWhereInput | CircleMemberScalarWhereInput[]
+    OR?: CircleMemberScalarWhereInput[]
+    NOT?: CircleMemberScalarWhereInput | CircleMemberScalarWhereInput[]
+    circleId?: StringFilter<"CircleMember"> | string
+    userId?: StringFilter<"CircleMember"> | string
+    addedAt?: DateTimeFilter<"CircleMember"> | Date | string
+  }
+
+  export type PinViewUpsertWithWhereUniqueWithoutViewerInput = {
+    where: PinViewWhereUniqueInput
+    update: XOR<PinViewUpdateWithoutViewerInput, PinViewUncheckedUpdateWithoutViewerInput>
+    create: XOR<PinViewCreateWithoutViewerInput, PinViewUncheckedCreateWithoutViewerInput>
+  }
+
+  export type PinViewUpdateWithWhereUniqueWithoutViewerInput = {
+    where: PinViewWhereUniqueInput
+    data: XOR<PinViewUpdateWithoutViewerInput, PinViewUncheckedUpdateWithoutViewerInput>
+  }
+
+  export type PinViewUpdateManyWithWhereWithoutViewerInput = {
+    where: PinViewScalarWhereInput
+    data: XOR<PinViewUpdateManyMutationInput, PinViewUncheckedUpdateManyWithoutViewerInput>
+  }
+
+  export type PinViewScalarWhereInput = {
+    AND?: PinViewScalarWhereInput | PinViewScalarWhereInput[]
+    OR?: PinViewScalarWhereInput[]
+    NOT?: PinViewScalarWhereInput | PinViewScalarWhereInput[]
+    pinId?: StringFilter<"PinView"> | string
+    viewerId?: StringFilter<"PinView"> | string
+    firstViewedAt?: DateTimeFilter<"PinView"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -34051,6 +38573,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -34090,6 +38615,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -34145,6 +38673,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -34184,6 +38715,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -34223,6 +38757,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -34262,6 +38799,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -34317,6 +38857,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -34356,6 +38899,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateWithoutVerificationTokensInput = {
@@ -34395,6 +38941,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutVerificationTokensInput = {
@@ -34434,6 +38983,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutVerificationTokensInput = {
@@ -34489,6 +39041,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutVerificationTokensInput = {
@@ -34528,6 +39083,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateWithoutRefreshTokensInput = {
@@ -34567,6 +39125,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutRefreshTokensInput = {
@@ -34606,6 +39167,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutRefreshTokensInput = {
@@ -34661,6 +39225,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRefreshTokensInput = {
@@ -34700,6 +39267,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateWithoutDeviceTokensInput = {
@@ -34739,6 +39309,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutDeviceTokensInput = {
@@ -34778,6 +39351,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutDeviceTokensInput = {
@@ -34833,6 +39409,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutDeviceTokensInput = {
@@ -34872,6 +39451,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateWithoutFollowingInput = {
@@ -34911,6 +39493,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutFollowingInput = {
@@ -34950,6 +39535,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutFollowingInput = {
@@ -34994,6 +39582,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutFollowedByInput = {
@@ -35033,6 +39624,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutFollowedByInput = {
@@ -35088,6 +39682,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFollowingInput = {
@@ -35127,6 +39724,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUpsertWithoutFollowedByInput = {
@@ -35177,6 +39777,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFollowedByInput = {
@@ -35216,6 +39819,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateWithoutBlockedUsersInput = {
@@ -35255,6 +39861,9 @@ export namespace Prisma {
     following?: FollowsCreateNestedManyWithoutFollowerInput
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutBlockedUsersInput = {
@@ -35294,6 +39903,9 @@ export namespace Prisma {
     following?: FollowsUncheckedCreateNestedManyWithoutFollowerInput
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutBlockedUsersInput = {
@@ -35338,6 +39950,9 @@ export namespace Prisma {
     following?: FollowsCreateNestedManyWithoutFollowerInput
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutBlockedByInput = {
@@ -35377,6 +39992,9 @@ export namespace Prisma {
     following?: FollowsUncheckedCreateNestedManyWithoutFollowerInput
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutBlockedByInput = {
@@ -35432,6 +40050,9 @@ export namespace Prisma {
     following?: FollowsUpdateManyWithoutFollowerNestedInput
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutBlockedUsersInput = {
@@ -35471,6 +40092,9 @@ export namespace Prisma {
     following?: FollowsUncheckedUpdateManyWithoutFollowerNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUpsertWithoutBlockedByInput = {
@@ -35521,6 +40145,9 @@ export namespace Prisma {
     following?: FollowsUpdateManyWithoutFollowerNestedInput
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutBlockedByInput = {
@@ -35560,6 +40187,883 @@ export namespace Prisma {
     following?: FollowsUncheckedUpdateManyWithoutFollowerNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
+  }
+
+  export type UserCreateWithoutCirclesInput = {
+    id?: string
+    email: string
+    emailVerified?: Date | string | null
+    password?: string | null
+    name?: string | null
+    username?: string | null
+    bio?: string | null
+    website?: string | null
+    avatarUrl?: string | null
+    coverUrl?: string | null
+    isOnboarded?: boolean
+    locale?: string
+    deletedAt?: Date | string | null
+    usernameChangedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    verificationTokens?: VerificationTokenCreateNestedManyWithoutUserInput
+    refreshTokens?: RefreshTokenCreateNestedManyWithoutUserInput
+    deviceTokens?: DeviceTokenCreateNestedManyWithoutUserInput
+    pins?: PinCreateNestedManyWithoutCreatorInput
+    savedPins?: SavedPinCreateNestedManyWithoutUserInput
+    boards?: BoardCreateNestedManyWithoutUserInput
+    boardCollaborators?: BoardCollaboratorCreateNestedManyWithoutUserInput
+    comments?: CommentCreateNestedManyWithoutUserInput
+    commentReactions?: CommentReactionCreateNestedManyWithoutUserInput
+    reactions?: ReactionCreateNestedManyWithoutUserInput
+    sentMessages?: MessageCreateNestedManyWithoutSenderInput
+    conversationMembers?: ConversationMemberCreateNestedManyWithoutUserInput
+    notificationsReceived?: NotificationCreateNestedManyWithoutRecipientInput
+    notificationsActed?: NotificationCreateNestedManyWithoutActorInput
+    followedBy?: FollowsCreateNestedManyWithoutFollowingInput
+    following?: FollowsCreateNestedManyWithoutFollowerInput
+    categories?: CategoryCreateNestedManyWithoutUsersInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
+    blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
+  }
+
+  export type UserUncheckedCreateWithoutCirclesInput = {
+    id?: string
+    email: string
+    emailVerified?: Date | string | null
+    password?: string | null
+    name?: string | null
+    username?: string | null
+    bio?: string | null
+    website?: string | null
+    avatarUrl?: string | null
+    coverUrl?: string | null
+    isOnboarded?: boolean
+    locale?: string
+    deletedAt?: Date | string | null
+    usernameChangedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    verificationTokens?: VerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    refreshTokens?: RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+    deviceTokens?: DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+    pins?: PinUncheckedCreateNestedManyWithoutCreatorInput
+    savedPins?: SavedPinUncheckedCreateNestedManyWithoutUserInput
+    boards?: BoardUncheckedCreateNestedManyWithoutUserInput
+    boardCollaborators?: BoardCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    comments?: CommentUncheckedCreateNestedManyWithoutUserInput
+    commentReactions?: CommentReactionUncheckedCreateNestedManyWithoutUserInput
+    reactions?: ReactionUncheckedCreateNestedManyWithoutUserInput
+    sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
+    conversationMembers?: ConversationMemberUncheckedCreateNestedManyWithoutUserInput
+    notificationsReceived?: NotificationUncheckedCreateNestedManyWithoutRecipientInput
+    notificationsActed?: NotificationUncheckedCreateNestedManyWithoutActorInput
+    followedBy?: FollowsUncheckedCreateNestedManyWithoutFollowingInput
+    following?: FollowsUncheckedCreateNestedManyWithoutFollowerInput
+    categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
+    blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
+  }
+
+  export type UserCreateOrConnectWithoutCirclesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutCirclesInput, UserUncheckedCreateWithoutCirclesInput>
+  }
+
+  export type CircleMemberCreateWithoutCircleInput = {
+    addedAt?: Date | string
+    user: UserCreateNestedOneWithoutCircleMembershipsInput
+  }
+
+  export type CircleMemberUncheckedCreateWithoutCircleInput = {
+    userId: string
+    addedAt?: Date | string
+  }
+
+  export type CircleMemberCreateOrConnectWithoutCircleInput = {
+    where: CircleMemberWhereUniqueInput
+    create: XOR<CircleMemberCreateWithoutCircleInput, CircleMemberUncheckedCreateWithoutCircleInput>
+  }
+
+  export type CircleMemberCreateManyCircleInputEnvelope = {
+    data: CircleMemberCreateManyCircleInput | CircleMemberCreateManyCircleInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PinCreateWithoutAudienceCircleInput = {
+    id?: string
+    title?: string | null
+    description?: string | null
+    imageUrl: string
+    thumbnailUrl?: string | null
+    mediumUrl?: string | null
+    largeUrl?: string | null
+    imageWidth?: number
+    imageHeight?: number
+    sourceUrl?: string | null
+    viewCount?: number
+    clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    creator: UserCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
+    tags?: TagCreateNestedManyWithoutPinsInput
+    categories?: CategoryCreateNestedManyWithoutPinsInput
+    savedBy?: SavedPinCreateNestedManyWithoutPinInput
+    reactions?: ReactionCreateNestedManyWithoutPinInput
+    comments?: CommentCreateNestedManyWithoutPinInput
+    notifications?: NotificationCreateNestedManyWithoutPinInput
+    boardCovers?: BoardCreateNestedManyWithoutCoverPinInput
+    messages?: MessageCreateNestedManyWithoutAttachedPinInput
+  }
+
+  export type PinUncheckedCreateWithoutAudienceCircleInput = {
+    id?: string
+    title?: string | null
+    description?: string | null
+    imageUrl: string
+    thumbnailUrl?: string | null
+    mediumUrl?: string | null
+    largeUrl?: string | null
+    imageWidth?: number
+    imageHeight?: number
+    sourceUrl?: string | null
+    viewCount?: number
+    clickCount?: number
+    creatorId: string
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
+    tags?: TagUncheckedCreateNestedManyWithoutPinsInput
+    categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
+    savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
+    reactions?: ReactionUncheckedCreateNestedManyWithoutPinInput
+    comments?: CommentUncheckedCreateNestedManyWithoutPinInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutPinInput
+    boardCovers?: BoardUncheckedCreateNestedManyWithoutCoverPinInput
+    messages?: MessageUncheckedCreateNestedManyWithoutAttachedPinInput
+  }
+
+  export type PinCreateOrConnectWithoutAudienceCircleInput = {
+    where: PinWhereUniqueInput
+    create: XOR<PinCreateWithoutAudienceCircleInput, PinUncheckedCreateWithoutAudienceCircleInput>
+  }
+
+  export type PinCreateManyAudienceCircleInputEnvelope = {
+    data: PinCreateManyAudienceCircleInput | PinCreateManyAudienceCircleInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithoutCirclesInput = {
+    update: XOR<UserUpdateWithoutCirclesInput, UserUncheckedUpdateWithoutCirclesInput>
+    create: XOR<UserCreateWithoutCirclesInput, UserUncheckedCreateWithoutCirclesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutCirclesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutCirclesInput, UserUncheckedUpdateWithoutCirclesInput>
+  }
+
+  export type UserUpdateWithoutCirclesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isOnboarded?: BoolFieldUpdateOperationsInput | boolean
+    locale?: StringFieldUpdateOperationsInput | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usernameChangedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    verificationTokens?: VerificationTokenUpdateManyWithoutUserNestedInput
+    refreshTokens?: RefreshTokenUpdateManyWithoutUserNestedInput
+    deviceTokens?: DeviceTokenUpdateManyWithoutUserNestedInput
+    pins?: PinUpdateManyWithoutCreatorNestedInput
+    savedPins?: SavedPinUpdateManyWithoutUserNestedInput
+    boards?: BoardUpdateManyWithoutUserNestedInput
+    boardCollaborators?: BoardCollaboratorUpdateManyWithoutUserNestedInput
+    comments?: CommentUpdateManyWithoutUserNestedInput
+    commentReactions?: CommentReactionUpdateManyWithoutUserNestedInput
+    reactions?: ReactionUpdateManyWithoutUserNestedInput
+    sentMessages?: MessageUpdateManyWithoutSenderNestedInput
+    conversationMembers?: ConversationMemberUpdateManyWithoutUserNestedInput
+    notificationsReceived?: NotificationUpdateManyWithoutRecipientNestedInput
+    notificationsActed?: NotificationUpdateManyWithoutActorNestedInput
+    followedBy?: FollowsUpdateManyWithoutFollowingNestedInput
+    following?: FollowsUpdateManyWithoutFollowerNestedInput
+    categories?: CategoryUpdateManyWithoutUsersNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
+    blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutCirclesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isOnboarded?: BoolFieldUpdateOperationsInput | boolean
+    locale?: StringFieldUpdateOperationsInput | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usernameChangedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    verificationTokens?: VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    refreshTokens?: RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+    deviceTokens?: DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+    pins?: PinUncheckedUpdateManyWithoutCreatorNestedInput
+    savedPins?: SavedPinUncheckedUpdateManyWithoutUserNestedInput
+    boards?: BoardUncheckedUpdateManyWithoutUserNestedInput
+    boardCollaborators?: BoardCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutUserNestedInput
+    commentReactions?: CommentReactionUncheckedUpdateManyWithoutUserNestedInput
+    reactions?: ReactionUncheckedUpdateManyWithoutUserNestedInput
+    sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
+    conversationMembers?: ConversationMemberUncheckedUpdateManyWithoutUserNestedInput
+    notificationsReceived?: NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+    notificationsActed?: NotificationUncheckedUpdateManyWithoutActorNestedInput
+    followedBy?: FollowsUncheckedUpdateManyWithoutFollowingNestedInput
+    following?: FollowsUncheckedUpdateManyWithoutFollowerNestedInput
+    categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
+    blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
+  }
+
+  export type CircleMemberUpsertWithWhereUniqueWithoutCircleInput = {
+    where: CircleMemberWhereUniqueInput
+    update: XOR<CircleMemberUpdateWithoutCircleInput, CircleMemberUncheckedUpdateWithoutCircleInput>
+    create: XOR<CircleMemberCreateWithoutCircleInput, CircleMemberUncheckedCreateWithoutCircleInput>
+  }
+
+  export type CircleMemberUpdateWithWhereUniqueWithoutCircleInput = {
+    where: CircleMemberWhereUniqueInput
+    data: XOR<CircleMemberUpdateWithoutCircleInput, CircleMemberUncheckedUpdateWithoutCircleInput>
+  }
+
+  export type CircleMemberUpdateManyWithWhereWithoutCircleInput = {
+    where: CircleMemberScalarWhereInput
+    data: XOR<CircleMemberUpdateManyMutationInput, CircleMemberUncheckedUpdateManyWithoutCircleInput>
+  }
+
+  export type PinUpsertWithWhereUniqueWithoutAudienceCircleInput = {
+    where: PinWhereUniqueInput
+    update: XOR<PinUpdateWithoutAudienceCircleInput, PinUncheckedUpdateWithoutAudienceCircleInput>
+    create: XOR<PinCreateWithoutAudienceCircleInput, PinUncheckedCreateWithoutAudienceCircleInput>
+  }
+
+  export type PinUpdateWithWhereUniqueWithoutAudienceCircleInput = {
+    where: PinWhereUniqueInput
+    data: XOR<PinUpdateWithoutAudienceCircleInput, PinUncheckedUpdateWithoutAudienceCircleInput>
+  }
+
+  export type PinUpdateManyWithWhereWithoutAudienceCircleInput = {
+    where: PinScalarWhereInput
+    data: XOR<PinUpdateManyMutationInput, PinUncheckedUpdateManyWithoutAudienceCircleInput>
+  }
+
+  export type CircleCreateWithoutMembersInput = {
+    id?: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    owner: UserCreateNestedOneWithoutCirclesInput
+    pins?: PinCreateNestedManyWithoutAudienceCircleInput
+  }
+
+  export type CircleUncheckedCreateWithoutMembersInput = {
+    id?: string
+    ownerId: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    pins?: PinUncheckedCreateNestedManyWithoutAudienceCircleInput
+  }
+
+  export type CircleCreateOrConnectWithoutMembersInput = {
+    where: CircleWhereUniqueInput
+    create: XOR<CircleCreateWithoutMembersInput, CircleUncheckedCreateWithoutMembersInput>
+  }
+
+  export type UserCreateWithoutCircleMembershipsInput = {
+    id?: string
+    email: string
+    emailVerified?: Date | string | null
+    password?: string | null
+    name?: string | null
+    username?: string | null
+    bio?: string | null
+    website?: string | null
+    avatarUrl?: string | null
+    coverUrl?: string | null
+    isOnboarded?: boolean
+    locale?: string
+    deletedAt?: Date | string | null
+    usernameChangedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    verificationTokens?: VerificationTokenCreateNestedManyWithoutUserInput
+    refreshTokens?: RefreshTokenCreateNestedManyWithoutUserInput
+    deviceTokens?: DeviceTokenCreateNestedManyWithoutUserInput
+    pins?: PinCreateNestedManyWithoutCreatorInput
+    savedPins?: SavedPinCreateNestedManyWithoutUserInput
+    boards?: BoardCreateNestedManyWithoutUserInput
+    boardCollaborators?: BoardCollaboratorCreateNestedManyWithoutUserInput
+    comments?: CommentCreateNestedManyWithoutUserInput
+    commentReactions?: CommentReactionCreateNestedManyWithoutUserInput
+    reactions?: ReactionCreateNestedManyWithoutUserInput
+    sentMessages?: MessageCreateNestedManyWithoutSenderInput
+    conversationMembers?: ConversationMemberCreateNestedManyWithoutUserInput
+    notificationsReceived?: NotificationCreateNestedManyWithoutRecipientInput
+    notificationsActed?: NotificationCreateNestedManyWithoutActorInput
+    followedBy?: FollowsCreateNestedManyWithoutFollowingInput
+    following?: FollowsCreateNestedManyWithoutFollowerInput
+    categories?: CategoryCreateNestedManyWithoutUsersInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
+    blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
+  }
+
+  export type UserUncheckedCreateWithoutCircleMembershipsInput = {
+    id?: string
+    email: string
+    emailVerified?: Date | string | null
+    password?: string | null
+    name?: string | null
+    username?: string | null
+    bio?: string | null
+    website?: string | null
+    avatarUrl?: string | null
+    coverUrl?: string | null
+    isOnboarded?: boolean
+    locale?: string
+    deletedAt?: Date | string | null
+    usernameChangedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    verificationTokens?: VerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    refreshTokens?: RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+    deviceTokens?: DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+    pins?: PinUncheckedCreateNestedManyWithoutCreatorInput
+    savedPins?: SavedPinUncheckedCreateNestedManyWithoutUserInput
+    boards?: BoardUncheckedCreateNestedManyWithoutUserInput
+    boardCollaborators?: BoardCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    comments?: CommentUncheckedCreateNestedManyWithoutUserInput
+    commentReactions?: CommentReactionUncheckedCreateNestedManyWithoutUserInput
+    reactions?: ReactionUncheckedCreateNestedManyWithoutUserInput
+    sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
+    conversationMembers?: ConversationMemberUncheckedCreateNestedManyWithoutUserInput
+    notificationsReceived?: NotificationUncheckedCreateNestedManyWithoutRecipientInput
+    notificationsActed?: NotificationUncheckedCreateNestedManyWithoutActorInput
+    followedBy?: FollowsUncheckedCreateNestedManyWithoutFollowingInput
+    following?: FollowsUncheckedCreateNestedManyWithoutFollowerInput
+    categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
+    blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
+  }
+
+  export type UserCreateOrConnectWithoutCircleMembershipsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutCircleMembershipsInput, UserUncheckedCreateWithoutCircleMembershipsInput>
+  }
+
+  export type CircleUpsertWithoutMembersInput = {
+    update: XOR<CircleUpdateWithoutMembersInput, CircleUncheckedUpdateWithoutMembersInput>
+    create: XOR<CircleCreateWithoutMembersInput, CircleUncheckedCreateWithoutMembersInput>
+    where?: CircleWhereInput
+  }
+
+  export type CircleUpdateToOneWithWhereWithoutMembersInput = {
+    where?: CircleWhereInput
+    data: XOR<CircleUpdateWithoutMembersInput, CircleUncheckedUpdateWithoutMembersInput>
+  }
+
+  export type CircleUpdateWithoutMembersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: UserUpdateOneRequiredWithoutCirclesNestedInput
+    pins?: PinUpdateManyWithoutAudienceCircleNestedInput
+  }
+
+  export type CircleUncheckedUpdateWithoutMembersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pins?: PinUncheckedUpdateManyWithoutAudienceCircleNestedInput
+  }
+
+  export type UserUpsertWithoutCircleMembershipsInput = {
+    update: XOR<UserUpdateWithoutCircleMembershipsInput, UserUncheckedUpdateWithoutCircleMembershipsInput>
+    create: XOR<UserCreateWithoutCircleMembershipsInput, UserUncheckedCreateWithoutCircleMembershipsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutCircleMembershipsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutCircleMembershipsInput, UserUncheckedUpdateWithoutCircleMembershipsInput>
+  }
+
+  export type UserUpdateWithoutCircleMembershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isOnboarded?: BoolFieldUpdateOperationsInput | boolean
+    locale?: StringFieldUpdateOperationsInput | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usernameChangedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    verificationTokens?: VerificationTokenUpdateManyWithoutUserNestedInput
+    refreshTokens?: RefreshTokenUpdateManyWithoutUserNestedInput
+    deviceTokens?: DeviceTokenUpdateManyWithoutUserNestedInput
+    pins?: PinUpdateManyWithoutCreatorNestedInput
+    savedPins?: SavedPinUpdateManyWithoutUserNestedInput
+    boards?: BoardUpdateManyWithoutUserNestedInput
+    boardCollaborators?: BoardCollaboratorUpdateManyWithoutUserNestedInput
+    comments?: CommentUpdateManyWithoutUserNestedInput
+    commentReactions?: CommentReactionUpdateManyWithoutUserNestedInput
+    reactions?: ReactionUpdateManyWithoutUserNestedInput
+    sentMessages?: MessageUpdateManyWithoutSenderNestedInput
+    conversationMembers?: ConversationMemberUpdateManyWithoutUserNestedInput
+    notificationsReceived?: NotificationUpdateManyWithoutRecipientNestedInput
+    notificationsActed?: NotificationUpdateManyWithoutActorNestedInput
+    followedBy?: FollowsUpdateManyWithoutFollowingNestedInput
+    following?: FollowsUpdateManyWithoutFollowerNestedInput
+    categories?: CategoryUpdateManyWithoutUsersNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
+    blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutCircleMembershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isOnboarded?: BoolFieldUpdateOperationsInput | boolean
+    locale?: StringFieldUpdateOperationsInput | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usernameChangedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    verificationTokens?: VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    refreshTokens?: RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+    deviceTokens?: DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+    pins?: PinUncheckedUpdateManyWithoutCreatorNestedInput
+    savedPins?: SavedPinUncheckedUpdateManyWithoutUserNestedInput
+    boards?: BoardUncheckedUpdateManyWithoutUserNestedInput
+    boardCollaborators?: BoardCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutUserNestedInput
+    commentReactions?: CommentReactionUncheckedUpdateManyWithoutUserNestedInput
+    reactions?: ReactionUncheckedUpdateManyWithoutUserNestedInput
+    sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
+    conversationMembers?: ConversationMemberUncheckedUpdateManyWithoutUserNestedInput
+    notificationsReceived?: NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+    notificationsActed?: NotificationUncheckedUpdateManyWithoutActorNestedInput
+    followedBy?: FollowsUncheckedUpdateManyWithoutFollowingNestedInput
+    following?: FollowsUncheckedUpdateManyWithoutFollowerNestedInput
+    categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
+    blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
+  }
+
+  export type PinCreateWithoutViewsInput = {
+    id?: string
+    title?: string | null
+    description?: string | null
+    imageUrl: string
+    thumbnailUrl?: string | null
+    mediumUrl?: string | null
+    largeUrl?: string | null
+    imageWidth?: number
+    imageHeight?: number
+    sourceUrl?: string | null
+    viewCount?: number
+    clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    tags?: TagCreateNestedManyWithoutPinsInput
+    categories?: CategoryCreateNestedManyWithoutPinsInput
+    savedBy?: SavedPinCreateNestedManyWithoutPinInput
+    reactions?: ReactionCreateNestedManyWithoutPinInput
+    comments?: CommentCreateNestedManyWithoutPinInput
+    notifications?: NotificationCreateNestedManyWithoutPinInput
+    boardCovers?: BoardCreateNestedManyWithoutCoverPinInput
+    messages?: MessageCreateNestedManyWithoutAttachedPinInput
+  }
+
+  export type PinUncheckedCreateWithoutViewsInput = {
+    id?: string
+    title?: string | null
+    description?: string | null
+    imageUrl: string
+    thumbnailUrl?: string | null
+    mediumUrl?: string | null
+    largeUrl?: string | null
+    imageWidth?: number
+    imageHeight?: number
+    sourceUrl?: string | null
+    viewCount?: number
+    clickCount?: number
+    creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    tags?: TagUncheckedCreateNestedManyWithoutPinsInput
+    categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
+    savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
+    reactions?: ReactionUncheckedCreateNestedManyWithoutPinInput
+    comments?: CommentUncheckedCreateNestedManyWithoutPinInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutPinInput
+    boardCovers?: BoardUncheckedCreateNestedManyWithoutCoverPinInput
+    messages?: MessageUncheckedCreateNestedManyWithoutAttachedPinInput
+  }
+
+  export type PinCreateOrConnectWithoutViewsInput = {
+    where: PinWhereUniqueInput
+    create: XOR<PinCreateWithoutViewsInput, PinUncheckedCreateWithoutViewsInput>
+  }
+
+  export type UserCreateWithoutPinViewsInput = {
+    id?: string
+    email: string
+    emailVerified?: Date | string | null
+    password?: string | null
+    name?: string | null
+    username?: string | null
+    bio?: string | null
+    website?: string | null
+    avatarUrl?: string | null
+    coverUrl?: string | null
+    isOnboarded?: boolean
+    locale?: string
+    deletedAt?: Date | string | null
+    usernameChangedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    verificationTokens?: VerificationTokenCreateNestedManyWithoutUserInput
+    refreshTokens?: RefreshTokenCreateNestedManyWithoutUserInput
+    deviceTokens?: DeviceTokenCreateNestedManyWithoutUserInput
+    pins?: PinCreateNestedManyWithoutCreatorInput
+    savedPins?: SavedPinCreateNestedManyWithoutUserInput
+    boards?: BoardCreateNestedManyWithoutUserInput
+    boardCollaborators?: BoardCollaboratorCreateNestedManyWithoutUserInput
+    comments?: CommentCreateNestedManyWithoutUserInput
+    commentReactions?: CommentReactionCreateNestedManyWithoutUserInput
+    reactions?: ReactionCreateNestedManyWithoutUserInput
+    sentMessages?: MessageCreateNestedManyWithoutSenderInput
+    conversationMembers?: ConversationMemberCreateNestedManyWithoutUserInput
+    notificationsReceived?: NotificationCreateNestedManyWithoutRecipientInput
+    notificationsActed?: NotificationCreateNestedManyWithoutActorInput
+    followedBy?: FollowsCreateNestedManyWithoutFollowingInput
+    following?: FollowsCreateNestedManyWithoutFollowerInput
+    categories?: CategoryCreateNestedManyWithoutUsersInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
+    blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutPinViewsInput = {
+    id?: string
+    email: string
+    emailVerified?: Date | string | null
+    password?: string | null
+    name?: string | null
+    username?: string | null
+    bio?: string | null
+    website?: string | null
+    avatarUrl?: string | null
+    coverUrl?: string | null
+    isOnboarded?: boolean
+    locale?: string
+    deletedAt?: Date | string | null
+    usernameChangedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    verificationTokens?: VerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    refreshTokens?: RefreshTokenUncheckedCreateNestedManyWithoutUserInput
+    deviceTokens?: DeviceTokenUncheckedCreateNestedManyWithoutUserInput
+    pins?: PinUncheckedCreateNestedManyWithoutCreatorInput
+    savedPins?: SavedPinUncheckedCreateNestedManyWithoutUserInput
+    boards?: BoardUncheckedCreateNestedManyWithoutUserInput
+    boardCollaborators?: BoardCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    comments?: CommentUncheckedCreateNestedManyWithoutUserInput
+    commentReactions?: CommentReactionUncheckedCreateNestedManyWithoutUserInput
+    reactions?: ReactionUncheckedCreateNestedManyWithoutUserInput
+    sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
+    conversationMembers?: ConversationMemberUncheckedCreateNestedManyWithoutUserInput
+    notificationsReceived?: NotificationUncheckedCreateNestedManyWithoutRecipientInput
+    notificationsActed?: NotificationUncheckedCreateNestedManyWithoutActorInput
+    followedBy?: FollowsUncheckedCreateNestedManyWithoutFollowingInput
+    following?: FollowsUncheckedCreateNestedManyWithoutFollowerInput
+    categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
+    blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutPinViewsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutPinViewsInput, UserUncheckedCreateWithoutPinViewsInput>
+  }
+
+  export type PinUpsertWithoutViewsInput = {
+    update: XOR<PinUpdateWithoutViewsInput, PinUncheckedUpdateWithoutViewsInput>
+    create: XOR<PinCreateWithoutViewsInput, PinUncheckedCreateWithoutViewsInput>
+    where?: PinWhereInput
+  }
+
+  export type PinUpdateToOneWithWhereWithoutViewsInput = {
+    where?: PinWhereInput
+    data: XOR<PinUpdateWithoutViewsInput, PinUncheckedUpdateWithoutViewsInput>
+  }
+
+  export type PinUpdateWithoutViewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: StringFieldUpdateOperationsInput | string
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mediumUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    largeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageWidth?: IntFieldUpdateOperationsInput | number
+    imageHeight?: IntFieldUpdateOperationsInput | number
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    viewCount?: IntFieldUpdateOperationsInput | number
+    clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    tags?: TagUpdateManyWithoutPinsNestedInput
+    categories?: CategoryUpdateManyWithoutPinsNestedInput
+    savedBy?: SavedPinUpdateManyWithoutPinNestedInput
+    reactions?: ReactionUpdateManyWithoutPinNestedInput
+    comments?: CommentUpdateManyWithoutPinNestedInput
+    notifications?: NotificationUpdateManyWithoutPinNestedInput
+    boardCovers?: BoardUpdateManyWithoutCoverPinNestedInput
+    messages?: MessageUpdateManyWithoutAttachedPinNestedInput
+  }
+
+  export type PinUncheckedUpdateWithoutViewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: StringFieldUpdateOperationsInput | string
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mediumUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    largeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageWidth?: IntFieldUpdateOperationsInput | number
+    imageHeight?: IntFieldUpdateOperationsInput | number
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    viewCount?: IntFieldUpdateOperationsInput | number
+    clickCount?: IntFieldUpdateOperationsInput | number
+    creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
+    categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
+    savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
+    reactions?: ReactionUncheckedUpdateManyWithoutPinNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutPinNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutPinNestedInput
+    boardCovers?: BoardUncheckedUpdateManyWithoutCoverPinNestedInput
+    messages?: MessageUncheckedUpdateManyWithoutAttachedPinNestedInput
+  }
+
+  export type UserUpsertWithoutPinViewsInput = {
+    update: XOR<UserUpdateWithoutPinViewsInput, UserUncheckedUpdateWithoutPinViewsInput>
+    create: XOR<UserCreateWithoutPinViewsInput, UserUncheckedCreateWithoutPinViewsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutPinViewsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutPinViewsInput, UserUncheckedUpdateWithoutPinViewsInput>
+  }
+
+  export type UserUpdateWithoutPinViewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isOnboarded?: BoolFieldUpdateOperationsInput | boolean
+    locale?: StringFieldUpdateOperationsInput | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usernameChangedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    verificationTokens?: VerificationTokenUpdateManyWithoutUserNestedInput
+    refreshTokens?: RefreshTokenUpdateManyWithoutUserNestedInput
+    deviceTokens?: DeviceTokenUpdateManyWithoutUserNestedInput
+    pins?: PinUpdateManyWithoutCreatorNestedInput
+    savedPins?: SavedPinUpdateManyWithoutUserNestedInput
+    boards?: BoardUpdateManyWithoutUserNestedInput
+    boardCollaborators?: BoardCollaboratorUpdateManyWithoutUserNestedInput
+    comments?: CommentUpdateManyWithoutUserNestedInput
+    commentReactions?: CommentReactionUpdateManyWithoutUserNestedInput
+    reactions?: ReactionUpdateManyWithoutUserNestedInput
+    sentMessages?: MessageUpdateManyWithoutSenderNestedInput
+    conversationMembers?: ConversationMemberUpdateManyWithoutUserNestedInput
+    notificationsReceived?: NotificationUpdateManyWithoutRecipientNestedInput
+    notificationsActed?: NotificationUpdateManyWithoutActorNestedInput
+    followedBy?: FollowsUpdateManyWithoutFollowingNestedInput
+    following?: FollowsUpdateManyWithoutFollowerNestedInput
+    categories?: CategoryUpdateManyWithoutUsersNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
+    blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutPinViewsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    avatarUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    coverUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    isOnboarded?: BoolFieldUpdateOperationsInput | boolean
+    locale?: StringFieldUpdateOperationsInput | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    usernameChangedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    verificationTokens?: VerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    refreshTokens?: RefreshTokenUncheckedUpdateManyWithoutUserNestedInput
+    deviceTokens?: DeviceTokenUncheckedUpdateManyWithoutUserNestedInput
+    pins?: PinUncheckedUpdateManyWithoutCreatorNestedInput
+    savedPins?: SavedPinUncheckedUpdateManyWithoutUserNestedInput
+    boards?: BoardUncheckedUpdateManyWithoutUserNestedInput
+    boardCollaborators?: BoardCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutUserNestedInput
+    commentReactions?: CommentReactionUncheckedUpdateManyWithoutUserNestedInput
+    reactions?: ReactionUncheckedUpdateManyWithoutUserNestedInput
+    sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
+    conversationMembers?: ConversationMemberUncheckedUpdateManyWithoutUserNestedInput
+    notificationsReceived?: NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+    notificationsActed?: NotificationUncheckedUpdateManyWithoutActorNestedInput
+    followedBy?: FollowsUncheckedUpdateManyWithoutFollowingNestedInput
+    following?: FollowsUncheckedUpdateManyWithoutFollowerNestedInput
+    categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
+    blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PinCreateWithoutCategoriesInput = {
@@ -35575,10 +41079,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
     reactions?: ReactionCreateNestedManyWithoutPinInput
@@ -35602,9 +41110,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
     reactions?: ReactionUncheckedCreateNestedManyWithoutPinInput
@@ -35656,6 +41168,9 @@ export namespace Prisma {
     following?: FollowsCreateNestedManyWithoutFollowerInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutCategoriesInput = {
@@ -35695,6 +41210,9 @@ export namespace Prisma {
     following?: FollowsUncheckedCreateNestedManyWithoutFollowerInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutCategoriesInput = {
@@ -35769,10 +41287,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
     reactions?: ReactionCreateNestedManyWithoutPinInput
@@ -35796,9 +41318,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
     reactions?: ReactionUncheckedCreateNestedManyWithoutPinInput
@@ -35866,6 +41392,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutPinsInput = {
@@ -35905,11 +41434,63 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutPinsInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutPinsInput, UserUncheckedCreateWithoutPinsInput>
+  }
+
+  export type CircleCreateWithoutPinsInput = {
+    id?: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    owner: UserCreateNestedOneWithoutCirclesInput
+    members?: CircleMemberCreateNestedManyWithoutCircleInput
+  }
+
+  export type CircleUncheckedCreateWithoutPinsInput = {
+    id?: string
+    ownerId: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: CircleMemberUncheckedCreateNestedManyWithoutCircleInput
+  }
+
+  export type CircleCreateOrConnectWithoutPinsInput = {
+    where: CircleWhereUniqueInput
+    create: XOR<CircleCreateWithoutPinsInput, CircleUncheckedCreateWithoutPinsInput>
+  }
+
+  export type PinViewCreateWithoutPinInput = {
+    firstViewedAt?: Date | string
+    viewer: UserCreateNestedOneWithoutPinViewsInput
+  }
+
+  export type PinViewUncheckedCreateWithoutPinInput = {
+    viewerId: string
+    firstViewedAt?: Date | string
+  }
+
+  export type PinViewCreateOrConnectWithoutPinInput = {
+    where: PinViewWhereUniqueInput
+    create: XOR<PinViewCreateWithoutPinInput, PinViewUncheckedCreateWithoutPinInput>
+  }
+
+  export type PinViewCreateManyPinInputEnvelope = {
+    data: PinViewCreateManyPinInput | PinViewCreateManyPinInput[]
+    skipDuplicates?: boolean
   }
 
   export type TagCreateWithoutPinsInput = {
@@ -36186,6 +41767,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPinsInput = {
@@ -36225,6 +41809,60 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
+  }
+
+  export type CircleUpsertWithoutPinsInput = {
+    update: XOR<CircleUpdateWithoutPinsInput, CircleUncheckedUpdateWithoutPinsInput>
+    create: XOR<CircleCreateWithoutPinsInput, CircleUncheckedCreateWithoutPinsInput>
+    where?: CircleWhereInput
+  }
+
+  export type CircleUpdateToOneWithWhereWithoutPinsInput = {
+    where?: CircleWhereInput
+    data: XOR<CircleUpdateWithoutPinsInput, CircleUncheckedUpdateWithoutPinsInput>
+  }
+
+  export type CircleUpdateWithoutPinsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: UserUpdateOneRequiredWithoutCirclesNestedInput
+    members?: CircleMemberUpdateManyWithoutCircleNestedInput
+  }
+
+  export type CircleUncheckedUpdateWithoutPinsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: CircleMemberUncheckedUpdateManyWithoutCircleNestedInput
+  }
+
+  export type PinViewUpsertWithWhereUniqueWithoutPinInput = {
+    where: PinViewWhereUniqueInput
+    update: XOR<PinViewUpdateWithoutPinInput, PinViewUncheckedUpdateWithoutPinInput>
+    create: XOR<PinViewCreateWithoutPinInput, PinViewUncheckedCreateWithoutPinInput>
+  }
+
+  export type PinViewUpdateWithWhereUniqueWithoutPinInput = {
+    where: PinViewWhereUniqueInput
+    data: XOR<PinViewUpdateWithoutPinInput, PinViewUncheckedUpdateWithoutPinInput>
+  }
+
+  export type PinViewUpdateManyWithWhereWithoutPinInput = {
+    where: PinViewScalarWhereInput
+    data: XOR<PinViewUpdateManyMutationInput, PinViewUncheckedUpdateManyWithoutPinInput>
   }
 
   export type TagUpsertWithWhereUniqueWithoutPinsInput = {
@@ -36400,6 +42038,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutBoardsInput = {
@@ -36439,6 +42080,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutBoardsInput = {
@@ -36459,10 +42103,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
@@ -36486,9 +42134,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
@@ -36631,6 +42283,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutBoardsInput = {
@@ -36670,6 +42325,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type PinUpsertWithoutBoardCoversInput = {
@@ -36696,10 +42354,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
@@ -36723,9 +42385,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
@@ -36982,6 +42648,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutBoardCollaboratorsInput = {
@@ -37021,6 +42690,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutBoardCollaboratorsInput = {
@@ -37115,6 +42787,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutBoardCollaboratorsInput = {
@@ -37154,6 +42829,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserCreateWithoutSavedPinsInput = {
@@ -37193,6 +42871,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutSavedPinsInput = {
@@ -37232,6 +42913,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutSavedPinsInput = {
@@ -37252,10 +42936,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     reactions?: ReactionCreateNestedManyWithoutPinInput
@@ -37279,9 +42967,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     reactions?: ReactionUncheckedCreateNestedManyWithoutPinInput
@@ -37398,6 +43090,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSavedPinsInput = {
@@ -37437,6 +43132,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type PinUpsertWithoutSavedByInput = {
@@ -37463,10 +43161,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     reactions?: ReactionUpdateManyWithoutPinNestedInput
@@ -37490,9 +43192,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     reactions?: ReactionUncheckedUpdateManyWithoutPinNestedInput
@@ -37605,6 +43311,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutReactionsInput = {
@@ -37644,6 +43353,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutReactionsInput = {
@@ -37664,10 +43376,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
@@ -37691,9 +43407,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
@@ -37756,6 +43476,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutReactionsInput = {
@@ -37795,6 +43518,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type PinUpsertWithoutReactionsInput = {
@@ -37821,10 +43547,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
@@ -37848,9 +43578,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
@@ -37873,10 +43607,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
@@ -37900,9 +43638,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
@@ -37954,6 +43696,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutCommentsInput = {
@@ -37993,6 +43738,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutCommentsInput = {
@@ -38145,10 +43893,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
@@ -38172,9 +43924,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
@@ -38232,6 +43988,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -38271,6 +44030,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type CommentUpsertWithoutRepliesInput = {
@@ -38395,6 +44157,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutCommentReactionsInput = {
@@ -38434,6 +44199,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutCommentReactionsInput = {
@@ -38520,6 +44288,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommentReactionsInput = {
@@ -38559,6 +44330,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type CommentUpsertWithoutReactionsInput = {
@@ -38740,6 +44514,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutConversationMembersInput = {
@@ -38779,6 +44556,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutConversationMembersInput = {
@@ -38859,6 +44639,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationMembersInput = {
@@ -38898,6 +44681,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type ConversationCreateWithoutMessagesInput = {
@@ -38956,6 +44742,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutSentMessagesInput = {
@@ -38995,6 +44784,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutSentMessagesInput = {
@@ -39015,10 +44807,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
@@ -39042,9 +44838,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
@@ -39132,6 +44932,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSentMessagesInput = {
@@ -39171,6 +44974,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type PinUpsertWithoutMessagesInput = {
@@ -39197,10 +45003,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
@@ -39224,9 +45034,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
@@ -39273,6 +45087,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsReceivedInput = {
@@ -39312,6 +45129,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsReceivedInput = {
@@ -39356,6 +45176,9 @@ export namespace Prisma {
     categories?: CategoryCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserCreateNestedManyWithoutBlockedInput
+    circles?: CircleCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberCreateNestedManyWithoutUserInput
+    pinViews?: PinViewCreateNestedManyWithoutViewerInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsActedInput = {
@@ -39395,6 +45218,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedCreateNestedManyWithoutUsersInput
     blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockerInput
     blockedBy?: BlockedUserUncheckedCreateNestedManyWithoutBlockedInput
+    circles?: CircleUncheckedCreateNestedManyWithoutOwnerInput
+    circleMemberships?: CircleMemberUncheckedCreateNestedManyWithoutUserInput
+    pinViews?: PinViewUncheckedCreateNestedManyWithoutViewerInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsActedInput = {
@@ -39415,10 +45241,14 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     creator: UserCreateNestedOneWithoutPinsInput
+    audienceCircle?: CircleCreateNestedOneWithoutPinsInput
+    views?: PinViewCreateNestedManyWithoutPinInput
     tags?: TagCreateNestedManyWithoutPinsInput
     categories?: CategoryCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinCreateNestedManyWithoutPinInput
@@ -39442,9 +45272,13 @@ export namespace Prisma {
     viewCount?: number
     clickCount?: number
     creatorId: string
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    views?: PinViewUncheckedCreateNestedManyWithoutPinInput
     tags?: TagUncheckedCreateNestedManyWithoutPinsInput
     categories?: CategoryUncheckedCreateNestedManyWithoutPinsInput
     savedBy?: SavedPinUncheckedCreateNestedManyWithoutPinInput
@@ -39538,6 +45372,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsReceivedInput = {
@@ -39577,6 +45414,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUpsertWithoutNotificationsActedInput = {
@@ -39627,6 +45467,9 @@ export namespace Prisma {
     categories?: CategoryUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsActedInput = {
@@ -39666,6 +45509,9 @@ export namespace Prisma {
     categories?: CategoryUncheckedUpdateManyWithoutUsersNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type PinUpsertWithoutNotificationsInput = {
@@ -39692,10 +45538,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
@@ -39719,9 +45569,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
@@ -39823,6 +45677,9 @@ export namespace Prisma {
     sourceUrl?: string | null
     viewCount?: number
     clickCount?: number
+    visibility?: $Enums.Visibility
+    audienceCircleId?: string | null
+    expiresAt?: Date | string | null
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -39937,6 +45794,26 @@ export namespace Prisma {
     id?: string
     blockerId: string
     createdAt?: Date | string
+  }
+
+  export type CircleCreateManyOwnerInput = {
+    id?: string
+    name: string
+    rank?: number | null
+    isAdHoc?: boolean
+    memberHash?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CircleMemberCreateManyUserInput = {
+    circleId: string
+    addedAt?: Date | string
+  }
+
+  export type PinViewCreateManyViewerInput = {
+    pinId: string
+    firstViewedAt?: Date | string
   }
 
   export type AccountUpdateWithoutUserInput = {
@@ -40078,9 +45955,13 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
@@ -40104,9 +45985,13 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
@@ -40130,6 +46015,9 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -40503,6 +46391,192 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type CircleUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: CircleMemberUpdateManyWithoutCircleNestedInput
+    pins?: PinUpdateManyWithoutAudienceCircleNestedInput
+  }
+
+  export type CircleUncheckedUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: CircleMemberUncheckedUpdateManyWithoutCircleNestedInput
+    pins?: PinUncheckedUpdateManyWithoutAudienceCircleNestedInput
+  }
+
+  export type CircleUncheckedUpdateManyWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    rank?: NullableIntFieldUpdateOperationsInput | number | null
+    isAdHoc?: BoolFieldUpdateOperationsInput | boolean
+    memberHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleMemberUpdateWithoutUserInput = {
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    circle?: CircleUpdateOneRequiredWithoutMembersNestedInput
+  }
+
+  export type CircleMemberUncheckedUpdateWithoutUserInput = {
+    circleId?: StringFieldUpdateOperationsInput | string
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleMemberUncheckedUpdateManyWithoutUserInput = {
+    circleId?: StringFieldUpdateOperationsInput | string
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinViewUpdateWithoutViewerInput = {
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pin?: PinUpdateOneRequiredWithoutViewsNestedInput
+  }
+
+  export type PinViewUncheckedUpdateWithoutViewerInput = {
+    pinId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinViewUncheckedUpdateManyWithoutViewerInput = {
+    pinId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleMemberCreateManyCircleInput = {
+    userId: string
+    addedAt?: Date | string
+  }
+
+  export type PinCreateManyAudienceCircleInput = {
+    id?: string
+    title?: string | null
+    description?: string | null
+    imageUrl: string
+    thumbnailUrl?: string | null
+    mediumUrl?: string | null
+    largeUrl?: string | null
+    imageWidth?: number
+    imageHeight?: number
+    sourceUrl?: string | null
+    viewCount?: number
+    clickCount?: number
+    creatorId: string
+    visibility?: $Enums.Visibility
+    expiresAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CircleMemberUpdateWithoutCircleInput = {
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutCircleMembershipsNestedInput
+  }
+
+  export type CircleMemberUncheckedUpdateWithoutCircleInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CircleMemberUncheckedUpdateManyWithoutCircleInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    addedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinUpdateWithoutAudienceCircleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: StringFieldUpdateOperationsInput | string
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mediumUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    largeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageWidth?: IntFieldUpdateOperationsInput | number
+    imageHeight?: IntFieldUpdateOperationsInput | number
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    viewCount?: IntFieldUpdateOperationsInput | number
+    clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
+    tags?: TagUpdateManyWithoutPinsNestedInput
+    categories?: CategoryUpdateManyWithoutPinsNestedInput
+    savedBy?: SavedPinUpdateManyWithoutPinNestedInput
+    reactions?: ReactionUpdateManyWithoutPinNestedInput
+    comments?: CommentUpdateManyWithoutPinNestedInput
+    notifications?: NotificationUpdateManyWithoutPinNestedInput
+    boardCovers?: BoardUpdateManyWithoutCoverPinNestedInput
+    messages?: MessageUpdateManyWithoutAttachedPinNestedInput
+  }
+
+  export type PinUncheckedUpdateWithoutAudienceCircleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: StringFieldUpdateOperationsInput | string
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mediumUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    largeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageWidth?: IntFieldUpdateOperationsInput | number
+    imageHeight?: IntFieldUpdateOperationsInput | number
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    viewCount?: IntFieldUpdateOperationsInput | number
+    clickCount?: IntFieldUpdateOperationsInput | number
+    creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
+    tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
+    categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
+    savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
+    reactions?: ReactionUncheckedUpdateManyWithoutPinNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutPinNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutPinNestedInput
+    boardCovers?: BoardUncheckedUpdateManyWithoutCoverPinNestedInput
+    messages?: MessageUncheckedUpdateManyWithoutAttachedPinNestedInput
+  }
+
+  export type PinUncheckedUpdateManyWithoutAudienceCircleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    imageUrl?: StringFieldUpdateOperationsInput | string
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    mediumUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    largeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageWidth?: IntFieldUpdateOperationsInput | number
+    imageHeight?: IntFieldUpdateOperationsInput | number
+    sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    viewCount?: IntFieldUpdateOperationsInput | number
+    clickCount?: IntFieldUpdateOperationsInput | number
+    creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type PinUpdateWithoutCategoriesInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
@@ -40516,10 +46590,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     tags?: TagUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
     reactions?: ReactionUpdateManyWithoutPinNestedInput
@@ -40543,9 +46621,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     tags?: TagUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
     reactions?: ReactionUncheckedUpdateManyWithoutPinNestedInput
@@ -40569,6 +46651,9 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -40611,6 +46696,9 @@ export namespace Prisma {
     following?: FollowsUpdateManyWithoutFollowerNestedInput
     blockedUsers?: BlockedUserUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCategoriesInput = {
@@ -40650,6 +46738,9 @@ export namespace Prisma {
     following?: FollowsUncheckedUpdateManyWithoutFollowerNestedInput
     blockedUsers?: BlockedUserUncheckedUpdateManyWithoutBlockerNestedInput
     blockedBy?: BlockedUserUncheckedUpdateManyWithoutBlockedNestedInput
+    circles?: CircleUncheckedUpdateManyWithoutOwnerNestedInput
+    circleMemberships?: CircleMemberUncheckedUpdateManyWithoutUserNestedInput
+    pinViews?: PinViewUncheckedUpdateManyWithoutViewerNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutCategoriesInput = {
@@ -40684,10 +46775,14 @@ export namespace Prisma {
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutPinsNestedInput
+    audienceCircle?: CircleUpdateOneWithoutPinsNestedInput
+    views?: PinViewUpdateManyWithoutPinNestedInput
     categories?: CategoryUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUpdateManyWithoutPinNestedInput
     reactions?: ReactionUpdateManyWithoutPinNestedInput
@@ -40711,9 +46806,13 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    views?: PinViewUncheckedUpdateManyWithoutPinNestedInput
     categories?: CategoryUncheckedUpdateManyWithoutPinsNestedInput
     savedBy?: SavedPinUncheckedUpdateManyWithoutPinNestedInput
     reactions?: ReactionUncheckedUpdateManyWithoutPinNestedInput
@@ -40737,9 +46836,17 @@ export namespace Prisma {
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
+    visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
+    audienceCircleId?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinViewCreateManyPinInput = {
+    viewerId: string
+    firstViewedAt?: Date | string
   }
 
   export type SavedPinCreateManyPinInput = {
@@ -40799,6 +46906,21 @@ export namespace Prisma {
     deletedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type PinViewUpdateWithoutPinInput = {
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    viewer?: UserUpdateOneRequiredWithoutPinViewsNestedInput
+  }
+
+  export type PinViewUncheckedUpdateWithoutPinInput = {
+    viewerId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PinViewUncheckedUpdateManyWithoutPinInput = {
+    viewerId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type TagUpdateWithoutPinsInput = {
@@ -41358,6 +47480,10 @@ export namespace Prisma {
      */
     export type UserCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = UserCountOutputTypeDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use CircleCountOutputTypeDefaultArgs instead
+     */
+    export type CircleCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CircleCountOutputTypeDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use CategoryCountOutputTypeDefaultArgs instead
      */
     export type CategoryCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CategoryCountOutputTypeDefaultArgs<ExtArgs>
@@ -41417,6 +47543,18 @@ export namespace Prisma {
      * @deprecated Use BlockedUserDefaultArgs instead
      */
     export type BlockedUserArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = BlockedUserDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use CircleDefaultArgs instead
+     */
+    export type CircleArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CircleDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use CircleMemberDefaultArgs instead
+     */
+    export type CircleMemberArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = CircleMemberDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PinViewDefaultArgs instead
+     */
+    export type PinViewArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PinViewDefaultArgs<ExtArgs>
     /**
      * @deprecated Use CategoryDefaultArgs instead
      */

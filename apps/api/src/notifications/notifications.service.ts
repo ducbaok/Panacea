@@ -8,7 +8,7 @@ import {
   buildCursorOrderBy,
   toPaginatedResult,
 } from '../common/pagination';
-import { getBlockedUserIds } from '../common/blocking';
+import { getBlockedUserIds, getPinAudienceCtx, visiblePinWhere } from '../common/blocking';
 
 @Injectable()
 export class NotificationsService {
@@ -120,11 +120,20 @@ export class NotificationsService {
     // (không memo) — cố ý, nên phép verify KHÔNG assert batching cho nhóm này.
     const blockedIds = await getBlockedUserIds(this.prisma, userId);
 
+    // XH-2 (21/08/2026) — thông báo là bề mặt số 9 của PLAN_XAHOI.md §3: một
+    // notification MENTION/REACTION có thể trỏ tới pin mà người nhận ĐÃ MẤT
+    // quyền xem (bị bỏ khỏi vòng — hồi tố, XH-QĐ-3). Lọc TRONG SQL bằng
+    // relation filter (không lọc sau fetch — vỡ keyset), notification không
+    // gắn pin đi qua tự do. "Biến mất im lặng" đúng tiền lệ Chặn.
+    // Gọi thẳng helper (không DataloaderService) — cùng lý do vòng đời ở trên.
+    const audienceCtx = await getPinAudienceCtx(this.prisma, userId);
+
     const notifications = await this.prisma.notification.findMany({
       where: {
         recipientId: userId,
         ...(blockedIds.length ? { actorId: { notIn: blockedIds } } : {}),
         ...buildCursorFilter(after, 'desc'),
+        AND: [{ OR: [{ pinId: null }, { pin: visiblePinWhere(audienceCtx) }] }],
       },
       take: first + 1,
       orderBy: buildCursorOrderBy('desc'),
@@ -177,12 +186,16 @@ export class NotificationsService {
     // badge đếm 3 mà mở ra chỉ thấy 1: một con số không bao giờ về 0 được vì
     // thông báo sinh ra nó không hiển thị để bấm vào.
     const blockedIds = await getBlockedUserIds(this.prisma, userId);
+    // XH-2 — cùng điều kiện pin với getNotifications, cùng lý do REVIEW-1 ở
+    // trên: badge đếm thứ danh sách không hiển thị là con số không bao giờ về 0.
+    const audienceCtx = await getPinAudienceCtx(this.prisma, userId);
 
     return this.prisma.notification.count({
       where: {
         recipientId: userId,
         isRead: false,
         ...(blockedIds.length ? { actorId: { notIn: blockedIds } } : {}),
+        AND: [{ OR: [{ pinId: null }, { pin: visiblePinWhere(audienceCtx) }] }],
       },
     });
   }

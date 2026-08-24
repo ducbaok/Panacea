@@ -33,6 +33,11 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CreatePinInput } from './dto/create-pin.input';
 import { UpdatePinInput } from './dto/update-pin.input';
 import { normalizeTagNames, dedupeCategoryIds } from './tag-name.util';
+// XH-2 (21/08/2026) — bộ lọc quyền xem pin, nguồn sự thật thứ hai cạnh
+// getBlockedUserIds. Ctx lấy MỘT lần ở resolver (memo trong DataloaderService)
+// rồi truyền xuống — cùng khuôn với blockedIds, cùng lý do vòng đời.
+import { visiblePinSql, isPinVisibleInCtx } from '../common/blocking';
+import type { PinAudienceCtx } from '../common/blocking';
 import {
   CursorPaginationArgs,
   decodeCursor,
@@ -310,13 +315,26 @@ export class PinsService {
    * và đó là chủ đích: lọc khỏi feed mà vẫn cho đọc qua link trực tiếp thì bộ
    * lọc chỉ là trang trí. Dùng 404 (không phải 403) vì 403 tự nó đã tiết lộ
    * rằng pin có tồn tại.
+   *
+   * XH-2 — pin ngoài khán giả cũng 404, cùng lý do và cùng thông điệp. Đây là
+   * call-site "URL thẳng" mà phép kiểm feed không bao giờ bắt được
+   * (xahoi-phi-chuc-nang.md §1.4).
+   *
+   * ⚠️ NGOẠI LỆ CHÍNH CHỦ — duy nhất ở hàm này: chủ pin đi qua TRƯỚC khi chạm
+   * bộ lọc, tức chủ mở được cả pin ĐÃ HẾT HẠN qua link trực tiếp (màn chi tiết
+   * trong kho của XH-6 cần đúng điều đó). Ở mọi bề mặt DANH SÁCH thì pin hết
+   * hạn ẩn với cả chính chủ — xem docblock `visiblePinWhere`.
    */
-  async findById(pinId: string, blockedIds: string[]) {
+  async findById(pinId: string, blockedIds: string[], audienceCtx: PinAudienceCtx) {
     const pin = await this.prisma.pin.findFirst({
       where: { id: pinId },
     });
 
     if (!pin || pin.deletedAt || blockedIds.includes(pin.creatorId)) {
+      throw new NotFoundException('Pin not found');
+    }
+
+    if (pin.creatorId !== audienceCtx.viewerId && !isPinVisibleInCtx(pin, audienceCtx)) {
       throw new NotFoundException('Pin not found');
     }
 
@@ -403,8 +421,13 @@ export class PinsService {
    * viết nhánh kiểm tra thứ hai. Hệ quả đúng: người bị chặn không bơm được
    * lượt xem cho nhau, và pin đã xoá không nhận thêm số liệu.
    */
-  async trackPinView(pinId: string, identity: string | null, blockedIds: string[]): Promise<boolean> {
-    await this.findById(pinId, blockedIds);
+  async trackPinView(
+    pinId: string,
+    identity: string | null,
+    blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
+  ): Promise<boolean> {
+    await this.findById(pinId, blockedIds, audienceCtx);
     return this._trackOnce('view', pinId, identity);
   }
 
@@ -415,8 +438,13 @@ export class PinsService {
    * sự kiện đó không tồn tại (không có link để mà bấm), và một client gọi nhầm
    * không đáng bị coi là lỗi hệ thống.
    */
-  async trackPinClick(pinId: string, identity: string | null, blockedIds: string[]): Promise<boolean> {
-    const pin = await this.findById(pinId, blockedIds);
+  async trackPinClick(
+    pinId: string,
+    identity: string | null,
+    blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
+  ): Promise<boolean> {
+    const pin = await this.findById(pinId, blockedIds, audienceCtx);
     if (!pin.sourceUrl) return false;
     return this._trackOnce('click', pinId, identity);
   }
@@ -447,9 +475,20 @@ export class PinsService {
    * cùng request, qua DataLoader chưa từng được nạp ở request này ⇒ chúng đọc
    * trạng thái đã ghi xong, không phải trạng thái cũ.
    */
-  async toggleReaction(userId: string, pinId: string, type: ReactionType) {
+  async toggleReaction(
+    userId: string,
+    pinId: string,
+    type: ReactionType,
+    audienceCtx: PinAudienceCtx,
+  ) {
     const pin = await this.prisma.pin.findFirst({ where: { id: pinId } });
     if (!pin || pin.deletedAt) throw new NotFoundException('Pin not found');
+    // XH-2 — reaction trên pin ngoài khán giả phải 404: một mutation "thành
+    // công" là existence-oracle, vi phạm chính sách không-tiết-lộ-tồn-tại.
+    // Chính chủ đi qua (thả/gỡ cảm xúc trên pin trong kho của mình).
+    if (pin.creatorId !== userId && !isPinVisibleInCtx(pin, audienceCtx)) {
+      throw new NotFoundException('Pin not found');
+    }
 
     const existingReaction = await this.prisma.reaction.findUnique({
       where: { userId_pinId: { userId, pinId } },
@@ -503,13 +542,16 @@ export class PinsService {
   async exploreFeed(
     pagination: CursorPaginationArgs,
     blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
     filters?: { categorySlug?: string; tagName?: string },
   ): Promise<PaginatedResult<any>> {
     const { first, after } = pagination;
     const take = first + 1; // lấy thêm 1 để check hasNextPage
 
     const q = this._sqlParams();
-    const where = ['"deletedAt" IS NULL'];
+    // XH-2 — lọc khán giả TRONG SQL, cấm lọc sau khi fetch (keyset vỡ ngay:
+    // first:20 trả 13, cursor lệch). Cùng câu lệnh cho cả 4 hàm feed + search.
+    const where = ['"deletedAt" IS NULL', visiblePinSql(audienceCtx, q)];
 
     if (after) {
       // Decode cursor → lấy createdAt và id để WHERE
@@ -619,6 +661,7 @@ export class PinsService {
     pinId: string,
     pagination: CursorPaginationArgs,
     blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
   ): Promise<PaginatedResult<any>> {
     const { first, after } = pagination;
     const take = first + 1;
@@ -628,6 +671,11 @@ export class PinsService {
 
     const srcBlocked = this._notInBlocked(q, blockedIds, 'sp.');
     const rowBlocked = this._notInBlocked(q, blockedIds, 'p.');
+    // XH-2 — cùng khuôn hai-chỗ với blockedIds: lọc khán giả áp cho CẢ pin gốc
+    // lẫn pin kết quả. Thiếu vế pin gốc thì mở relatedPins của một pin giới hạn
+    // vẫn "gợi ý" được nội dung xung quanh nó.
+    const srcVisible = visiblePinSql(audienceCtx, q, 'sp.');
+    const rowVisible = visiblePinSql(audienceCtx, q, 'p.');
 
     // Keyset 3 thành phần, CÙNG hướng desc ⇒ diễn đạt được bằng so sánh theo
     // HÀNG. `sharedTagCount` là aggregate nên mệnh đề phải nằm ở `HAVING`,
@@ -647,6 +695,7 @@ export class PinsService {
            JOIN "Pin" sp ON sp."id" = pt."A"
           WHERE pt."A" = ${pinIdParam}
             AND sp."deletedAt" IS NULL
+            AND ${srcVisible}
             ${srcBlocked ? `AND ${srcBlocked}` : ''}
        )
        SELECT p.*, COUNT(*)::int AS "sharedTagCount"
@@ -655,6 +704,7 @@ export class PinsService {
                             AND pt."B" IN (SELECT tag_id FROM src)
         WHERE p."deletedAt" IS NULL
           AND p."id" <> ${pinIdParam}
+          AND ${rowVisible}
           ${rowBlocked ? `AND ${rowBlocked}` : ''}
         GROUP BY p."id"
         ${having}
@@ -710,6 +760,7 @@ export class PinsService {
     viewerId: string,
     pagination: CursorPaginationArgs,
     blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
     forcedSource?: FeedSource,
   ): Promise<PaginatedResult<any> & { source: FeedSource }> {
     // ── Chọn nguồn ────────────────────────────────────────────────────────────
@@ -734,7 +785,7 @@ export class PinsService {
     }
 
     if (source === FeedSource.EXPLORE) {
-      const explore = await this.exploreFeed(pagination, blockedIds);
+      const explore = await this.exploreFeed(pagination, blockedIds, audienceCtx);
       return { ...explore, source: FeedSource.EXPLORE };
     }
 
@@ -752,7 +803,12 @@ export class PinsService {
     // (schema.prisma:159) nên `"createdAt"` trần là "column reference is
     // ambiguous" — lỗi này nổ thẳng lúc chạy chứ không âm thầm, nhưng chỉ nổ
     // khi có cursor, tức KHÔNG phải ở trang đầu.
-    const where = ['p."deletedAt" IS NULL'];
+    //
+    // XH-2 — nhánh FOLLOWING vẫn PHẢI lọc khán giả: viewer theo dõi tác giả
+    // nghĩa là vế FOLLOWERS thoả, nhưng pin CIRCLE (không ở trong vòng),
+    // ONLY_ME và pin hết hạn thì không. INNER JOIN Follows không thay được bộ
+    // lọc.
+    const where = ['p."deletedAt" IS NULL', visiblePinSql(audienceCtx, q, 'p.')];
 
     if (after) {
       const cursor = decodeCursor(after);
@@ -794,6 +850,7 @@ export class PinsService {
     creatorId: string,
     pagination: CursorPaginationArgs,
     blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
   ): Promise<PaginatedResult<any>> {
     const { first, after } = pagination;
     const take = first + 1;
@@ -806,7 +863,15 @@ export class PinsService {
     }
 
     const q = this._sqlParams();
-    const where = ['"deletedAt" IS NULL', `"creatorId" = ${q.bind(creatorId)}`];
+    // XH-2 — hồ sơ là bề mặt rò rỉ kinh điển: khách mở hồ sơ của tác giả thì
+    // chỉ được thấy pin PUBLIC còn sống. Chính chủ xem hồ sơ mình vẫn thấy đủ
+    // 4 cấp (vế `creatorId = viewer` trong bộ lọc) — trừ pin hết hạn, thứ đã
+    // dọn về kho.
+    const where = [
+      '"deletedAt" IS NULL',
+      `"creatorId" = ${q.bind(creatorId)}`,
+      visiblePinSql(audienceCtx, q),
+    ];
 
     if (after) {
       const cursor = decodeCursor(after);

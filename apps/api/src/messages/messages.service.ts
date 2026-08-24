@@ -13,6 +13,11 @@ import {
   keysetOrderBy,
   keysetPage,
 } from '../common/pagination';
+// XH-2 (21/08/2026) — ảnh đính kèm trong tin nhắn là bề mặt số 10 của
+// PLAN_XAHOI.md §3, và TRƯỚC XH-2 nó là bề mặt DUY NHẤT đọc Pin mà không qua
+// bất kỳ bộ lọc nào (Prisma `include` — không block, không visibility).
+import { getPinAudienceCtx, isPinVisibleInCtx } from '../common/blocking';
+import type { PinAudienceCtx } from '../common/blocking';
 
 @Injectable()
 export class MessagesService {
@@ -173,6 +178,21 @@ export class MessagesService {
       throw new ForbiddenException('Cannot message this user (blocked)');
     }
 
+    // XH-2 — người GỬI phải thấy được pin mình đính kèm; pin ngoài khán giả
+    // (hoặc không tồn tại) trả 404 y như nhau. Trước đây attachedPinId không
+    // được kiểm gì cả: id rác đi thẳng xuống FK và nổ P2003 thành 500.
+    if (attachedPinId) {
+      const pin = await this.prisma.pin.findFirst({ where: { id: attachedPinId } });
+      const senderCtx = await getPinAudienceCtx(this.prisma, senderId);
+      if (
+        !pin ||
+        pin.deletedAt ||
+        (pin.creatorId !== senderId && !isPinVisibleInCtx(pin, senderCtx))
+      ) {
+        throw new NotFoundException('Pin not found');
+      }
+    }
+
     // Create message and update conversation updatedAt
     const [message] = await this.prisma.$transaction([
       this.prisma.message.create({
@@ -224,7 +244,54 @@ export class MessagesService {
       include: { sender: true, attachedPin: true },
     });
 
+    // XH-2 — ĐỊNH HÌNH chứ không lọc dòng: tin nhắn vẫn hiện (lịch sử đọc được
+    // là quyết định REVIEW-1), chỉ ảnh đính kèm ngoài khán giả bị thay bằng
+    // null — với người xem thì hệt tin nhắn không đính kèm gì. Không đụng số
+    // dòng nên keyset an toàn (khác hẳn lọc-sau-fetch ở bề mặt danh sách pin).
+    const viewerCtx = await getPinAudienceCtx(this.prisma, userId);
+    for (const m of messages as any[]) {
+      this._hideInvisibleAttachedPin(m, viewerCtx);
+    }
+
     return keysetPage(CREATED_DESC as any, messages as any, first);
+  }
+
+  /**
+   * XH-2 — thay attachedPin ngoài khán giả của `viewerCtx` bằng null (đột biến
+   * tại chỗ, chỉ dùng cho object vừa fetch riêng cho viewer này). attachedPinId
+   * cũng xoá: giữ id lại là giữ một tín hiệu "có tồn tại một pin bị giấu".
+   * Chính chủ pin luôn thấy (vế creatorId trong predicate — kể cả ONLY_ME),
+   * pin hết hạn thì ẩn với mọi người trong DM, kể cả chủ (kho là chỗ xem lại).
+   */
+  private _hideInvisibleAttachedPin(
+    message: { attachedPin?: any; attachedPinId?: string | null },
+    viewerCtx: PinAudienceCtx,
+  ): void {
+    const pin = message.attachedPin;
+    if (!pin) return;
+    if (pin.deletedAt || !isPinVisibleInCtx(pin, viewerCtx)) {
+      message.attachedPin = null;
+      message.attachedPinId = null;
+    }
+  }
+
+  /**
+   * XH-2 — bản định hình theo NGƯỜI NHẬN cho đường subscription realtime.
+   * Payload publish dùng CHUNG cho mọi subscriber, nên ở đây trả về BẢN SAO khi
+   * phải giấu (đột biến payload chung là giấu nhầm cho cả người trong khán giả).
+   * Ctx lấy TƯƠI mỗi event — rời vòng phải có hiệu lực ngay, đúng XH-QĐ-3.
+   */
+  async shapeMessageForViewer<T extends { attachedPin?: any; attachedPinId?: string | null }>(
+    message: T,
+    viewerId: string,
+  ): Promise<T> {
+    const pin = message.attachedPin;
+    if (!pin || pin.visibility === 'PUBLIC') return message;
+    if (pin.creatorId === viewerId && pin.expiresAt == null) return message;
+
+    const ctx = await getPinAudienceCtx(this.prisma, viewerId);
+    if (!pin.deletedAt && isPinVisibleInCtx(pin, ctx)) return message;
+    return { ...message, attachedPin: null, attachedPinId: null };
   }
 
   /**
