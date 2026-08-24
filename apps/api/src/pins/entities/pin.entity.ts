@@ -25,6 +25,7 @@ import { User } from '../../users/entities/user.entity';
 import { ReactionType } from '../../comments/entities/reaction-type.enum';
 import { Tag } from './tag.entity';
 import { Category } from './category.entity';
+import { Visibility } from './visibility.enum';
 
 @ObjectType()
 export class Pin {
@@ -73,6 +74,44 @@ export class Pin {
 
   @Field()
   updatedAt: Date;
+
+  // ─── Khán giả + hạn sống (XH-4a/XH-6) ────────────────────────────────────
+  //
+  // ⚠️ BA FIELD, HAI CHẾ ĐỘ HIỂN THỊ KHÁC NHAU — cố ý:
+  //
+  //   `visibility`/`expiresAt` trả THẲNG cho ai đọc được pin. Người đã ở trong
+  //   khán giả thì việc biết pin này "gửi cho một vòng" không lộ thêm gì, mà
+  //   FE thì CẦN nó để vẽ nhãn quyền trên `PinCard` (XH-8) và đếm ngược hạn.
+  //
+  //   `audienceCircleId` thì KHÔNG: nó là danh tính của vòng, và biết id vòng
+  //   là biết "mình bị xếp chung một nhóm tên gì với ai" — thứ XH-QĐ-3 cố tình
+  //   giữ kín (rời vòng phải im lặng). Vì vậy nó resolve qua `@ResolveField`
+  //   và CHỈ chính chủ nhận được giá trị; người khác nhận `null`. Xem
+  //   `PinsResolver.getAudienceCircleId`.
+
+  /** Cấp khán giả của pin. Pin cũ trước XH-1 ⇒ `PUBLIC` (mặc định của cột). */
+  @Field(() => Visibility)
+  visibility: Visibility;
+
+  /**
+   * Vòng được ghim — CHỈ chính chủ đọc được, người khác luôn `null`.
+   * `null` ở đây KHÔNG phân biệt được với "pin này không ghim vòng nào", và đó
+   * là chủ đích.
+   */
+  @Field(() => ID, { nullable: true })
+  audienceCircleId?: string | null;
+
+  /**
+   * Hạn sống. `null` = pin thường. Quá hạn ⇒ chỉ còn thấy trong kho.
+   *
+   * ⚠️ `@Field(() => Date)` TƯỜNG MINH, không phải `@Field()` trần như
+   * `createdAt` ngay trên. Kiểu ở đây là `Date | null` nên metadata mà
+   * TypeScript phát ra là `Object`, và Nest không đoán nổi — nó ném
+   * `UndefinedTypeError` LÚC BOOT (schema GraphQL sinh lúc chạy, không phải lúc
+   * build), tức `tsc` xanh 100% mà API chết ngay khi khởi động.
+   */
+  @Field(() => Date, { nullable: true })
+  expiresAt?: Date | null;
 
   // ─── Resolved Fields (xử lý trong PinsResolver) ──────────────────────────
 

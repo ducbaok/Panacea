@@ -128,6 +128,31 @@ export class PinsResolver {
   }
 
   /**
+   * Kho của chính người gọi — pin đã hết hạn (XH-6).
+   *
+   * `GqlAuthGuard` chứ KHÔNG phải `GqlOptionalAuthGuard`: đây là query thứ hai
+   * trong cả schema bắt buộc đăng nhập (cùng `homeFeed`). Khán giả của kho là
+   * đúng một người, nên "khách vãng lai vẫn 200 với danh sách rỗng" không phải
+   * một hành vi tử tế mà là một bề mặt vô nghĩa — không có ai để trả kho về.
+   *
+   * Chỉ có `first`/`after` nên `@Args()` không tên là AN TOÀN ở đây — cảnh báo
+   * "không trộn @Args() với @Args('x')" ở `cursor-pagination.ts` chỉ áp cho
+   * resolver có thêm args riêng lẻ (xem `userPins` ngay trên).
+   */
+  @Query(() => PaginatedPins, { name: 'archivedPins' })
+  @UseGuards(GqlAuthGuard)
+  async archivedPins(
+    @Args() pagination: CursorPaginationArgs,
+    @CurrentUser() user: AuthUser,
+  ) {
+    // KHÔNG lấy `blockedIds`/`audienceCtx` — và đó không phải quên: kho chỉ
+    // chứa pin của chính người gọi, nên cả hai bộ lọc đều là hằng số ở đây
+    // (không ai tự chặn mình, và chính chủ luôn nằm trong khán giả). Lý do đầy
+    // đủ nằm ở docblock `PinsService.archivedPins`.
+    return this.pinsService.archivedPins(user.userId, pagination);
+  }
+
+  /**
    * B-11 — Pin liên quan với một pin, theo **tag chung**, nhiều tag chung xếp
    * trước.
    *
@@ -215,6 +240,26 @@ export class PinsResolver {
     @CurrentUser() user: AuthUser,
   ) {
     return this.pinsService.deletePin(user.userId, id);
+  }
+
+  /**
+   * Đăng lại pin từ kho — gỡ hạn sống (XH-6). Owner only.
+   *
+   * Trả `Pin!` chứ không `Boolean!`, cùng lý do đã ghi ở `togglePinReaction`
+   * ngay dưới: client chuẩn hoá theo `id` nên lưới + màn kho + modal đang mở
+   * cùng pin đó tự đúng sau một request, không phải refetch.
+   *
+   * Hộp xác nhận trước khi gọi là việc của FE (QĐ-24) — BE không có chỗ nào
+   * diễn đạt được "người dùng đã bấm đồng ý", và bịa thêm một tham số
+   * `confirmed: true` chỉ tạo cảm giác an toàn giả.
+   */
+  @Mutation(() => Pin)
+  @UseGuards(GqlAuthGuard)
+  async republishPin(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.pinsService.republishPin(user.userId, id);
   }
 
   /**
@@ -372,6 +417,30 @@ export class PinsResolver {
   // mọi khách vãng lai trong cùng request, và loader đó lại query với
   // `userId: ''` — vừa vô nghĩa vừa tốn một round-trip cho câu trả lời đã biết
   // trước.
+
+  /**
+   * Id vòng được ghim — CHỈ chính chủ, người khác luôn `null` (XH-4a).
+   *
+   * Field này KHÔNG cần loader: giá trị đã nằm sẵn trên `pin` mà lưới vừa
+   * fetch, việc duy nhất phải làm là quyết định có trả ra hay không. Nó vẫn
+   * phải là `@ResolveField` chứ không phải một cột trần vì câu trả lời phụ
+   * thuộc NGƯỜI ĐANG GỌI — cùng một pin trả id cho bao và `null` cho alice,
+   * đúng họ với `isSavedByViewer` ngay dưới.
+   *
+   * Vì sao giấu: id vòng là danh tính của một nhóm bạn. Thành viên đọc được id
+   * thì đọc được "mình bị xếp vào nhóm nào cùng ai" ngay khi API vòng tròn của
+   * luồng B lên — trong khi XH-QĐ-3 cố tình giữ kín cả việc bị bớt khỏi vòng.
+   * `null` ở đây không phân biệt được với "pin không ghim vòng nào", và đó là
+   * chủ đích chứ không phải mất mát thông tin.
+   */
+  @ResolveField('audienceCircleId', () => ID, { nullable: true })
+  getAudienceCircleId(
+    @Parent() pin: Pin,
+    @CurrentUser() viewer: AuthUser | null,
+  ) {
+    if (!viewer || viewer.userId !== pin.creatorId) return null;
+    return pin.audienceCircleId ?? null;
+  }
 
   /**
    * Viewer đã lưu pin này chưa. Khách vãng lai ⇒ `false`.
