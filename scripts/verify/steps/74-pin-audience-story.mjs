@@ -79,13 +79,16 @@ export default async function (h) {
   try {
     // ═══ DỌN Ở ĐẦU BƯỚC ═════════════════════════════════════════════════════
     const wipedPins = await prisma.pin.deleteMany({ where: { title: { startsWith: 'xh74' } } });
-    // `memberHash IS NOT NULL` = vòng do đường ghi pin sinh ra (vòng đặt tên
-    // của bước 72 và của luồng B có memberHash null). CircleMember rơi theo
-    // cascade; Pin.audienceCircleId của pin khác thì SetNull — nhưng pin duy
-    // nhất trỏ vào chúng đã bị xoá ở dòng trên.
-    const wipedCircles = await prisma.circle.deleteMany({ where: { memberHash: { not: null } } });
+    // Xoá SẠCH bảng Circle, không xoá theo điều kiện — cùng lý do 73 đã ghi:
+    // phép trần 20 vòng/người (mục 11) chỉ đo được khi điểm xuất phát là 0.
+    // Bản đầu chỉ xoá `memberHash IS NOT NULL` và đỏ 4 phép ngay lần chạy
+    // full đầu tiên sau merge A+B: bước 73 chạy TRƯỚC để lại ~20 vòng đặt tên
+    // (memberHash null) cho john — `finally` của 73 chủ đích chỉ dọn tài khoản
+    // độn. Bước sau tự dọn thứ mình phụ thuộc, không tin bước trước dọn hộ.
+    await prisma.circleMember.deleteMany({});
+    const wipedCircles = await prisma.circle.deleteMany({});
     rec(
-      'dọn state sống lâu Ở ĐẦU BƯỚC (pin xh74* + mọi Circle có memberHash)',
+      'dọn state sống lâu Ở ĐẦU BƯỚC (pin xh74* + xoá SẠCH Circle/CircleMember)',
       'OK',
       `pin=${wipedPins.count} circle=${wipedCircles.count}`,
     );
