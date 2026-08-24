@@ -38,6 +38,15 @@ import { normalizeTagNames, dedupeCategoryIds } from './tag-name.util';
 // rồi truyền xuống — cùng khuôn với blockedIds, cùng lý do vòng đời.
 import { visiblePinSql, isPinVisibleInCtx } from '../common/blocking';
 import type { PinAudienceCtx } from '../common/blocking';
+// XH-4a — khán giả ad-hoc dùng lại CHÍNH `Circle` (XH-QĐ-5). Băm + hai trần
+// nằm ở file dùng chung với module circles của luồng B, xem docblock ở đó.
+import {
+  computeMemberHash,
+  MAX_CIRCLES_PER_USER,
+  MAX_CIRCLE_MEMBERS,
+  AD_HOC_CIRCLE_NAME,
+} from '../common/blocking';
+import { Visibility } from './entities/visibility.enum';
 import {
   CursorPaginationArgs,
   decodeCursor,
@@ -54,6 +63,22 @@ export interface PaginatedResult<T> {
   items: T[];
   pageInfo: PageInfo;
 }
+
+/**
+ * Domain được phép cho MỌI URL ảnh gửi lên — `imageUrl` lẫn 3 biến thể của
+ * XH-9a (`PLAN_XAHOI.md` §8 bẫy 2).
+ *
+ * Nâng từ biến cục bộ trong `createPin` lên hằng module vì từ XH-9a nó có BỐN
+ * chỗ dùng thay vì một. Bốn bản sao của danh sách này là bốn chỗ để quên thêm
+ * domain mới, và cái quên đó không nổ ở đâu cả — nó chỉ chặn đúng một biến thể
+ * ảnh và người dùng thấy lưới vỡ ảnh.
+ */
+const IMAGE_URL_WHITELIST = [
+  'localhost',
+  's3.amazonaws.com',
+  'storage.googleapis.com',
+  'res.cloudinary.com',
+];
 
 @Injectable()
 export class PinsService {
@@ -134,6 +159,204 @@ export class PinsService {
     throw e;
   }
 
+  // ─── Khán giả: URL ảnh · hạn sống · vòng tròn (XH-4a/XH-6/XH-9a) ────────────
+
+  /**
+   * Khẳng định một URL ảnh nằm trong whitelist domain của dự án.
+   *
+   * `label` đi vào CẢ HAI thông điệp lỗi vì từ XH-9a có bốn URL trong cùng một
+   * request: "domain is not allowed" mà không nói URL nào thì người dùng phải
+   * thử từng cái. Nhãn của `imageUrl` giữ nguyên chữ cũ ("Image URL") — thông
+   * điệp đó đang là hợp đồng của một phép verify và của `apps/web/lib/errors`.
+   */
+  private assertImageUrlAllowed(raw: string, label: string): void {
+    let url: URL;
+    try {
+      url = new URL(raw);
+    } catch {
+      // URL tương đối lọt tới đây: `new URL('/uploads/a.png')` ném, và đó đúng
+      // là thứ phải chặn — 3 biến thể của XH-9a bắt buộc là URL TUYỆT ĐỐI.
+      throw new BadRequestException(`Invalid ${label}`);
+    }
+    const ok = IMAGE_URL_WHITELIST.some(
+      (domain) => url.hostname === domain || url.hostname.endsWith('.' + domain),
+    );
+    if (!ok) {
+      throw new BadRequestException(`${label} domain is not allowed`);
+    }
+  }
+
+  /** Hạn sống phải ở tương lai — xem docblock `expiresAt` ở `CreatePinInput`. */
+  private assertFutureExpiry(expiresAt?: Date | null): void {
+    if (expiresAt != null && new Date(expiresAt).getTime() <= Date.now()) {
+      throw new BadRequestException('expiresAt must be in the future');
+    }
+  }
+
+  /**
+   * Quy đầu vào khán giả về ĐÚNG hai cột ghi được: `visibility` +
+   * `audienceCircleId`. MỘT hàm cho cả `createPin` lẫn `updatePin` — luật kết
+   * hợp bốn field là thứ hai hàm phải giống nhau tuyệt đối, và cách chắc chắn
+   * nhất để chúng giống nhau là chỉ có một bản.
+   *
+   * Khác biệt DUY NHẤT giữa hai bên nằm ở `mode`:
+   *   create ⇒ thiếu `visibility` là `PUBLIC` (mặc định của pin mới)
+   *   update ⇒ thiếu `visibility` là KHÔNG ĐỤNG (trả `{}`, khoá không xuất
+   *            hiện trong `data`) — cùng quy ước ba trạng thái của tag.
+   *
+   * ⚠️ ĐỔI SANG CẤP KHÁC CIRCLE PHẢI XOÁ `audienceCircleId` (trả `null` tường
+   * minh, không phải bỏ khoá). Giữ lại id vòng cũ trên một pin PUBLIC không
+   * gây lỗi nào lúc đọc — `visiblePinWhere` chỉ nhìn cột đó khi `visibility =
+   * CIRCLE` — nhưng nó để lại một mảnh dữ liệu nói "pin này từng gửi cho vòng
+   * X" trên một pin ai cũng đọc được, và sẽ lại có hiệu lực ngay khi có ai đó
+   * đổi pin về CIRCLE mà quên gửi vòng.
+   */
+  private async _resolveAudience(
+    userId: string,
+    input: {
+      visibility?: Visibility;
+      audienceCircleId?: string | null;
+      audienceUserIds?: string[] | null;
+    },
+    mode: 'create' | 'update',
+  ): Promise<{ visibility?: Visibility; audienceCircleId?: string | null }> {
+    const hasCircleId = input.audienceCircleId != null;
+    const hasUserIds = input.audienceUserIds != null;
+    const visibility =
+      input.visibility ?? (mode === 'create' ? Visibility.PUBLIC : undefined);
+
+    if (visibility === undefined) {
+      if (hasCircleId || hasUserIds) {
+        throw new BadRequestException(
+          'audienceCircleId/audienceUserIds must be sent together with visibility: CIRCLE',
+        );
+      }
+      return {};
+    }
+
+    if (visibility !== Visibility.CIRCLE) {
+      // Bỏ qua im lặng ở đây = người dùng tưởng đã chọn vòng mà pin đang công
+      // khai. Đó là lý do nhánh này ném chứ không "ưu tiên field kia".
+      if (hasCircleId || hasUserIds) {
+        throw new BadRequestException(
+          `audienceCircleId/audienceUserIds only apply when visibility is CIRCLE (got ${visibility})`,
+        );
+      }
+      return { visibility, audienceCircleId: null };
+    }
+
+    if (hasCircleId === hasUserIds) {
+      throw new BadRequestException(
+        'visibility: CIRCLE requires exactly one of audienceCircleId or audienceUserIds',
+      );
+    }
+
+    if (hasCircleId) {
+      // `ownerId: userId` nằm TRONG where, không phải một phép so sánh sau khi
+      // fetch: vòng của người khác và vòng không tồn tại phải không phân biệt
+      // được — cùng chính sách 404 của pin ngoài khán giả.
+      const circle = await this.prisma.circle.findFirst({
+        where: { id: input.audienceCircleId!, ownerId: userId },
+        select: { id: true },
+      });
+      if (!circle) throw new NotFoundException('Circle not found');
+      return { visibility, audienceCircleId: circle.id };
+    }
+
+    return {
+      visibility,
+      audienceCircleId: await this._resolveAdHocCircle(userId, input.audienceUserIds!),
+    };
+  }
+
+  /**
+   * Khán giả chọn tại chỗ ⇒ id của MỘT `Circle` (XH-QĐ-5: một cơ chế khán giả
+   * duy nhất, không có bảng `PinAudience` thứ hai).
+   *
+   * Tái dùng theo `memberHash`: đăng cho đúng ba người đó lần thứ hai KHÔNG đẻ
+   * thêm vòng. Đây là lý do cột `memberHash` tồn tại (`PLAN_XAHOI.md` §2 ghi
+   * chú 2), và là điều kiện để trần 20 vòng không bị một người dùng bình
+   * thường đâm thủng chỉ bằng cách đăng bài.
+   *
+   * ⚠️ CHÍNH CHỦ BỊ LOẠI KHỎI DANH SÁCH TRƯỚC KHI BĂM. Client hoàn toàn có thể
+   * gửi kèm id của chính người đăng; nếu không loại thì `[alice]` và `[alice,
+   * bao]` băm ra hai giá trị ⇒ hai vòng cho cùng một khán giả thật. Chủ pin
+   * luôn thấy pin của mình qua vế `creatorId = viewerId` của bộ lọc nên tư
+   * cách thành viên của chính chủ không mang thêm quyền nào.
+   *
+   * ⚠️ P2002 KHÔNG PHẢI 500. Hai request song song cùng tập người đều thấy
+   * "chưa có vòng" rồi cùng INSERT; `@@unique([ownerId, memberHash])` cho kẻ
+   * thua một cú P2002 — và câu trả lời đúng cho kẻ thua là đọc lại vòng mà kẻ
+   * thắng vừa tạo, không phải trả lỗi cho người dùng chẳng làm gì sai. Cùng
+   * hình dạng với cách `prepareTaxonomy` xử lý cuộc đua trên `Tag.name`.
+   */
+  private async _resolveAdHocCircle(userId: string, rawUserIds: string[]): Promise<string> {
+    const memberIds = [...new Set(rawUserIds)].filter((id) => id !== userId);
+    if (!memberIds.length) {
+      throw new BadRequestException(
+        'audienceUserIds must contain at least one user other than yourself',
+      );
+    }
+    if (memberIds.length > MAX_CIRCLE_MEMBERS) {
+      throw new BadRequestException(
+        `A circle holds at most ${MAX_CIRCLE_MEMBERS} members (XH-QĐ-13)`,
+      );
+    }
+
+    // Kiểm người có thật TRƯỚC khi ghi, cùng lý do với `categoryIds` ở
+    // `prepareTaxonomy`: P2025 của Prisma không nói id nào sai.
+    // (Middleware soft-delete thêm `deletedAt: null` cho `User.findMany` ⇒ tài
+    // khoản đã xoá mềm cũng rơi vào nhánh "unknown", đúng ý.)
+    const found = await this.prisma.user.findMany({
+      where: { id: { in: memberIds } },
+      select: { id: true },
+    });
+    if (found.length !== memberIds.length) {
+      const foundIds = new Set(found.map((u) => u.id));
+      throw new BadRequestException(
+        `Unknown userId: ${memberIds.filter((id) => !foundIds.has(id)).join(', ')}`,
+      );
+    }
+
+    const memberHash = computeMemberHash(memberIds);
+    const existing = await this.prisma.circle.findFirst({
+      where: { ownerId: userId, memberHash },
+      select: { id: true },
+    });
+    if (existing) return existing.id;
+
+    // Trần 20 vòng ĐẾM CẢ VÒNG AD-HOC (XH-QĐ-13) — vòng ẩn vẫn là bản ghi thật.
+    const owned = await this.prisma.circle.count({ where: { ownerId: userId } });
+    if (owned >= MAX_CIRCLES_PER_USER) {
+      throw new ForbiddenException(
+        `Circle limit reached (${MAX_CIRCLES_PER_USER} per user, ad-hoc circles included)`,
+      );
+    }
+
+    try {
+      const created = await this.prisma.circle.create({
+        data: {
+          ownerId: userId,
+          name: AD_HOC_CIRCLE_NAME,
+          isAdHoc: true,
+          memberHash,
+          members: { create: memberIds.map((id) => ({ userId: id })) },
+        },
+        select: { id: true },
+      });
+      return created.id;
+    } catch (e: any) {
+      if (e?.code === 'P2002') {
+        const raced = await this.prisma.circle.findFirst({
+          where: { ownerId: userId, memberHash },
+          select: { id: true },
+        });
+        if (raced) return raced.id;
+      }
+      throw e;
+    }
+  }
+
   // ─── Create ──────────────────────────────────────────────────────────────────
 
   /**
@@ -141,48 +364,42 @@ export class PinsService {
    *
    * HƯỚNG DẪN CODE LẠI:
    * 1. Validate imageUrl: Chỉ cho phép các domain tin cậy (như localhost, s3.amazonaws.com). Nếu không hợp lệ -> ném BadRequestException.
-   * 2. Kiểm tra giới hạn 20 pins/ngày cho user này (prisma.pin.count với filter createdAt >= đầu ngày). Nếu >= 20 -> ném ForbiddenException.
-   * 3. prisma.pin.create({ data: { imageUrl, imageWidth, imageHeight, title, description, sourceUrl, creatorId: userId } }).
-   * 4. imageUrl ở đây là S3 key (raw/...), sẽ được Lambda xử lý sau.
-   * 5. Return pin vừa tạo.
+   * 2. prisma.pin.create({ data: { imageUrl, imageWidth, imageHeight, title, description, sourceUrl, creatorId: userId } }).
+   * 3. imageUrl ở đây là S3 key (raw/...), sẽ được Lambda xử lý sau.
+   * 4. Return pin vừa tạo.
+   *
+   * 🔴 TRẦN 20 PIN/NGÀY ĐÃ BỊ BỎ — XH-QĐ-8, chủ dự án chốt 21/08/2026
+   * (`PLAN_XAHOI.md` §5). Đây là một quyết định v1 BỊ ĐẢO, không phải đoạn code
+   * chết bị dọn nhầm: ai đọc tài liệu cũ rồi "sửa lại cho đúng" là đang đảo
+   * ngược quyết định của chủ dự án. `74-pin-audience-story.mjs` có một phép
+   * chứng minh trần này đã chết (pin thứ 21 trong ngày phải tạo được).
+   *
+   * ⚠️ Bỏ trần này lấy đi giới hạn chống lạm dụng DUY NHẤT trên đường tạo pin.
+   * Thay thế đã duyệt: rate-limit ~10 pin/phút bằng Redis — XH-4b (XH-QĐ-12),
+   * thi công ở đợt riêng. Tới lúc đó chốt mới sẽ nằm ngay đầu hàm này.
    */
   async createPin(userId: string, input: CreatePinInput) {
-    // 1. Validate imageUrl domain
-    const whitelist = ['localhost', 's3.amazonaws.com', 'storage.googleapis.com', 'res.cloudinary.com'];
-    try {
-      const url = new URL(input.imageUrl);
-      if (!whitelist.some(domain => url.hostname === domain || url.hostname.endsWith('.' + domain))) {
-        throw new BadRequestException('Image URL domain is not allowed');
-      }
-    } catch (e) {
-      if (e instanceof BadRequestException) throw e;
-      throw new BadRequestException('Invalid image URL');
+    // 1. Whitelist domain cho CẢ BỐN url ảnh (XH-9a — PLAN_XAHOI.md §8 bẫy 2).
+    //    Ba biến thể là tuỳ chọn: không gửi thì bỏ qua, gửi thì bị soi y hệt
+    //    `imageUrl` — một URL biến thể trỏ ra ngoài whitelist chính là đường
+    //    nhúng ảnh từ domain lạ vào lưới, đúng thứ whitelist sinh ra để chặn.
+    this.assertImageUrlAllowed(input.imageUrl, 'Image URL');
+    for (const [label, value] of [
+      ['thumbnailUrl', input.thumbnailUrl],
+      ['mediumUrl', input.mediumUrl],
+      ['largeUrl', input.largeUrl],
+    ] as const) {
+      if (value != null) this.assertImageUrlAllowed(value, label);
     }
 
-    // 2. Check limit 20 pins/day
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    // ⚠️ `deletedAt: null` PHẢI khai tường minh ở đây.
-    // Middleware soft-delete (prisma.service.ts:53) chỉ intercept `findMany` +
-    // `findFirst` — `count` KHÔNG nằm trong danh sách đó. Thiếu dòng này thì pin
-    // đã xoá mềm vẫn bị tính vào trần ngày, tức tạo rồi xoá 20 pin là khoá hết
-    // ngày. Đo được 11/08/2026: alice có 0 pin sống của hôm nay mà vẫn bị chặn.
-    const todayPinsCount = await this.prisma.pin.count({
-      where: {
-        creatorId: userId,
-        createdAt: { gte: startOfDay },
-        deletedAt: null
-      }
-    });
-
-    if (todayPinsCount >= 20) {
-      throw new ForbiddenException('Daily pin limit exceeded (20/day)');
-    }
+    // 2. Khán giả + hạn sống (XH-4a/XH-6). Chạy TRƯỚC `prepareTaxonomy` vì
+    //    nhánh ad-hoc có thể GHI (tạo vòng): không có lý do gì tạo cả Tag mới
+    //    lẫn vòng mới cho một request sắp bị từ chối vì lý do khác.
+    this.assertFutureExpiry(input.expiresAt);
+    const audience = await this._resolveAudience(userId, input, 'create');
 
     // 3. Taxonomy (Đợt 6) — chuẩn hoá tag, tạo trước Tag mới, kiểm category có
-    //    thật. Chạy SAU phép kiểm trần vì không có lý do gì tạo Tag mới cho một
-    //    request sắp bị từ chối.
+    //    thật.
     const { tagNames, categoryIds } = await this.prepareTaxonomy(input);
 
     try {
@@ -191,10 +408,16 @@ export class PinsService {
           imageUrl: input.imageUrl,
           imageWidth: input.imageWidth,
           imageHeight: input.imageHeight,
+          thumbnailUrl: input.thumbnailUrl,
+          mediumUrl: input.mediumUrl,
+          largeUrl: input.largeUrl,
           title: input.title,
           description: input.description,
           sourceUrl: input.sourceUrl,
           creatorId: userId,
+          expiresAt: input.expiresAt ?? null,
+          visibility: audience.visibility,
+          audienceCircleId: audience.audienceCircleId ?? null,
           // Trải có điều kiện, KHÔNG viết `tags: { connect: [] }` khi rỗng:
           // với `create` thì hai cách tương đương, nhưng giữ cùng một hình dạng
           // với `updatePin` (nơi khác biệt là thật) làm hai hàm đọc song song
@@ -247,6 +470,16 @@ export class PinsService {
       throw new ForbiddenException('You can only edit your own pins');
     }
 
+    // Khán giả (XH-4a) — CÙNG hàm với `createPin`, khác đúng một tham số
+    // `mode`. `{}` trả về từ đó nghĩa là client không gửi field nào của khối
+    // khán giả ⇒ hai khoá dưới KHÔNG xuất hiện trong `data` ⇒ pin giữ nguyên
+    // cấp đang có. Đây là cùng cái bẫy "ba trạng thái" của tag, ở một cột khác:
+    // một dòng `visibility: input.visibility` vô điều kiện sẽ ghi `undefined`…
+    // hoặc tệ hơn, ai đó "sửa cho gọn" thành `?? 'PUBLIC'` và mọi lần sửa tiêu
+    // đề của pin riêng tư biến nó thành công khai, im lặng.
+    this.assertFutureExpiry(input.expiresAt);
+    const audience = await this._resolveAudience(userId, input, 'update');
+
     const { tagNames, categoryIds } = await this.prepareTaxonomy(input);
 
     try {
@@ -256,6 +489,20 @@ export class PinsService {
           title: input.title,
           description: input.description,
           sourceUrl: input.sourceUrl,
+          // Hai cột đi CÙNG NHAU hoặc không cột nào cả: đổi cấp mà quên xoá
+          // vòng cũ là để lại một khán giả cũ nằm chờ trên pin.
+          ...(audience.visibility !== undefined
+            ? {
+                visibility: audience.visibility,
+                audienceCircleId: audience.audienceCircleId ?? null,
+              }
+            : {}),
+          // `expiresAt` ở đây chỉ ĐẶT/ĐỔI hạn. Không gửi ⇒ không đụng. GỠ hạn
+          // là `republishPin`, không phải một `null` lọt qua đường này —
+          // `@IsOptional()` đã nuốt mất khác biệt giữa `null` và `undefined`,
+          // nên chấp nhận `null` ở đây là chấp nhận một lệnh mà server không
+          // chắc client có thật sự gửi hay không.
+          ...(input.expiresAt != null ? { expiresAt: input.expiresAt } : {}),
           // `!== undefined` chứ KHÔNG phải `?.length` — đây chính là chỗ tách
           // "xoá hết" (`[]`, phải chạy `set: []`) khỏi "không đụng"
           // (`undefined`, phải bỏ hẳn khoá). `?.length` gộp cả hai thành "bỏ
@@ -889,6 +1136,100 @@ export class PinsService {
     );
 
     return this._buildPaginatedResult(rows, first);
+  }
+
+  // ─── Kho (archive) + đăng lại — XH-6 ────────────────────────────────────────
+
+  /**
+   * Kho của CHÍNH người gọi: pin đã hết hạn, mới nhất trước.
+   *
+   * VÌ SAO LÀ MỘT QUERY RIÊNG chứ không phải một cờ của `userPins`
+   * (`visible-pins.util.ts` nói cùng điều này ở đầu bên kia): theo XH-QĐ-6/7
+   * pin hết hạn "biến mất khỏi mọi luồng, tìm kiếm, hồ sơ" — KỂ CẢ hồ sơ của
+   * chính chủ. Một tham số `includeExpired` trên `userPins` sẽ đặt cái quyết
+   * định đó vào tay client, và chỉ cần một chỗ gọi quên gửi `false` là pin hết
+   * hạn quay lại lưới công khai. Ở đây khán giả là hằng số: chỉ một người.
+   *
+   * Vì thế bộ lọc KHÁC HẲN `visiblePinSql` và cố ý không gọi nó:
+   *   · `creatorId = viewer` — khán giả đúng một người, nên không cần vế nào
+   *     của bộ lọc khán giả (và cũng không cần lọc chặn: không ai tự chặn mình);
+   *   · `expiresAt <= now()` — ĐẢO NGƯỢC vế hết hạn của bộ lọc kia. Đây là bề
+   *     mặt DUY NHẤT trong cả dự án mà pin quá hạn được phép hiện ra danh sách.
+   *
+   * Keyset `(createdAt, id) DESC` giống hệt `userPins` — cùng `decodeCursor`,
+   * cùng `_buildPaginatedResult`, nên cursor của hai bề mặt cùng hình dạng và
+   * `PaginatedPins` dùng lại được nguyên vẹn.
+   */
+  async archivedPins(
+    viewerId: string,
+    pagination: CursorPaginationArgs,
+  ): Promise<PaginatedResult<any>> {
+    const { first, after } = pagination;
+    const take = first + 1;
+
+    const q = this._sqlParams();
+    const where = [
+      '"deletedAt" IS NULL',
+      `"creatorId" = ${q.bind(viewerId)}`,
+      '"expiresAt" IS NOT NULL',
+      '"expiresAt" <= now()',
+    ];
+
+    if (after) {
+      const cursor = decodeCursor(after);
+      where.push(
+        `("createdAt", "id") < (${q.bind(cursor.createdAt)}::timestamp, ${q.bind(cursor.id)}::text)`,
+      );
+    }
+
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT * FROM "Pin"
+         WHERE ${where.join('\n           AND ')}
+         ORDER BY "createdAt" DESC, "id" DESC
+         LIMIT ${q.bind(take)}`,
+      ...q.values,
+    );
+
+    return this._buildPaginatedResult(rows, first);
+  }
+
+  /**
+   * Đăng lại một pin từ kho — gỡ hạn sống (`expiresAt = null`).
+   *
+   * "Kho là kho, không phải nghĩa địa" (`xahoi-tinh-nang.md` §5). Chỉ chủ pin
+   * gọi được; pin của người khác trả 404 CHỨ KHÔNG 403, cùng chính sách với
+   * mọi bề mặt pin khác — 403 tự nó đã xác nhận pin đó có thật.
+   *
+   * ⚠️ KHÔNG ĐỘNG VÀO `createdAt`. Bản vẽ chốt ngày 24/08 (QĐ-24) nói pin quay
+   * về ĐÚNG VỊ TRÍ THEO NGÀY ĐĂNG GỐC chứ không nhảy lên đầu feed — mà thứ tự
+   * feed là keyset `(createdAt, id) DESC`, nên "không làm gì cả" chính là cách
+   * thực hiện yêu cầu đó. Một dòng `createdAt: new Date()` thêm vào đây (rất dễ
+   * nghĩ là "đăng lại thì mới") sẽ đảo ngược quyết định của chủ dự án và còn
+   * làm cursor của những trang đang mở trỏ sai chỗ.
+   *
+   * Pin vốn không có hạn ⇒ 400 chứ không phải no-op thành công: nút này chỉ
+   * hiện trong kho, nên một lời gọi trên pin thường là client hiểu sai trạng
+   * thái — im lặng trả "thành công" sẽ giấu đúng cái hiểu sai đó.
+   */
+  async republishPin(userId: string, pinId: string) {
+    // `findFirst` chứ không `findUnique` — middleware soft-delete không chặn
+    // findUnique (prisma.service.ts). Cùng khuôn với `updatePin`/`deletePin`.
+    const pin = await this.prisma.pin.findFirst({ where: { id: pinId } });
+
+    if (!pin || pin.deletedAt) {
+      throw new NotFoundException('Pin not found');
+    }
+    if (pin.creatorId !== userId) {
+      throw new NotFoundException('Pin not found');
+    }
+    if (pin.expiresAt == null) {
+      throw new BadRequestException('Pin has no expiry to remove');
+    }
+
+    return this.prisma.pin.update({
+      where: { id: pinId },
+      data: { expiresAt: null },
+    });
   }
 
   // ─── Internal: Lambda callback ───────────────────────────────────────────────
