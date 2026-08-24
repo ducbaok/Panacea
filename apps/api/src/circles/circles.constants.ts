@@ -13,11 +13,16 @@
  * này). Đây là vế dễ quên nhất: vòng ad-hoc ẩn khỏi màn quản lý, nên nếu chỉ
  * đếm vòng đặt tên thì trần này không chặn được đúng thứ nó sinh ra để chặn —
  * người dùng đăng 500 pin với 500 nhóm người khác nhau vẫn "chưa có vòng nào".
+ *
+ * GIÁ TRỊ SỐNG Ở `common/blocking/member-hash.util.ts` — vùng chung hai luồng
+ * A/B (đường ghi pin cũng tạo vòng ad-hoc nên cũng phải tôn trọng đúng con số
+ * này). Đây chỉ là re-export giữ tên cũ của module circles; hai bản sao của
+ * con số 20 là hai chỗ để lệch nhau.
  */
-export const MAX_CIRCLES_PER_USER = 20;
-
-/** Trần thành viên mỗi vòng. Đồng bộ với `@ArrayMaxSize` ở 2 DTO. */
-export const MAX_MEMBERS_PER_CIRCLE = 50;
+export {
+  MAX_CIRCLES_PER_USER,
+  MAX_CIRCLE_MEMBERS as MAX_MEMBERS_PER_CIRCLE,
+} from '../common/blocking/member-hash.util';
 
 /** Độ dài tên vòng — cùng ngưỡng với `Board.name` để FE dùng chung một ô nhập. */
 export const CIRCLE_NAME_MAX_LENGTH = 100;
