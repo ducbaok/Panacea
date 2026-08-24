@@ -147,6 +147,18 @@ type PaginatedNotifications {
   pageInfo: PageInfo!
 }
 
+type Circle {
+  id: ID!
+  ownerId: String!
+  name: String!
+  rank: Int
+  isAdHoc: Boolean!
+  memberCount: Int!
+  members: [User!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
 type Board {
   id: ID!
   name: String!
@@ -271,6 +283,9 @@ type Query {
   following(first: Int! = 20, after: String, userId: String!): PaginatedUsers!
   blockedUsers(first: Int! = 20, after: String): PaginatedUsers!
   suggestedUsers(first: Int = 10): [User!]!
+  myCircles(includeAdHoc: Boolean = false): [Circle!]!
+  circle(id: ID!): Circle!
+  circleMemberSuggestions(circleId: ID, first: Int = 10): [User!]!
   board(id: ID!): Board
   userBoards(first: Int! = 20, after: String, userId: ID!): PaginatedBoards!
   boardPins(first: Int! = 20, after: String, boardId: ID!, sectionId: ID): PaginatedSavedPins!
@@ -305,6 +320,14 @@ type Mutation {
   unfollow(userId: String!): Boolean!
   blockUser(userId: String!): Boolean!
   unblockUser(userId: String!): Boolean!
+  createCircle(input: CreateCircleInput!): Circle!
+  updateCircle(input: UpdateCircleInput!): Circle!
+  deleteCircle(id: ID!): Boolean!
+  duplicateCircle(input: DuplicateCircleInput!): Circle!
+  addCircleMembers(input: CircleMembersInput!): Circle!
+  removeCircleMember(circleId: ID!, userId: ID!): Circle!
+  createAdHocCircle(input: CreateAdHocCircleInput!): Circle!
+  saveAdHocCircle(input: SaveAdHocCircleInput!): Circle!
   createBoard(input: CreateBoardInput!): Board!
   updateBoard(input: UpdateBoardInput!): Board!
   deleteBoard(id: ID!): Boolean!
@@ -357,6 +380,39 @@ input UpdatePinInput {
   sourceUrl: String
   tagNames: [String!]
   categoryIds: [ID!]
+}
+
+input CreateCircleInput {
+  name: String!
+  rank: Int
+  userIds: [ID!]
+}
+
+input UpdateCircleInput {
+  id: ID!
+  name: String
+  rank: Int
+}
+
+input DuplicateCircleInput {
+  sourceCircleId: ID!
+  name: String!
+  rank: Int
+}
+
+input CircleMembersInput {
+  circleId: ID!
+  userIds: [ID!]!
+}
+
+input CreateAdHocCircleInput {
+  userIds: [ID!]!
+}
+
+input SaveAdHocCircleInput {
+  circleId: ID!
+  name: String!
+  rank: Int
 }
 
 input CreateBoardInput {

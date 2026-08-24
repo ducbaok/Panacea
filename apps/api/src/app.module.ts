@@ -20,6 +20,7 @@ import { PinsModule } from './pins/pins.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { DataloaderModule } from './common/dataloader';
 import { SocialModule } from './social/social.module';
+import { CirclesModule } from './circles/circles.module';
 import { BoardsModule } from './boards/boards.module';
 import { CommentsModule } from './comments/comments.module';
 import { SearchModule } from './search/search.module';
@@ -96,6 +97,9 @@ import { HealthModule } from './health/health.module';
     PinsModule,
     UploadsModule,
     SocialModule,
+    // XH-3 — vòng tròn bạn bè (PLAN_XAHOI.md §6). Đặt ngay sau SocialModule
+    // vì nó dùng lại xếp hạng bạn-của-bạn của `suggestedUsers`.
+    CirclesModule,
     BoardsModule,
     CommentsModule,
     NotificationsModule,
