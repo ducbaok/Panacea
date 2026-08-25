@@ -38,8 +38,9 @@ import {
   Int,
   ID,
 } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { NotFoundException, UseGuards } from '@nestjs/common';
 import { Pin, PaginatedPins } from './entities/pin.entity';
+import { Visibility } from './entities/visibility.enum';
 import { HomeFeed } from './entities/home-feed.entity';
 import { Tag } from './entities/tag.entity';
 import { Category } from './entities/category.entity';
@@ -201,6 +202,65 @@ export class PinsResolver {
     const blockedIds = await this.dataloaderService.blockedUserIds(user.userId);
     const audienceCtx = await this.dataloaderService.pinAudienceCtx(user.userId);
     return this.pinsService.homeFeed(user.userId, pagination, blockedIds, audienceCtx, source);
+  }
+
+  // ─── XH-5: ai đã xem · gợi ý @mention ────────────────────────────────────────
+
+  /**
+   * "Ai đã xem" một pin — CHỈ chủ pin, người khác nhận 404 (PLAN_XAHOI.md §4).
+   *
+   * `GqlAuthGuard` chứ KHÔNG `GqlOptionalAuthGuard`: khán giả của bề mặt này là
+   * đúng một người, nên "khách vãng lai vẫn 200 với danh sách rỗng" không phải
+   * một hành vi tử tế mà là một câu trả lời sai — cùng lý do đã ghi ở
+   * `archivedPins`.
+   *
+   * 404 chứ không 403 cho pin của người khác: 403 tự nó đã xác nhận pin đó có
+   * thật. `null` từ loader là DUY NHẤT một trạng thái ("không phải pin của
+   * bạn", "pin không tồn tại", "pin đã xoá mềm" trả về cùng một thứ) — chủ đích,
+   * không phải mất mát thông tin.
+   *
+   * Trả `[User!]!` chứ không kèm mốc thời gian: `firstViewedAt` dùng để XẾP
+   * THỨ TỰ (mới nhất trước) chứ không hiện ra. Thêm mốc thời gian sau này là
+   * thay đổi CỘNG THÊM (một type mới hoặc một field mới), không phá hợp đồng
+   * này — nên chưa cần thì chưa khai.
+   */
+  @Query(() => [User], { name: 'pinViewers' })
+  @UseGuards(GqlAuthGuard)
+  async pinViewers(
+    @Args('pinId', { type: () => ID }) pinId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const blockedIds = await this.dataloaderService.blockedUserIds(user.userId);
+    const viewers = await this.dataloaderService
+      .buildPinViewersLoader(user.userId, blockedIds)
+      .load(pinId);
+    if (viewers === null) throw new NotFoundException('Pin not found');
+    return viewers;
+  }
+
+  /**
+   * Gợi ý @mention TRÊN MỘT PIN — lọc theo khán giả của pin đó (§4 luật 5).
+   *
+   * Bắt buộc đăng nhập: chỉ người bình luận được mới cần gợi ý, và bộ lọc phải
+   * biết "chính mình" để loại ra.
+   *
+   * `pinId` BẮT BUỘC, và đó là toàn bộ điểm của bề mặt này: một query "tìm
+   * người" không mang ngữ cảnh pin thì không thể lọc theo khán giả, và FE sẽ
+   * lại đề xuất đúng những cái tên sẽ ăn 404 khi bấm vào thông báo. Lý do đầy
+   * đủ nằm ở docblock `PinsService.mentionSuggestions`.
+   */
+  @Query(() => [User], { name: 'mentionSuggestions' })
+  @UseGuards(GqlAuthGuard)
+  async mentionSuggestions(
+    @Args('pinId', { type: () => ID }) pinId: string,
+    @Args('q', { type: () => String, nullable: true }) q: string | null,
+    @Args('first', { type: () => Int, nullable: true, defaultValue: 10 }) first: number,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const blockedIds = await this.dataloaderService.blockedUserIds(user.userId);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user.userId);
+    const limit = Math.min(Math.max(first ?? 10, 1), 50);
+    return this.pinsService.mentionSuggestions(pinId, q ?? null, limit, blockedIds, audienceCtx);
   }
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
@@ -433,6 +493,31 @@ export class PinsResolver {
    * `null` ở đây không phân biệt được với "pin không ghim vòng nào", và đó là
    * chủ đích chứ không phải mất mát thông tin.
    */
+  /**
+   * Lượt xem — **`null` cho người khác trên pin giới hạn** (XH-5, §4 luật 3).
+   *
+   * Cùng khuôn `audienceCircleId` ngay dưới: không cần loader (giá trị đã nằm
+   * trên `pin` mà lưới vừa fetch), nhưng BẮT BUỘC là `@ResolveField` vì câu trả
+   * lời phụ thuộc NGƯỜI ĐANG GỌI — cùng một pin trả `7` cho bao và `null` cho
+   * alice.
+   *
+   * Pin PUBLIC trả thẳng cho tất cả, kể cả khách vãng lai: đó là hành vi cũ và
+   * luật 3 không đụng tới nó. Chỉ pin FOLLOWERS/CIRCLE/ONLY_ME mới giấu số, vì
+   * ở đó con số nói lên quy mô khán giả.
+   *
+   * ⚠️ ĐỪNG "tiện tay" trả `0` thay cho `null`. `0` là một câu trả lời SAI mà
+   * client không phân biệt được với sự thật ("chưa ai xem"), và nó sẽ hiện lên
+   * UI như một con số thật. `null` nói đúng điều đang xảy ra: bạn không được
+   * biết. Đây đúng lớp bug "viewer-aware im lặng trả giá trị hợp lệ" mà dự án
+   * đã trả giá một lần với `isFollowedByViewer`.
+   */
+  @ResolveField('viewCount', () => Int, { nullable: true })
+  getViewCount(@Parent() pin: Pin, @CurrentUser() viewer: AuthUser | null) {
+    if (pin.visibility === Visibility.PUBLIC) return pin.viewCount ?? 0;
+    if (viewer && viewer.userId === pin.creatorId) return pin.viewCount ?? 0;
+    return null;
+  }
+
   @ResolveField('audienceCircleId', () => ID, { nullable: true })
   getAudienceCircleId(
     @Parent() pin: Pin,

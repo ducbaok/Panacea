@@ -47,6 +47,10 @@ import {
   AD_HOC_CIRCLE_NAME,
 } from '../common/blocking';
 import { Visibility } from './entities/visibility.enum';
+// XH-5 — chiều NGƯỢC của bộ lọc khán giả: từ PIN ra NGƯỜI. Dùng chung với
+// loader `pinViewers` của `DataloaderService`, xem docblock ở file đó.
+import { currentAudienceIds } from './pin-audience.util';
+import type { PinAudienceRow } from './pin-audience.util';
 import {
   CursorPaginationArgs,
   decodeCursor,
@@ -633,11 +637,13 @@ export class PinsService {
    */
   private async _trackOnce(
     kind: 'view' | 'click',
-    pinId: string,
+    pin: PinAudienceRow,
     identity: string | null,
+    viewerId: string | null,
   ): Promise<boolean> {
     if (!identity) return false;
 
+    const pinId = pin.id;
     const key = `track:${kind}:${pinId}:${identity}`;
     try {
       const set = await this.redis.set(key, '1', 'EX', PinsService.TRACK_DEBOUNCE_TTL_SEC, 'NX');
@@ -657,7 +663,116 @@ export class PinsService {
       where: { id: pinId },
       data: kind === 'view' ? { viewCount: { increment: 1 } } : { clickCount: { increment: 1 } },
     });
+
+    if (kind === 'view') await this._recordPinView(pin, viewerId);
     return true;
+  }
+
+  /**
+   * Ghi một dòng "ai đã xem" (XH-5 — PLAN_XAHOI.md §4 luật 1, 2, 4).
+   *
+   * BA ĐIỀU KIỆN, và cả ba đều là điều kiện KHÔNG GHI chứ không phải bộ lọc lúc
+   * đọc — dữ liệu không được sinh ra thì không có gì để rò:
+   *   · **pin non-PUBLIC** (luật 1). Ghi cho pin công khai vừa đắt — mỗi lượt
+   *     xem một dòng, trên bề mặt có lưu lượng lớn nhất — vừa phản cảm. Giá trị
+   *     của "ai đã xem" nằm ở nhóm nhỏ.
+   *   · **viewer đăng nhập** (luật 2). Khách vãng lai VẪN tăng `viewCount` (lời
+   *     gọi này nằm SAU `pin.update`, không phải trước), nhưng không có danh
+   *     tính nào để hiện trong danh sách. `a:<anonId>` là thứ client tự khai —
+   *     ghi nó vào bảng là mời người khác tự đặt tên mình.
+   *   · **viewer ≠ chủ pin** (luật 4). Chủ mở lại pin của chính mình không phải
+   *     là một "lượt xem" theo nghĩa của tính năng này.
+   *
+   * ⚠️ NẰM TRONG NHÁNH ĐÃ QUA DEBOUNCE, cố ý: khoá `track:view:*` 30′ đã có sẵn
+   * và tái dùng nó nghĩa là MỘT sự kiện xem = một lần đếm + một lần thử ghi.
+   * Đẻ thêm một khoá thứ hai cho riêng `PinView` sẽ tạo hai cửa sổ lệch nhau mà
+   * chẳng mua được gì. Hệ quả đã biết và chấp nhận: pin đổi từ PUBLIC sang giới
+   * hạn NGAY TRONG cửa sổ 30′ của một người thì lượt xem thứ hai của người đó
+   * bị khử trùng ⇒ họ không vào danh sách. Đổi lại là một bảng không bơm được.
+   *
+   * `createMany({ skipDuplicates: true })` chứ không `upsert`: cột là
+   * `firstViewedAt` — LẦN ĐẦU — nên xem lại KHÔNG được phép đẩy mốc thời gian
+   * lên. `ON CONFLICT DO NOTHING` nói đúng ngữ nghĩa đó ở tầng DB và đồng thời
+   * miễn nhiễm với race (cùng khuôn với `prepareTaxonomy`).
+   */
+  private async _recordPinView(pin: PinAudienceRow, viewerId: string | null): Promise<void> {
+    if (pin.visibility === Visibility.PUBLIC) return;
+    if (!viewerId || viewerId === pin.creatorId) return;
+
+    await this.prisma.pinView.createMany({
+      data: [{ pinId: pin.id, viewerId }],
+      skipDuplicates: true,
+    });
+  }
+
+  // ─── XH-5: gợi ý @mention trong khán giả ────────────────────────────────────
+
+  /**
+   * Người có thể @mention được TRÊN MỘT PIN CỤ THỂ — §4 luật 5.
+   *
+   * "Chặn ngay lúc gõ" là quyết định về TRẢI NGHIỆM, nhưng chỗ thi hành phải là
+   * BACKEND: một danh sách gợi ý lọc ở client chỉ là gợi ý, người dùng vẫn gõ
+   * tay được `@ai_do` và `comments.service._notifyMentions` vẫn bắn thông báo
+   * cho họ — rồi họ bấm vào và ăn 404 của `visiblePinWhere`. Bề mặt này là thứ
+   * FE dựa vào để không bao giờ ĐỀ XUẤT một cái tên như thế.
+   *
+   * ⚠️ BỀ MẶT NÀY KHÔNG PHẢI HÀNG RÀO — và cố ý không giả vờ là hàng rào. Nó
+   * không chặn được người quyết tâm gõ tay; thứ chặn được là bộ lọc lúc đọc
+   * (pin 404) cộng với `notifications.service` đã lọc MENTION theo quyền xem.
+   * Đặt một `throw` ở đây thay cho một danh sách lọc sẽ tạo cảm giác an toàn
+   * giả mà không thêm một lớp phòng thủ nào.
+   *
+   * `findById` chạy trước ⇒ người KHÔNG đọc được pin nhận đúng 404 "Pin not
+   * found" như mọi bề mặt pin khác, và không suy ra được pin đó có tồn tại.
+   *
+   * Ba tập, theo `visibility` HIỆN TẠI của pin (không phải lúc pin được đăng):
+   *   · `PUBLIC`  — mọi người, thu hẹp bằng `q`. Không có khán giả nào để lọc.
+   *   · `FOLLOWERS`/`CIRCLE` — đúng tập của `currentAudienceIds`, tức người bị
+   *     bớt khỏi vòng biến mất khỏi gợi ý ngay lập tức (cùng nguồn với
+   *     `pinViewers`, XH-QĐ-15).
+   *   · `ONLY_ME` — chỉ còn chính chủ sau khi loại người gọi ⇒ danh sách rỗng.
+   *
+   * Loại trừ ở MỌI nhánh: chính người gọi (không ai @ chính mình) và người bị
+   * chặn HAI CHIỀU — gợi ý một người mà bộ lọc chặn sẽ ném đi là gợi ý một cái
+   * tên chết, đúng lý do đã ghi ở `circles.service.getMemberSuggestions`.
+   */
+  async mentionSuggestions(
+    pinId: string,
+    q: string | null,
+    limit: number,
+    blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
+  ) {
+    const pin = await this.findById(pinId, blockedIds, audienceCtx);
+
+    const excluded = new Set<string>(blockedIds);
+    if (audienceCtx.viewerId) excluded.add(audienceCtx.viewerId);
+
+    const where: any = {};
+    const audience = await currentAudienceIds(this.prisma, pin as PinAudienceRow);
+    if (audience === null) {
+      // PUBLIC: không lọc theo khán giả, chỉ loại trừ.
+      if (excluded.size) where.id = { notIn: [...excluded] };
+    } else {
+      const ids = [...audience].filter((id) => !excluded.has(id));
+      // Tập rỗng phải trả về SỚM: `id: { in: [] }` là một câu query chắc chắn
+      // rỗng — đúng kết quả nhưng tốn một round-trip cho câu trả lời đã biết.
+      if (!ids.length) return [];
+      where.id = { in: ids };
+    }
+
+    const needle = q?.trim();
+    if (needle) {
+      where.OR = [
+        { username: { contains: needle, mode: 'insensitive' } },
+        { name: { contains: needle, mode: 'insensitive' } },
+      ];
+    }
+
+    // Xếp theo `username` chứ không theo độ liên quan: mention giải bằng
+    // `username` (`MENTION_REGEX` của comments.service), nên đó là thứ người
+    // dùng đang gõ và là thứ họ quét mắt trong danh sách.
+    return this.prisma.user.findMany({ where, orderBy: { username: 'asc' }, take: limit });
   }
 
   /**
@@ -674,8 +789,12 @@ export class PinsService {
     blockedIds: string[],
     audienceCtx: PinAudienceCtx,
   ): Promise<boolean> {
-    await this.findById(pinId, blockedIds, audienceCtx);
-    return this._trackOnce('view', pinId, identity);
+    // Giữ lại `pin` thay vì vứt đi như trước XH-5: `_trackOnce` cần
+    // `visibility`/`creatorId` để quyết định có ghi `PinView` không, và pin này
+    // vừa được đọc ngay đây — fetch lần thứ hai chỉ để lấy 2 cột là thêm một
+    // round-trip cho dữ liệu đã nằm trong tay.
+    const pin = await this.findById(pinId, blockedIds, audienceCtx);
+    return this._trackOnce('view', pin, identity, audienceCtx.viewerId);
   }
 
   /**
@@ -693,7 +812,9 @@ export class PinsService {
   ): Promise<boolean> {
     const pin = await this.findById(pinId, blockedIds, audienceCtx);
     if (!pin.sourceUrl) return false;
-    return this._trackOnce('click', pinId, identity);
+    // `viewerId` vẫn truyền xuống cho đủ chữ ký, nhưng nhánh `click` KHÔNG ghi
+    // `PinView` — "ai đã xem" là lượt XEM, không phải lượt bấm link.
+    return this._trackOnce('click', pin, identity, audienceCtx.viewerId);
   }
 
   // ─── Reactions ──────────────────────────────────────────────────────────────

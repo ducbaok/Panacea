@@ -59,8 +59,28 @@ export class Pin {
   @Field({ nullable: true })
   sourceUrl?: string;
 
-  @Field(() => Int)
-  viewCount: number;
+  /**
+   * Lượt mở chi tiết pin — **`Int` NULLABLE từ XH-5**, không còn `Int!`.
+   *
+   * §4 luật 3: `viewCount` bị ẨN trên pin giới hạn, chỉ chủ pin đọc được; người
+   * khác nhận `null`. Với một vòng 5 người, con số này vừa lộ quy mô khán giả
+   * (thứ XH-QĐ-3 cố tình giữ kín) vừa tạo áp lực xã hội — "đăng cho 5 người mà
+   * chỉ 1 người xem" là một thông tin không ai xin.
+   *
+   * 🔴 ĐỔI `Int!` → `Int` LÀ BREAKING CHANGE Ở TẦNG SCHEMA, không phải chuyện
+   * tương thích ngược: client nào khai `viewCount: Int!` trong fragment/biến sẽ
+   * bị GraphQL từ chối, và codegen của `apps/web` sinh lại kiểu thành
+   * `number | null`. Cùng họ với `togglePinReaction: Boolean! → Pin!` (B-19).
+   *
+   * `clickCount` ngay dưới KHÔNG đổi và đó là chủ đích: nó đếm lượt bấm link
+   * NGOÀI, chỉ tồn tại trên pin có `sourceUrl`, và không nói gì về quy mô khán
+   * giả. Luật 3 nói đích danh `viewCount`.
+   *
+   * Giá trị đọc từ cột vẫn nằm trên parent; việc quyết định có trả ra hay không
+   * nằm ở `PinsResolver.getViewCount` — cùng khuôn `audienceCircleId`.
+   */
+  @Field(() => Int, { nullable: true })
+  viewCount?: number | null;
 
   @Field(() => Int)
   clickCount: number;

@@ -1,0 +1,3224 @@
+[
+  {
+    "group": "TOOL/preflight",
+    "name": "VERIFY_LOG trỏ vào log mà API ĐANG ghi (nếu không: 11 phép đếm query sẽ SKIP im lặng)",
+    "status": "OK",
+    "detail": "1 request dò ⇒ 2 dòng prisma:query mới trong \"C:/Users/Bao/AppData/Local/Temp/claude/E--ag-luong-c/65ab9fdb-89f6-42b3-b631-4fa799201223/scratchpad/api-verify.log\""
+  },
+  {
+    "group": "REST/health",
+    "name": "GET /health → 200",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/health",
+    "name": "health CHẠM THẬT tới DB và Redis (không phải endpoint rỗng trả 200)",
+    "status": "OK",
+    "detail": "status=ok db={\"ok\":true} redis={\"ok\":true}"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/register",
+    "status": "OK",
+    "detail": "201"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/login (bao)",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/login (alice)",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/login (john)",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/auth",
+    "name": "GET /auth/me",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/auth",
+    "name": "GET /auth/me (không token → 401)",
+    "status": "EXPECTED",
+    "detail": "401 {\"message\":\"Unauthorized\",\"statusCode\":401}"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/login (sai mật khẩu → 401)",
+    "status": "EXPECTED",
+    "detail": "401 {\"message\":\"Invalid credentials\",\"error\":\"Unauthorized\",\"statusCode\":401}"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/refresh",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/forgot-password",
+    "status": "OK",
+    "detail": "204"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/reset-password (token rác → 4xx)",
+    "status": "EXPECTED",
+    "detail": "400 {\"message\":\"Invalid or expired reset token\",\"error\":\"Bad Request\",\"statusCode\":400}"
+  },
+  {
+    "group": "REST/auth",
+    "name": "GET /auth/verify-email (đã xoá → 404, lá chắn prefetch chuyển sang web)",
+    "status": "EXPECTED",
+    "detail": "404 {\"message\":\"Cannot GET /auth/verify-email?token=bad-token\",\"error\":\"Not Found\",\"statusCode\":404}"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/verify-email (token rác → 4xx)",
+    "status": "EXPECTED",
+    "detail": "404 {\"message\":\"Invalid verification token\",\"error\":\"Not Found\",\"statusCode\":404}"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/exchange (secret sai → 4xx)",
+    "status": "EXPECTED",
+    "detail": "403 {\"message\":\"Invalid auth secret\",\"error\":\"Forbidden\",\"statusCode\":403}"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/google (idToken rác → 401)",
+    "status": "EXPECTED",
+    "detail": "401 {\"message\":\"Invalid Google token\",\"error\":\"Unauthorized\",\"statusCode\":401}"
+  },
+  {
+    "group": "REST/device",
+    "name": "POST /device-tokens",
+    "status": "OK",
+    "detail": "201"
+  },
+  {
+    "group": "REST/device",
+    "name": "DELETE /device-tokens/:token",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/internal",
+    "name": "PATCH /internal/pins/:id/processed (không secret → 4xx)",
+    "status": "EXPECTED",
+    "detail": "403 {\"message\":\"Invalid internal secret\",\"error\":\"Forbidden\",\"statusCode\":403}"
+  },
+  {
+    "group": "REST/uploads",
+    "name": "POST /uploads/presigned-url",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/uploads",
+    "name": "POST /uploads/local (12420 byte)",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "REST/uploads",
+    "name": "POST /uploads/local (MIME .exe → phải chặn)",
+    "status": "EXPECTED",
+    "detail": "400 {\"message\":\"Unsupported file type \\\"application/x-msdownload\\\". Allowed: image/jpeg, image/png, image/gif, image/webp\",\"error\":\"Bad Request\",\"statusCo"
+  },
+  {
+    "group": "GQL/query",
+    "name": "me",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "me (alice)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "exploreFeed",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "exploreFeed (trang 2, keyset)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pagination",
+    "name": "exploreFeed không lặp item giữa 2 trang",
+    "status": "OK",
+    "detail": "p1=[pin_20_id,pin_19_id,pin_18_id] p2=[pin_17_id,pin_16_id,pin_15_id]"
+  },
+  {
+    "group": "GQL/pagination",
+    "name": "exploreFeed (cursor hỏng → 400)",
+    "status": "EXPECTED",
+    "detail": "Invalid cursor format"
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "exploreFeed không tham số ⇒ giữ nguyên tập id + thứ tự (hồi quy id-đối-id)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "hồi quy exploreFeed không tham số: TỪNG id + thứ tự khớp baseline",
+    "status": "OK",
+    "detail": "baseline=20 pin · paramFeed=20 pin · trùng khớp theo thứ tự=true"
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "exploreFeed categorySlug:\"travel\" ⇒ chỉ pin thuộc category travel",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "travel: >0 pin và MỌI pin đều mang slug \"travel\" (đọc trong cùng response)",
+    "status": "OK",
+    "detail": "4 pin · slug quan sát: travel"
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "exploreFeed categorySlug:\"nature\" (category tồn tại nhưng rỗng) ⇒ 0 pin, KHÔNG ném lỗi",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "nature rỗng: 0 pin, không lỗi (nhánh empty của filter phải im lặng, không 500)",
+    "status": "OK",
+    "detail": "0 pin"
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "exploreFeed tagName:\"modern\" ⇒ tập pin đúng bằng tập pin mang tag \"modern\"",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "modern: >0 pin và MỌI pin đều mang tag \"modern\" (đối chiếu nội dung, không chỉ \"có kết quả\")",
+    "status": "OK",
+    "detail": "4 pin · tag quan sát: geometric,modern,inspiration,tutorial"
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "exploreFeed categorySlug không tồn tại ⇒ 0 pin, không lỗi",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "exploreFeed tagName:\"outdoor\" khi bao chặn john ⇒ pin của john mất, pin của bob còn nguyên",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "chặn 2 chiều + tag filter: pin của john biến mất, pin của người khác còn nguyên (bộ lọc cộng hợp, không thay thế)",
+    "status": "OK",
+    "detail": "trước block=5 pin outdoor (john 3) · sau block=2 · john còn=0"
+  },
+  {
+    "group": "GQL/explore-filter",
+    "name": "phân trang first:2 với cùng categorySlug: id gộp = first:20 travel (không trùng · không thiếu · đúng thứ tự)",
+    "status": "OK",
+    "detail": "gộp=4 pin · full=4 pin · duy nhất=4 · trùng khớp theo thứ tự=true"
+  },
+  {
+    "group": "GQL/query",
+    "name": "pin",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "userPins",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "exploreFeed có token: isFollowedByViewer khớp đúng từng creator, lẫn cả true lẫn false trong cùng một response",
+    "status": "OK",
+    "detail": "20 item · 5 creator · bob_photographer=false · alice_chef=false · john_traveler=true · jane_designer=true · bao_developer=false · bao follow 2 người"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "exploreFeed (KHÔNG token → vẫn 200)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "pin (KHÔNG token → vẫn 200)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "userPins (KHÔNG token → vẫn 200)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "khách vãng lai: isFollowedByViewer toàn false trên cả 3 query (guard optional, KHÔNG phải guard bắt buộc)",
+    "status": "OK",
+    "detail": "25 giá trị, phân bố {false}"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "pin/userPins: isFollowedByViewer đổi theo token trên cùng một creator",
+    "status": "OK",
+    "detail": "creator=john_traveler · pin: token=true khách=false · userPins: token=true khách=false"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "dọn được SavedPin ngoài seed của bao trước khi đo (đề kháng residue)",
+    "status": "OK",
+    "detail": "không có residue"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "exploreFeed có token: isSavedByViewer/viewerReaction đúng từng pin, lẫn cả hai nhánh trong cùng một response",
+    "status": "OK",
+    "detail": "20 pin seed · pin_5_id: saved=true reaction=HEART · 1 pin saved=true · 1 pin có reaction"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "exploreFeed KHÔNG token (field viewer-aware của 3c) → vẫn 200",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "khách vãng lai: isSavedByViewer toàn false và viewerReaction toàn null",
+    "status": "OK",
+    "detail": "20 pin · saved {false} · reaction {null}"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "pin(pin_1_id): viewerReaction đổi theo token trên cùng một pin",
+    "status": "OK",
+    "detail": "bao=null alice=THANKS john=WOW · kỳ vọng bao=null alice=THANKS john=WOW"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "savePin lần 2 cùng pin, khác board (boardId=null) — nhiều dòng SavedPin là HỢP LỆ",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "isSavedByViewer vẫn true (không lỗi) khi cùng một pin có NHIỀU dòng SavedPin",
+    "status": "OK",
+    "detail": "pin=pin_5_id saved=true reaction=HEART"
+  },
+  {
+    "group": "GQL/viewer-aware",
+    "name": "unsavePin (dọn dòng vừa tạo, giữ nguyên dòng seed)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updateProfile",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updateProfile(coverUrl) — REVIEW-1 #6",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "REVIEW-1 coverUrl: đọc lại qua userByUsername ra ĐÚNG giá trị vừa ghi",
+    "status": "OK",
+    "detail": "mutation trả: http://localhost:4000/uploads/r1-cover-probe.jpg · đọc lại: http://localhost:4000/uploads/r1-cover-probe.jpg"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createPin",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createPin (domain lạ → phải chặn)",
+    "status": "EXPECTED",
+    "detail": "Image URL domain is not allowed"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updatePin",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updatePin (không phải chủ → phải chặn)",
+    "status": "EXPECTED",
+    "detail": "You can only edit your own pins"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "togglePinReaction (bật)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "togglePinReaction (tắt)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "togglePinReaction (giá trị rác → GraphQL chặn ở TẦNG SCHEMA, không rơi xuống Prisma)",
+    "status": "EXPECTED",
+    "detail": "Variable \"$t\" got invalid value \"NOPE\"; Value \"NOPE\" does not exist in \"ReactionType\" enum."
+  },
+  {
+    "group": "REST/internal",
+    "name": "PATCH /internal/pins/:id/processed (secret đúng → 200)",
+    "status": "OK",
+    "detail": "200"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "exploreFeed: số query bất biến theo kích thước trang",
+    "status": "OK",
+    "detail": "first=5 → 8 query · first=20 → 8 query (Δ=0)"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "exploreFeed: số query bất biến theo kích thước trang (creator.isFollowedByViewer)",
+    "status": "OK",
+    "detail": "first=5 → 6 query · first=20 → 6 query (Δ=0)"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "exploreFeed: số query bất biến theo kích thước trang (isSavedByViewer + viewerReaction)",
+    "status": "OK",
+    "detail": "first=5 → 6 query · first=20 → 6 query (Δ=0)"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins(pin_18_id) trả về đúng tập pin có tag chung",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: tập kết quả KHỚP bảng tag của seed (thiếu 0 · thừa 0)",
+    "status": "OK",
+    "detail": "nhận 8 pin · kỳ vọng 8"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: pin KHÔNG tag chung vắng mặt (cả pin 0-tag lẫn pin có tag nhưng khác hẳn)",
+    "status": "OK",
+    "detail": "0-tag: pin_10_id,pin_20_id · có-tag-nhưng-không-chung: pin_1_id,pin_2_id,pin_3_id,pin_4_id,pin_5_id,pin_6_id,pin_7_id,pin_8_id,pin_13_id"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: pin GỐC không tự nằm trong kết quả của chính nó",
+    "status": "OK",
+    "detail": "pin gốc=pin_18_id · kết quả=[pin_12_id,pin_11_id,pin_9_id,pin_19_id,pin_17_id,pin_16_id,pin_15_id,pin_14_id]"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: nhiều tag chung xếp TRƯỚC (dãy số tag chung không tăng, và có ÍT NHẤT 2 mức khác nhau)",
+    "status": "OK",
+    "detail": "dãy số tag chung theo thứ tự trả về: [2,2,2,1,1,1,1,1] · số mức khác nhau=2"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: gộp các trang first=3 ra ĐÚNG tập đầy đủ, không trùng không thiếu",
+    "status": "OK",
+    "detail": "3 trang [3+3+2] = 8 item · unique=8 · kỳ vọng=8"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: cursor gồm ĐỦ 3 phần (sharedTagCount|createdAt|id)",
+    "status": "OK",
+    "detail": "giải base64 ra: \"2|2026-08-24T14:33:21.882Z|pin_9_id\""
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: pin không có tag nào (pin_20_id) ⇒ rỗng và KHÔNG ném lỗi",
+    "status": "OK",
+    "detail": "0 item"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: pinId không tồn tại ⇒ rỗng và KHÔNG ném lỗi",
+    "status": "OK",
+    "detail": "0 item"
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins KHÔNG token → vẫn 200 (guard optional)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/related",
+    "name": "relatedPins: khách vãng lai thấy cùng tập với người đã đăng nhập (chưa chặn ai)",
+    "status": "OK",
+    "detail": "khách=[pin_12_id,pin_11_id,pin_9_id,pin_19_id,pin_17_id,pin_16_id,pin_15_id,pin_14_id] · bao=[pin_12_id,pin_11_id,pin_9_id,pin_19_id,pin_17_id,pin_16_id,pin_15_id,pin_14_id]"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "relatedPins: số query bất biến theo kích thước trang",
+    "status": "OK",
+    "detail": "first=2 → 4 query · first=8 → 4 query (Δ=0)"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "trackPinView lần 1: trả true VÀ viewCount tăng đúng 1 (pin kia đứng yên — hai nhánh cùng response)",
+    "status": "OK",
+    "detail": "trả=true · pin có link: 0→1 · pin kia: 0→0"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "trackPinView lần 2 CÙNG người trong cửa sổ 30′: trả false VÀ viewCount KHÔNG đổi",
+    "status": "OK",
+    "detail": "trả=false · viewCount 1→1 (không debounce sẽ là 2)"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "người xem KHÁC ⇒ đếm riêng (debounce theo cặp (người xem, pin), không theo pin)",
+    "status": "OK",
+    "detail": "trả=true · viewCount 1→2"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "khách vãng lai: anonId A đếm được, gọi lại bị khử, anonId B (CÙNG IP) vẫn đếm được",
+    "status": "OK",
+    "detail": "A lần1=true (2→3) · A lần2=false (→3) · B=true (→4)"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "không token và không anonId ⇒ trả false, KHÔNG đếm (không có khoá debounce nào ⇒ đếm là để bị bơm)",
+    "status": "OK",
+    "detail": "trả=false · viewCount 4→4"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "anonId dài quá trần (65 ký tự) ⇒ coi như không có, KHÔNG đếm (chặn bơm khoá rác vào Redis)",
+    "status": "OK",
+    "detail": "trả=false · viewCount 4→4"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "trackPinClick trên pin CÓ sourceUrl: clickCount +1, và viewCount KHÔNG bị đụng",
+    "status": "OK",
+    "detail": "trả=true · clickCount 0→1 · viewCount giữ nguyên 4"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "click lần 2 cùng người ⇒ bị khử trùng như view (mỗi loại sự kiện một cửa sổ riêng)",
+    "status": "OK",
+    "detail": "trả=false · clickCount 1→1"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "trackPinClick trên pin KHÔNG có sourceUrl ⇒ false, clickCount không đổi (sự kiện đó không tồn tại)",
+    "status": "OK",
+    "detail": "trả=false · clickCount 0→0"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "trackPinView với pinId không tồn tại ⇒ Pin not found (không âm thầm tạo bộ đếm)",
+    "status": "OK",
+    "detail": "ném đúng: Pin not found"
+  },
+  {
+    "group": "GQL/tracking",
+    "name": "đã dọn khoá debounce của bước này (TTL 30′ dài hơn khoảng cách giữa 2 lần chạy verify)",
+    "status": "OK",
+    "detail": "còn sót 0/14 khoá"
+  },
+  {
+    "group": "GQL/query",
+    "name": "userByUsername",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "followers",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "following",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "blockUser",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "unblockUser",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "follow (bao→alice)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "follow (alice→bao)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/perf",
+    "name": "followers: số query bất biến theo kích thước trang (isFollowedByViewer/isFollowingViewer)",
+    "status": "OK",
+    "detail": "first=1 → 4 query · first=4 → 4 query (Δ=0)"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "isFollowedByViewer phân biệt đúng từng người trong cùng một response",
+    "status": "OK",
+    "detail": "4 follower — bob_photographer:followedBy=false,following=true · alice_chef:followedBy=true,following=true · john_traveler:followedBy=true,following=true · jane_designer:followedBy=true,following=true"
+  },
+  {
+    "group": "GQL/query",
+    "name": "userBoards",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "board",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "boardPins",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createBoard",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updateBoard",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createSection",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createSection (2)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updateSection",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "reorderSections",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "savePin",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "REVIEW-1 savedPins: thấy dòng lưu KHÔNG board (nhóm trước nay không màn nào đọc được)",
+    "status": "OK",
+    "detail": "3 dòng · dòng boardId=null cho pin_9_id: có"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "REVIEW-1 savedPins: cũng gồm dòng lưu CÓ board (không chỉ nhóm boardId=null)",
+    "status": "OK",
+    "detail": "dòng cmt7c6j900011e0k1axmhxcf8 trong board cmt7c6kxl001ie0k1xwn1zz5b: có"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "REVIEW-1 savedPins: dòng lưu vào board BÍ MẬT — chủ thấy, người khác KHÔNG",
+    "status": "OK",
+    "detail": "chủ thấy=true · người khác thấy=false (phải true/false)"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "REVIEW-1 savedPins: người chưa lưu pin nào ⇒ trang rỗng, không ném lỗi",
+    "status": "OK",
+    "detail": "0 dòng"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "reorderPins",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "setBoardCover",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "inviteCollaborator",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updateCollaboratorRole",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/security",
+    "name": "deleteBoard của người khác → phải chặn",
+    "status": "EXPECTED",
+    "detail": "Board not found or no permission"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "dựng ≥25 SavedPin trong BOARD (chủ + collaborator EDITOR) — tiền đề cho phép kiểm 3-thành-phần",
+    "status": "OK",
+    "detail": "26 dòng SavedPin"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "QUYẾT ĐỊNH: boardPins — 4 trang first=6 gộp bằng ĐÚNG 1 trang first=24 (không trùng · không thiếu · đúng thứ tự)",
+    "status": "OK",
+    "detail": "paged=24 unique=24 · big=24 unique=24 · setEq=true"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "QUYẾT ĐỊNH+: boardPins — paging first=1 qua từng cặp sortOrder trùng (bắt bẫy OR-clause thiếu)",
+    "status": "OK",
+    "detail": "one-by-one=26 unique=26 · total_expected=26"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "QUYẾT ĐỊNH: userBoards — 3 trang first=2 gộp bằng ĐÚNG 1 trang first=6 (không trùng · không thiếu · đúng thứ tự)",
+    "status": "OK",
+    "detail": "paged=6 unique=6 · big=6 · setEq=true"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "boardPins: số query bất biến theo kích thước trang (5 vs 20)",
+    "status": "OK",
+    "detail": "first=5 → 7 query · first=20 → 7 query (Δ=0)"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "removeCollaborator",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "unsavePin",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "deleteSection",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "deleteBoard",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "pinComments",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "commentReplies",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/comment-fields",
+    "name": "replyCount đúng theo seed, phân biệt được từng comment trong cùng một response",
+    "status": "OK",
+    "detail": "comment_1_id=2 (đúng 2) · comment_2_id=0 (đúng 0) · 2 comment gốc"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createComment",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createComment (reply)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updateComment",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "updateComment (không phải chủ → chặn)",
+    "status": "EXPECTED",
+    "detail": "Not authorized"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "toggleCommentReaction",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "commentReplies (reply vừa tạo)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/comment-fields",
+    "name": "replyCount=1 và reactionCount=1 ngay sau khi tạo reply + thả reaction",
+    "status": "OK",
+    "detail": "replyCount=1 reactionCount=1"
+  },
+  {
+    "group": "GQL/comment-fields",
+    "name": "isReactedByViewer tách theo viewer, reactionCount thì KHÔNG (cùng một comment)",
+    "status": "OK",
+    "detail": "bao: viewer=true/count=1 · alice: viewer=false/count=1"
+  },
+  {
+    "group": "GQL/comment-fields",
+    "name": "pinComments (khách vãng lai, không token)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/comment-fields",
+    "name": "khách vãng lai: isReactedByViewer toàn false, reactionCount vẫn đếm đúng",
+    "status": "OK",
+    "detail": "1 comment · reactionCount(CMT)=1"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "pinComments: số query bất biến theo kích thước trang (replyCount + reactionCount + isReactedByViewer)",
+    "status": "OK",
+    "detail": "first=1 → 8 query · first=8 → 8 query (Δ=0)"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "deleteComment (reply)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/comment-fields",
+    "name": "xoá reply ⇒ replyCount về 0 (groupBy CÓ lọc deletedAt)",
+    "status": "OK",
+    "detail": "replyCount=0 (trước khi xoá là 1) · quên deletedAt sẽ vẫn ra 1"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "deleteComment",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mention",
+    "name": "@Bao_Developer (viết HOA) ⇒ bao nhận đúng 1 MENTION (chuẩn hoá lowercase một phía trước khi tra DB)",
+    "status": "OK",
+    "detail": "bao MENTION cho comment này = 1 (đúng 1) · commentId=cmt7c6mqe005we0k1hlpnnbui"
+  },
+  {
+    "group": "GQL/mention",
+    "name": "chặn 2 chiều: bao (bị chặn) mất MENTION, alice (không bị chặn) vẫn nhận — trong CÙNG một bình luận",
+    "status": "OK",
+    "detail": "bao=0 (đúng 0) · alice=1 (đúng 1)"
+  },
+  {
+    "group": "GQL/mention",
+    "name": "nhắc trúng chủ pin ⇒ họ nhận ĐÚNG 1 notification (COMMENT), không cộng thêm MENTION",
+    "status": "OK",
+    "detail": "bao tổng cho comment này = 1 (đúng 1) · trong đó MENTION = 0 (đúng 0)"
+  },
+  {
+    "group": "GQL/mention",
+    "name": "12 mention hợp lệ ⇒ đúng 10 MENTION notification (cap cắt phần thừa, không ném lỗi)",
+    "status": "OK",
+    "detail": "10 nhận đúng 1 · 2 nhận 0 (cap = 10, tổng đăng ký = 12)"
+  },
+  {
+    "group": "GQL/mention",
+    "name": "sửa comment: bao nhận đúng 1 (không lặp qua nhiều lần sửa), bob nhận đúng 1 khi mới thêm",
+    "status": "OK",
+    "detail": "sửa#1 thêm bao: bao=1 (đúng 1) · sửa#2 giữ nguyên: bao=1 (đúng 1, không lặp) · sửa#3 thêm bob: bao=1 (đúng 1) bob=1 (đúng 1)"
+  },
+  {
+    "group": "GQL/query",
+    "name": "conversations",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createConversation (john, chưa mutual → phải chặn)",
+    "status": "EXPECTED",
+    "detail": "Mutual follow is required to send Direct Messages"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "createConversation (mutual)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "sendMessage",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "messages",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/security",
+    "name": "messages của hội thoại người khác → phải chặn",
+    "status": "EXPECTED",
+    "detail": "Not a member of this conversation"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "markMessageRead",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "deleteMessage",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pagination",
+    "name": "QUYẾT ĐỊNH: conversations.endCursor.iso == updatedAt (KHÔNG phải createdAt) — chứng minh encode đúng cột",
+    "status": "OK",
+    "detail": "cursor.iso=2026-08-24T14:33:57.450Z · isoUpdated=2026-08-24T14:33:57.450Z · isoCreated=2026-08-24T14:33:57.437Z · drift=13ms · match_updated=true · match_created=false"
+  },
+  {
+    "group": "GQL/pagination",
+    "name": "QUYẾT ĐỊNH: conversations — 3 trang first=1 gộp bằng ĐÚNG 1 trang first=3 (không trùng · không thiếu · đúng thứ tự)",
+    "status": "OK",
+    "detail": "paged=3 unique=3 · big=3 · setEq=true"
+  },
+  {
+    "group": "GQL/pagination",
+    "name": "gửi tin giữa 2 trang: có thể thấy trùng (khoá mutable, ĐÚNG UX inbox — KHÔNG FAIL)",
+    "status": "OK",
+    "detail": "page1=cmt7c6vnh009ce0k1w2o2q9yh · page2=cmt7c6vn70098e0k1jkumq2di · overlap=no"
+  },
+  {
+    "group": "GQL/pagination",
+    "name": "QUYẾT ĐỊNH: messages — 4 trang first=2 gộp bằng ĐÚNG 1 trang first=8 (không trùng · không thiếu · đúng thứ tự)",
+    "status": "OK",
+    "detail": "paged=8 unique=8 · big=8 · setEq=true"
+  },
+  {
+    "group": "GQL/query",
+    "name": "search(PIN)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "search(USER)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "search(BOARD)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/search-fts",
+    "name": "search(\"design\") hai chiều CÙNG response: có pin_7 (khớp \"Design\" nguyên từ) · KHÔNG có pin_6 (chỉ khớp chuỗi con \"design\" trong \"Redesigning\")",
+    "status": "OK",
+    "detail": "pin_7: CÓ · pin_6: không có · items=pin_7_id,pin_5_id"
+  },
+  {
+    "group": "GQL/search-fts",
+    "name": "search(\"design\") khách vãng lai: 200 · không lỗi cú pháp `NOT IN ()` · cùng tập với đăng nhập (chưa block ai)",
+    "status": "OK",
+    "detail": "2 pin (đăng nhập trả 2, bằng nhau)"
+  },
+  {
+    "group": "GQL/search-fts",
+    "name": "COALESCE GUARD: search(\"xyzzynul\") khớp pin có description=NULL (bỏ coalesce khỏi 1 cột ⇒ NULL nuốt biểu thức, pin biến mất im lặng)",
+    "status": "OK",
+    "detail": "khớp đúng — coalesce đang bảo vệ cả 2 cột"
+  },
+  {
+    "group": "GQL/query",
+    "name": "notifications",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "unreadNotificationCount",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/query",
+    "name": "notifications (sau khi có event)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "markNotificationRead",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "markAllNotificationsRead",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "tiền đề: trước khi block, bao thấy đủ 4 pin của john (feed · userPins · search)",
+    "status": "OK",
+    "detail": "feed=21 pin (đủ 4 của john) · userPins(john)=4 · search(\"Sunset\")=pin_10_id"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "blockUser (bao → john)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "ĐỐI CHỨNG: search(\"Sunset\") của bao về 0 ⇒ bản ghi block đã nằm trong DB",
+    "status": "OK",
+    "detail": "trước block=pin_10_id · sau block=rỗng"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "exploreFeed của bao mất ĐÚNG 4 pin của john",
+    "status": "OK",
+    "detail": "21 → 17 pin (Δ=4)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "exploreFeed vẫn giữ pin của bao và của người không liên quan (không lọc quá tay)",
+    "status": "OK",
+    "detail": "pin của bao: 4/4 · pin_13_id (alice): còn"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "userPins(john) theo bao trả trang RỖNG và KHÔNG ném lỗi",
+    "status": "OK",
+    "detail": "4 → 0 pin, không lỗi"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "pin(pin_10_id) theo bao → NotFound (không lách được bằng link trực tiếp)",
+    "status": "OK",
+    "detail": "ném đúng: Pin not found"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "2 CHIỀU: exploreFeed của john cũng mất 4 pin của bao (người bị chặn)",
+    "status": "OK",
+    "detail": "16 pin, không còn pin nào của bao"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "2 CHIỀU: userPins(bao) theo john trả trang RỖNG",
+    "status": "OK",
+    "detail": "0 pin, không lỗi"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "2 CHIỀU: pin(pin_1_id) theo john → NotFound",
+    "status": "OK",
+    "detail": "ném đúng: Pin not found"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "relatedPins(pin_18) theo bao: mất pin của john, GIỮ pin của người khác (không lọc quá tay)",
+    "status": "OK",
+    "detail": "còn 5 pin [pin_19_id,pin_17_id,pin_16_id,pin_15_id,pin_14_id]"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "2 CHIỀU: relatedPins với PIN GỐC của người đã chặn mình ⇒ rỗng (không gợi ý vòng qua tag)",
+    "status": "OK",
+    "detail": "0 item (phải 0)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "khách vãng lai: exploreFeed vẫn 200 và KHÔNG mất pin nào (mảng rỗng ⇒ bỏ hẳn mệnh đề NOT IN)",
+    "status": "OK",
+    "detail": "21 pin (bằng đúng feed của bao trước khi block)"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "exploreFeed (đang block): số query bất biến theo kích thước trang",
+    "status": "OK",
+    "detail": "first=5 → 4 query · first=20 → 4 query (Δ=0)"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "memo: 1 query BlockedUser cho CẢ request (3 call-site chung một document)",
+    "status": "OK",
+    "detail": "1 query BlockedUser cho 3 call-site (không memo ⇒ 3)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 tiền đề: dựng được bình luận + trả lời + board của john để CÓ THỨ MÀ MẤT",
+    "status": "OK",
+    "detail": "comment=cmt7c6wje00a4e0k1vbchaeu5 · reply=cmt7c6wjv00a8e0k13k3j311c · board=cmt7c6wk200aae0k110m2xr4h"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 pinComments: bao KHÔNG thấy bình luận của john, VẪN thấy bình luận khác",
+    "status": "OK",
+    "detail": "1 bình luận, bình luận của john đã ẩn"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 pinComments ĐỐI CHỨNG: john vẫn đọc được bình luận của chính mình (không lọc quá tay)",
+    "status": "OK",
+    "detail": "john thấy 3 bình luận, có bình luận của mình"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 commentReplies: trả lời của john cũng bị ẩn với bao",
+    "status": "OK",
+    "detail": "0 trả lời, trả lời của john đã ẩn"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 userBoards(john) theo bao: trang RỖNG, KHÔNG ném lỗi (khớp hình dạng userPins)",
+    "status": "OK",
+    "detail": "0 board (phải 0)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 board(id) theo bao → NotFound (không lách được bằng link board trực tiếp)",
+    "status": "OK",
+    "detail": "ném đúng: Board not found"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 savedPins(john) theo bao: trang RỖNG, KHÔNG ném lỗi",
+    "status": "OK",
+    "detail": "0 dòng (phải 0)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 tin nhắn: hội thoại với john VẪN nằm trong hộp thư sau khi chặn (giữ lịch sử)",
+    "status": "OK",
+    "detail": "còn hội thoại cmt7c6vnh009ce0k1w2o2q9yh"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 tin nhắn: ĐỌC lại lịch sử với john vẫn được",
+    "status": "OK",
+    "detail": "đọc được 5 tin"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 tin nhắn: GỬI tin mới cho john bị chặn (Forbidden)",
+    "status": "OK",
+    "detail": "ném đúng: Cannot message this user (blocked)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 notifications: 0 thông báo có actor là john trong lúc chặn",
+    "status": "OK",
+    "detail": "0 thông báo của john (phải 0)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 unreadNotificationCount: đọc được và KHÔNG ném lỗi khi đang lọc",
+    "status": "OK",
+    "detail": "count=0"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "unblockUser (bao → john)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "sau unblock: cả 3 đường trở lại như trước (feed · userPins · pin)",
+    "status": "OK",
+    "detail": "feed=21 pin (đủ 4 của john) · userPins(john)=4 · pin(pin_10_id)=trả về dữ liệu"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 sau unblock: bình luận của john và thông báo của john hiện lại (lọc lúc ĐỌC, không xoá dữ liệu)",
+    "status": "OK",
+    "detail": "bình luận của john: hiện lại · thông báo của john: 0 (đang chặn) → 3 (đã bỏ chặn)"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "REVIEW-1 teardown: đã dọn sạch dữ liệu setup (lần chạy sau không đếm lệch)",
+    "status": "OK",
+    "detail": "không còn bản ghi mang marker r1probe"
+  },
+  {
+    "group": "GQL/blocking",
+    "name": "đã dựng lại mutual follow bao↔john mà blockUser xoá (tiền đề của lần chạy sau)",
+    "status": "OK",
+    "detail": "bao→john=true · john→bao=true"
+  },
+  {
+    "group": "GQL/social",
+    "name": "suggestedUsers loại đúng: không có chính mình, không có ai đã follow (đọc following cùng request)",
+    "status": "OK",
+    "detail": "gợi ý 2 người {bob_photographer,probeuser} · bao follow 3 người"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "bao ép source: FOLLOWING⇒source=FOLLOWING (có pin) · EXPLORE⇒source=EXPLORE (trùng exploreFeed) · bỏ source⇒vẫn FOLLOWING",
+    "status": "OK",
+    "detail": "ép FOLLOWING: source=FOLLOWING 12 pin · ép EXPLORE: source=EXPLORE 20 pin (trùng explore=true) · auto: source=FOLLOWING"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "§6b.1 QUYẾT ĐỊNH: probe (follow 0) ép FOLLOWING ⇒ 0 pin + source=FOLLOWING (KHÔNG fallback); ép EXPLORE & auto ⇒ EXPLORE có pin",
+    "status": "OK",
+    "detail": "probe follow 0 người · ép FOLLOWING → source=FOLLOWING 0 pin (phải 0 + FOLLOWING) · ép EXPLORE → source=EXPLORE 20 pin · auto → source=EXPLORE"
+  },
+  {
+    "group": "GQL/social",
+    "name": "trước block: isBlockedByViewer(john)=false và john KHÔNG có trong blockedUsers",
+    "status": "OK",
+    "detail": "isBlockedByViewer=false · blockedUsers=[]"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "blockUser (bao → john) [fe6]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/social",
+    "name": "sau block: isBlockedByViewer(john)=true · blockedUsers CÓ john · suggestedUsers KHÔNG có john (dù block vừa unfollow)",
+    "status": "OK",
+    "detail": "isBlockedByViewer=true · blockedUsers=[user_3_id] · john trong gợi ý? false (phải false — bị chặn thì không gợi ý)"
+  },
+  {
+    "group": "GQL/social",
+    "name": "MỘT chiều: bao chặn john ⇒ theo token JOHN, isBlockedByViewer(bao)=false (john chưa chặn ai)",
+    "status": "OK",
+    "detail": "john nhìn bao: isBlockedByViewer=false (phải false)"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "unblockUser (bao → john) [fe6]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/social",
+    "name": "sau unblock: isBlockedByViewer(john)=false và blockedUsers KHÔNG còn john",
+    "status": "OK",
+    "detail": "isBlockedByViewer=false · blockedUsers=[]"
+  },
+  {
+    "group": "GQL/social",
+    "name": "đã dựng lại mutual follow bao↔john mà blockUser xoá (tiền đề của bước 67 + lần chạy sau)",
+    "status": "OK",
+    "detail": "bao→john=true · john→bao=true"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "QUYẾT ĐỊNH: mọi creator của homeFeed nằm trong tập following, đọc trong CÙNG một request",
+    "status": "OK",
+    "detail": "source=FOLLOWING · 12 pin của 3 creator {alice_chef,john_traveler,jane_designer} · bao follow 3 người {john_traveler,alice_chef,jane_designer}"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "homeFeed không nhân bản pin (mỗi pin khớp đúng 1 dòng Follows của viewer)",
+    "status": "OK",
+    "detail": "12 pin, 12 id khác nhau"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "ĐỐI CHỨNG: homeFeed là tập con THỰC SỰ của exploreFeed (lọc thật, không phải explore đổi tên)",
+    "status": "OK",
+    "detail": "homeFeed=12 pin · exploreFeed=21 pin · explore có mà home không có: 9 pin"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "cursor KHÔNG xuyên nguồn: gộp các trang first=3 bằng ĐÚNG tập đầy đủ, không trùng · không thiếu · source không đổi",
+    "status": "OK",
+    "detail": "4 trang [3+3+3+3] = 12 pin · tập đầy đủ 12 pin · source {FOLLOWING}"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "homeFeed: số query bất biến theo kích thước trang",
+    "status": "OK",
+    "detail": "first=2 → 9 query · first=8 → 9 query (Δ=0)"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "nhánh EXPLORE: user probe (follow 0 người) ⇒ source=EXPLORE và tập id TRÙNG KHỚP exploreFeed cùng lúc",
+    "status": "OK",
+    "detail": "probe follow 0 người · source=EXPLORE · homeFeed=21 pin · exploreFeed=21 pin · trùng khớp theo đúng thứ tự: true"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "KHÔNG token ⇒ homeFeed bị từ chối (GqlAuthGuard bắt buộc, khác 3 query public còn lại)",
+    "status": "OK",
+    "detail": "ném đúng: Unauthorized"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "blockUser (bao → john) [homefeed]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "block một người ĐANG follow ⇒ pin của họ biến mất khỏi homeFeed, pin người khác còn nguyên",
+    "status": "OK",
+    "detail": "12 → 8 pin (Δ=4, john có 4 pin trong feed)"
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "sau block: bất biến \"creator ⊆ following\" vẫn đúng với tập following đã thu nhỏ",
+    "status": "OK",
+    "detail": "source=FOLLOWING · bao follow 3 → 2 người {alice_chef,jane_designer} · 8 pin"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "unblockUser (bao → john) [homefeed]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/homefeed",
+    "name": "sau unblock + dựng lại follow: homeFeed trở lại đúng tập cũ, và mutual follow bao↔john đã khôi phục",
+    "status": "OK",
+    "detail": "bao→john=true · john→bao=true · homeFeed 12 → 8 → 12 pin · source=FOLLOWING"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "query `categories` trả đủ 12 danh mục biên tập, đúng bộ slug (khoá ổn định qua re-seed)",
+    "status": "OK",
+    "detail": "12 category · slug: architecture,art-illustration,diy-crafts,education,fashion,fitness-health,food-drink,home-decor,nature,photography,technology,travel"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "QUYẾT ĐỊNH: Pin.tags khớp ĐÚNG TỪNG PIN với bản đồ seed — 20 pin, cả nhánh có tag lẫn nhánh rỗng trong CÙNG một response",
+    "status": "OK",
+    "detail": "20/20 pin seed · 43 cặp pin↔tag · 18 pin có tag · 2 pin RỖNG (pin_20_id,pin_10_id)"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "Pin.categories khớp ĐÚNG TỪNG PIN, và hai loader độc lập nhau (pin_10 = 0 tag/1 category, pin_19 = 2 tag/0 category)",
+    "status": "OK",
+    "detail": "16 pin có category · 4 pin rỗng · pin_10=(0 tag,1 cat) pin_19=(2 tag,0 cat)"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "chuẩn hoá tag: createPin([\"Design\",\" design \",\"DESIGN\"]) ⇒ pin có ĐÚNG 1 tag `design` (không phải 3)",
+    "status": "OK",
+    "detail": "1 tag [design] · category [travel]"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "dùng lại tag đã có (pin khác, user khác, viết HOA) ⇒ KHÔNG sinh dòng Tag thứ hai — cùng một Tag.id, và tags(query:\"design\") trả đúng 1 bản ghi",
+    "status": "OK",
+    "detail": "pinA.tag.id=cmt7biamd00anz4jeac0u6k34 · pinB.tag.id=cmt7biamd00anz4jeac0u6k34 · trùng=true · tags(query:\"design\") = 1 bản ghi [design]"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "11 tag ⇒ BỊ TỪ CHỐI ở tầng validation (trần 10), và KHÔNG tạo pin nào",
+    "status": "OK",
+    "detail": "ném đúng: tagNames must contain no more than 10 elements"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "4 categoryId ⇒ BỊ TỪ CHỐI ở tầng validation (trần 3), và KHÔNG tạo pin nào",
+    "status": "OK",
+    "detail": "ném đúng: categoryIds must contain no more than 3 elements"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "categoryId không tồn tại ⇒ 400 nghiệp vụ \"Unknown categoryId\" (KHÔNG phải 500 / P2025 lọt ra ngoài)",
+    "status": "OK",
+    "detail": "code=BAD_REQUEST · ném đúng: Unknown categoryId: khong-ton-tai"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "updatePin trạng thái 1/3 — KHÔNG gửi tagNames ⇒ tag GIỮ NGUYÊN (sửa tiêu đề không được xoá tag)",
+    "status": "OK",
+    "detail": "tag [design] · category [travel]"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "updatePin trạng thái 2/3 — gửi [\"Alpha\",\" BETA \"] ⇒ THAY THẾ TOÀN BỘ (design biến mất), đã chuẩn hoá, category KHÔNG bị đụng",
+    "status": "OK",
+    "detail": "tag [alpha,beta] · category [travel]"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "updatePin trạng thái 3/3 — gửi [] ⇒ XOÁ HẾT tag, category vẫn còn nguyên (phân biệt được [] với không-gửi)",
+    "status": "OK",
+    "detail": "tag [] (0) · category [travel]"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "updatePin: categoryIds:[] ⇒ xoá hết category (quy ước ba trạng thái áp dụng cho CẢ HAI quan hệ, không riêng tag)",
+    "status": "OK",
+    "detail": "category [] (0)"
+  },
+  {
+    "group": "GQL/perf",
+    "name": "exploreFeed + tags + categories: số query bất biến theo kích thước trang",
+    "status": "OK",
+    "detail": "first=5 → 10 query · first=20 → 10 query (Δ=0)"
+  },
+  {
+    "group": "GQL/taxonomy",
+    "name": "đã xoá 2 pin do bước này tạo (giữ exploreFeed đúng kích thước cho lần chạy sau + tiết kiệm trần 20 pin/ngày)",
+    "status": "OK",
+    "detail": "đã xoá cmt7c6xmg00aze0k1r1i3281m, cmt7c6xn900b2e0k16ai159ay"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "DÂY BẪY: bộ đếm sai-mật-khẩu của bao (do 00-auth.mjs:42 tạo ra) không tích luỹ qua các lần chạy",
+    "status": "OK",
+    "detail": "login:fail:9ed661da6352f8cfc232aeca3bdbd513 = (không có) · ngưỡng khoá = 5. Đúng: `00-auth.mjs:21` login THÀNH CÔNG chạy trước `:42` nên bộ đếm bị xoá mỗi lần chạy."
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "đăng ký tài khoản dùng-một-lần bf_<uniq>@example.com (KHÔNG dùng bao/alice/john — xem đầu file)",
+    "status": "OK",
+    "detail": "bf_mt7c69t1@example.com → 201, có accessToken"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "tiền đề: tài khoản mới đăng nhập ĐƯỢC (chưa có khoá nào) — không có phép này thì mọi 403 bên dưới vô nghĩa",
+    "status": "OK",
+    "detail": "200 {\"accessToken\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjbXQ3YzZ5Nm4wMGI"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "4 lần sai đầu ⇒ 401 \"Invalid credentials\" (CHƯA khoá — biên dưới của ngưỡng)",
+    "status": "OK",
+    "detail": "#1=401 #2=401 #3=401 #4=401 · thân cuối: {\"message\":\"Invalid credentials\",\"error\":\"Unauthorized\",\"statusCode\":401}"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "lần sai thứ 5 ⇒ 403 \"Too many failed attempts\" (biên trên của ngưỡng, và là lần ĐẶT khoá)",
+    "status": "OK",
+    "detail": "403 {\"message\":\"Too many failed attempts. Account temporarily locked.\",\"error\":\"Forbidden\",\"statusCode\":403}"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "khoá `login:lock:<sha256(email)[0:32]>` tồn tại THẬT trong Redis và có TTL dương (lỗi (a): Map không có hạn)",
+    "status": "OK",
+    "detail": "login:lock:753a97ece373317f3825d7395ce78404 · TTL = 900 (chờ 0 < TTL ≤ 900) · -2 = không có khoá · -1 = có khoá NHƯNG VĨNH VIỄN, chính là lỗi (a)"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "bộ đếm `login:fail:<…>` bị XOÁ ngay lúc khoá (lỗi (b): hết khoá là đếm lại từ 0, không khoá tiếp 900s)",
+    "status": "OK",
+    "detail": "login:fail:753a97ece373317f3825d7395ce78404 · EXISTS = 0 — bộ đếm khởi động lại sạch sau khi khoá hết hạn"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "lần sai thứ 6 ⇒ 403 nhánh ĐỌC khoá, kèm số giây còn lại (khác thông điệp nhánh GHI)",
+    "status": "OK",
+    "detail": "403 {\"message\":\"Account temporarily locked. Try again in 900s.\",\"error\":\"Forbidden\",\"statusCode\":403}"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "đang bị khoá thì MẬT KHẨU ĐÚNG cũng bị từ chối 403 (khoá chặn TRƯỚC khi so mật khẩu)",
+    "status": "OK",
+    "detail": "403 {\"message\":\"Account temporarily locked. Try again in 900s.\",\"error\":\"Forbidden\",\"statusCode\":403}"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "email KHÔNG TỒN TẠI cũng bị đếm, và bộ đếm của nó CÓ HẠN (lỗi (a): Map giữ vĩnh viễn)",
+    "status": "OK",
+    "detail": "login → 401 · login:fail:5364f99c9cde4e0d3e57d96c7403f9bb = 1 · TTL = 900 (chờ 0 < TTL ≤ 900; -1 = vĩnh viễn = lỗi (a))"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "QUYẾT ĐỊNH: DEL khoá trong Redis ⇒ login lại được NGAY, KHÔNG restart API (nguồn sự thật là Redis, không phải bộ nhớ tiến trình)",
+    "status": "OK",
+    "detail": "DEL xoá 1 khoá · login ngay sau đó → 200 (có accessToken)"
+  },
+  {
+    "group": "REST/bruteforce",
+    "name": "đã dọn: 4 khoá Redis của bước này + tài khoản dùng-một-lần (khoá `login:*` SỐNG SÓT qua restart nên không dọn là tích tụ)",
+    "status": "OK",
+    "detail": "còn sót 0/4 khoá · deleteAccount ok"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "không gửi token → socket phải bị đóng",
+    "status": "OK",
+    "detail": "đóng đúng (code 4403)"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "token rác → socket phải bị đóng",
+    "status": "OK",
+    "detail": "đóng đúng (code 4403)"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "token hợp lệ → connection_ack",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "nhận được notification qua WS",
+    "status": "OK",
+    "detail": "type=FOLLOW actor=bao_developer"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "notification gửi đúng người nhận (filter)",
+    "status": "OK",
+    "detail": "recipientId=user_4_id (alice=user_4_id)"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "john KHÔNG nhận notification của alice",
+    "status": "OK",
+    "detail": "không nhận gì (đúng)"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "nhận được message qua WS",
+    "status": "OK",
+    "detail": "content=\"ws probe 1787582056028\" sender=user_1_id"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "message đúng cái vừa gửi",
+    "status": "OK",
+    "detail": "id nhận=cmt7c7a0600bje0k184qdgyn2 id gửi=cmt7c7a0600bje0k184qdgyn2"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "john bị chặn khỏi hội thoại của bao↔alice",
+    "status": "OK",
+    "detail": "server từ chối lúc subscribe: next {\"errors\":[{\"message\":\"Not a member of this conversation\",\"locations\":[{\"line\":1,\"column\":27}],\"path\":[\"messageReceived\"]}]}"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "notificationReceived CHỌN createdAt → có data (không lỗi serialize)",
+    "status": "OK",
+    "detail": "createdAt=2026-08-24T14:34:22.515Z"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "createdAt qua WS === createdAt qua HTTP (cùng notification)",
+    "status": "OK",
+    "detail": "ws=2026-08-24T14:34:22.515Z http=2026-08-24T14:34:22.515Z"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "messageReceived CHỌN createdAt → có data (cùng bệnh, cùng bản vá)",
+    "status": "OK",
+    "detail": "createdAt=2026-08-24T14:34:23.861Z"
+  },
+  {
+    "group": "GQL/subscription",
+    "name": "createdAt qua WS === createdAt qua HTTP (cùng message)",
+    "status": "OK",
+    "detail": "ws=2026-08-24T14:34:23.861Z http=2026-08-24T14:34:23.861Z"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "đăng ký tài khoản throwaway cho B-7",
+    "status": "OK",
+    "detail": "201"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "tài khoản mới: isOnboarded=false và chưa có category nào (nhánh đỏ tự nhiên)",
+    "status": "OK",
+    "detail": "isOnboarded=false · categories=[]"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "updateMyCategories 3 slug: slug ĐÃ gửi có mặt VÀ slug KHÔNG gửi vắng mặt (cùng một response)",
+    "status": "OK",
+    "detail": "gửi [architecture,art-illustration,diy-crafts] · đọc lại [architecture,art-illustration,diy-crafts] · 9 slug không gửi: 0 cái lọt vào (phải 0)"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "gọi lần 2 với bộ slug khác ⇒ bộ CŨ biến mất hoàn toàn (semantics THAY-THẾ, không cộng dồn)",
+    "status": "OK",
+    "detail": "bộ 1 [architecture,art-illustration,diy-crafts] → bộ 2 [fitness-health,food-drink,home-decor,nature] · đọc lại [fitness-health,food-drink,home-decor,nature] (cộng dồn sẽ ra 7 slug)"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "updateMyCategories 2 slug ⇒ ném ĐÚNG NGUYÊN VĂN \"You must select at least 3 categories.\"",
+    "status": "OK",
+    "detail": "nhận: \"You must select at least 3 categories.\""
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "updateMyCategories có slug rác ⇒ ném ĐÚNG NGUYÊN VĂN \"Some category slugs do not exist.\"",
+    "status": "OK",
+    "detail": "nhận: \"Some category slugs do not exist.\""
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "ba slug TRÙNG NHAU vẫn bị chặn (chuẩn hoá trước khi đếm, không đếm thô)",
+    "status": "OK",
+    "detail": "nhận: \"You must select at least 3 categories.\""
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "ba lời gọi lỗi KHÔNG làm thay đổi danh sách category đang có",
+    "status": "OK",
+    "detail": "trước [fitness-health,food-drink,home-decor,nature] · sau [fitness-health,food-drink,home-decor,nature]"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "completeOnboarding: false → true, và gọi lần 2 vẫn true KHÔNG lỗi (idempotent)",
+    "status": "OK",
+    "detail": "trước=false · lần1=true · lần2=true · đọc lại=true"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "updateMyCategories KHÔNG token ⇒ Unauthorized (guard bắt buộc, khách không có \"sở thích\")",
+    "status": "OK",
+    "detail": "ném đúng: Unauthorized"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "completeOnboarding KHÔNG token ⇒ Unauthorized (guard bắt buộc, khách không có \"sở thích\")",
+    "status": "OK",
+    "detail": "ném đúng: Unauthorized"
+  },
+  {
+    "group": "GQL/onboarding",
+    "name": "tài khoản seed (bao) có isOnboarded=true ⇒ không bị guard FE lùa vào onboarding",
+    "status": "OK",
+    "detail": "bao.isOnboarded=true"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "tiền đề: alice follow bob (seed) + john không",
+    "status": "OK",
+    "detail": "followers(bob)=user_4_id — seed đổi thì sửa header bước này"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "exploreFeed (guest) đúng tập 6 pin fixture",
+    "status": "OK",
+    "detail": "thấy {xh_pin_public} ≠ kỳ vọng {xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "exploreFeed (bao) đúng tập 6 pin fixture",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle, xh_pin_circle2, xh_pin_onlyme, xh_pin_public} ≠ kỳ vọng {xh_pin_circle, xh_pin_circle2, xh_pin_onlyme, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "exploreFeed (alice) đúng tập 6 pin fixture",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle, xh_pin_followers, xh_pin_public} ≠ kỳ vọng {xh_pin_circle, xh_pin_followers, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "exploreFeed (john) đúng tập 6 pin fixture",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle2, xh_pin_public} ≠ kỳ vọng {xh_pin_circle2, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "homeFeed FOLLOWING (alice): pub+followers+circle, KHÔNG onlyme/expired",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle, xh_pin_followers, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "homeFeed FOLLOWING (john): follow bao nhưng KHÔNG thấy pin vòng người khác",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle2, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "userPins(bao) dưới mắt guest",
+    "status": "OK",
+    "detail": "thấy {xh_pin_public} ≠ {xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "userPins(bao) dưới mắt bao",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle, xh_pin_circle2, xh_pin_onlyme, xh_pin_public} ≠ {xh_pin_circle, xh_pin_circle2, xh_pin_onlyme, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "userPins(bao) dưới mắt alice",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle, xh_pin_public} ≠ {xh_pin_circle, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "userPins(bao) dưới mắt john",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle2, xh_pin_public} ≠ {xh_pin_circle2, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "keyset bất biến: userPins first:2 đi hết trang == first:50 (alice)",
+    "status": "OK",
+    "detail": "từng-trang {xh_pin_circle, xh_pin_public} ≠ một-lần {xh_pin_circle, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pin(circle) — alice trong vòng đọc được",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pin(circle) — john ngoài vòng ăn 404",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pin(circle) — khách vãng lai ăn 404 (fail-closed)",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pin(onlyme) — alice ăn 404",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pin(expired) — CHÍNH CHỦ mở được từ kho qua link",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pin(expired) — alice ăn 404 (hết hạn = biến mất)",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "search \"xhviz\" (alice) — cùng tập với feed",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle, xh_pin_followers, xh_pin_public} ≠ {xh_pin_circle, xh_pin_followers, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "search \"xhviz\" (john) — cùng tập với feed",
+    "status": "OK",
+    "detail": "thấy {xh_pin_circle2, xh_pin_public} ≠ {xh_pin_circle2, xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "search \"xhviz\" (guest) — cùng tập với feed",
+    "status": "OK",
+    "detail": "thấy {xh_pin_public} ≠ {xh_pin_public}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "relatedPins(public): alice thấy pin vòng (tag chung), john thì không",
+    "status": "OK",
+    "detail": "alice={xh_pin_circle} john={}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "savePin(circle) không-board — chặn (luật §4.6, cửa sau boardId=null)",
+    "status": "EXPECTED",
+    "detail": "Restricted pins can only be saved to your own secret board"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "savePin(circle) vào board CÔNG KHAI của alice — chặn",
+    "status": "EXPECTED",
+    "detail": "Restricted pins can only be saved to your own secret board"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "savePin(circle) vào board BÍ MẬT của alice — được",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "savePin(circle) — john nhận 404 \"Pin not found\", KHÔNG lộ thông điệp rào chắn",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "bao lưu pin vòng vào board bí mật CỦA MÌNH — được (XH-QĐ-4)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "bao LẬT board bí mật → công khai (isSecret sửa được là sự thật, không phải bug)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "boardPins sau khi lật: alice (trong vòng) thấy pin, john KHÔNG — lọc lúc đọc thắng rào chắn",
+    "status": "OK",
+    "detail": "alice={xh_pin_circle} john={}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "coverPin của board lật: alice thấy, john thấy null (bịt đường rò qua ảnh bìa)",
+    "status": "OK",
+    "detail": "alice=xh_pin_circle john=null"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "savedPins(bao) dưới mắt john: pin vòng không lộ qua đường đã-lưu",
+    "status": "OK",
+    "detail": "john thấy {pin_5_id}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "createComment lên pin vòng — alice (trong vòng) được",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "createComment lên pin vòng — john ăn 404, không phải lỗi khác",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pinComments(pin vòng) — alice đọc được thread",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "pinComments(pin vòng) — john ăn 404 cả thread",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "togglePinReaction(pin vòng) — john ăn 404",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "trackPinView(pin vòng) — john ăn 404 (không bơm được số liệu)",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "unreadNotificationCount(john): +0 cho notification pin-ngoài-khán-giả, +1 cho pin-trong",
+    "status": "OK",
+    "detail": "before=16 sauẨn=16 sauHiện=17"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "notifications(john): danh sách chứa pin vòng-john, KHÔNG chứa pin vòng-alice",
+    "status": "OK",
+    "detail": "refs={xh_pin_circle2}"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "bao gửi DM kèm pin vòng-john (john trong khán giả)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "bao gửi DM kèm pin vòng-alice (john NGOÀI khán giả)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "john gửi DM kèm pin vòng-alice — 404 từ cửa gửi",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "gửi DM kèm pinId rác — 404 sạch, không nổ P2003/500",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "getMessages(john): pin trong khán giả hiện, pin ngoài khán giả = null mà TIN VẪN CÒN",
+    "status": "OK",
+    "detail": "trong=xh_pin_circle2 ngoài=null"
+  },
+  {
+    "group": "GQL/visibility",
+    "name": "getMessages(bao): CHÍNH CHỦ pin vẫn thấy ảnh mình đính kèm",
+    "status": "OK",
+    "detail": "bao thấy=xh_pin_circle"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "dọn đầu bước: 0 Circle, 0 CircleMember, 0 tài khoản độn",
+    "status": "OK",
+    "detail": "còn sót state của lần chạy trước"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "createCircle (bao) — vòng đặt tên, rank 1, 1 thành viên",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "createCircle trả đúng hình dạng: isAdHoc=false, rank=1, memberCount=1, members=[alice]",
+    "status": "OK",
+    "detail": "{\"id\":\"cmt7c7krt00cge0k189h8528t\",\"name\":\"xhb vòng thân\",\"rank\":1,\"isAdHoc\":false,\"memberCount\":1,\"members\":[{\"id\":\"user_4_id\"}]}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "myCircles: bao thấy vòng của mình, john KHÔNG thấy nó trong danh sách của john",
+    "status": "OK",
+    "detail": "bao={cmt7c7krt00cge0k189h8528t} john={}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "members KHÔNG rò email của người khác (Prisma trả nguyên cột, resolver phải cắt)",
+    "status": "OK",
+    "detail": "alice.email=null (phải null)"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "circle(id) — chính chủ đọc được",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "circle(id) — john ăn 404 \"Circle not found\", không phải 403",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "circle(id) rác — cùng thông điệp 404 (không phân biệt được với vòng người khác)",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "myCircles không token → 401 (không có bản Optional cho dữ liệu quản lý)",
+    "status": "EXPECTED",
+    "detail": "Unauthorized"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "updateCircle vòng của bao — john ăn 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "addCircleMembers vòng của bao — john ăn 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "removeCircleMember vòng của bao — john ăn 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "deleteCircle vòng của bao — john ăn 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "sau 4 thao tác 404 của john: vòng của bao CÒN NGUYÊN (404 là từ chối, không phải xoá xong mới báo lỗi)",
+    "status": "OK",
+    "detail": "circle={\"id\":\"cmt7c7krt00cge0k189h8528t\",\"name\":\"xhb vòng thân\",\"rank\":1,\"isAdHoc\":false,\"memberCount\":1,\"members\":[{\"id\":\"user_4_id\"}]}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "updateCircle (bao) — đổi tên, KHÔNG gửi rank ⇒ rank giữ nguyên",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "không gửi rank ⇒ GIỮ rank cũ (1), tên đã đổi",
+    "status": "OK",
+    "detail": "rank=1 name=xhb vòng thân v2"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "updateCircle (bao) — gửi rank:null ⇒ XOÁ rank (vòng thành \"tự đặt tên\")",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "gửi rank:null ⇒ rank = null",
+    "status": "OK",
+    "detail": "rank=null"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "addCircleMembers (bao) — thêm john",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "sau thêm: memberCount = 2 (alice + john)",
+    "status": "OK",
+    "detail": "{\"id\":\"cmt7c7krt00cge0k189h8528t\",\"memberCount\":2,\"members\":[{\"id\":\"user_4_id\"},{\"id\":\"user_3_id\"}]}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "addCircleMembers (bao) — thêm LẠI john (thao tác lặp)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "thêm người đã có mặt KHÔNG lỗi và KHÔNG nhân đôi: memberCount vẫn 2",
+    "status": "OK",
+    "detail": "memberCount=2"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "addCircleMembers — tự thêm CHÍNH MÌNH bị chặn",
+    "status": "EXPECTED",
+    "detail": "You are always the owner of your circle; do not add yourself."
+  },
+  {
+    "group": "GQL/circles",
+    "name": "addCircleMembers — userId RÁC trả 400 sạch, KHÔNG nổ P2003/500",
+    "status": "EXPECTED",
+    "detail": "Unknown userId: xhb_nguoi_khong_co"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "removeCircleMember (bao) — bớt alice",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "sau bớt: memberCount = 1, alice không còn trong danh sách",
+    "status": "OK",
+    "detail": "{\"id\":\"cmt7c7krt00cge0k189h8528t\",\"memberCount\":1,\"members\":[{\"id\":\"user_3_id\"}]}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "removeCircleMember — bớt người vốn KHÔNG ở trong vòng: không lỗi (mô tả trạng thái, không phải sự kiện)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "bớt lặp lại vẫn memberCount = 1",
+    "status": "OK",
+    "detail": "memberCount=1"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "duplicateCircle (bao) — \"để không phải tick lại 20 người\"",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "bản sao: id KHÁC, tên mới, cùng tập thành viên, luôn là vòng đặt tên",
+    "status": "OK",
+    "detail": "sao={\"id\":\"cmt7c7kvh00cie0k1lnsi2hy4\",\"name\":\"xhb bản sao\",\"rank\":3,\"isAdHoc\":false,\"memberCount\":1,\"members\":[{\"id\":\"user_3_id\"}]} nguồn={\"id\":\"cmt7c7krt00cge0k189h8528t\",\"name\":\"xhb vòng thân v2\",\"rank\":null,\"isAdHoc\":false,\"memberCount\":1,\"members\":[{\"id\":\"user_3_id\"}]}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "duplicateCircle từ vòng của NGƯỜI KHÁC — 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "myCircles: vòng CÓ level lên trước (rank tăng dần), vòng tự đặt tên xuống cuối — không cần bảng thứ hai cho \"level\"",
+    "status": "OK",
+    "detail": "ranks=[3, 5, , ]"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "cùng một danh sách chứa CẢ vòng có rank lẫn vòng rank null (hai nhánh trong một response)",
+    "status": "OK",
+    "detail": "có-rank=2 không-rank=2"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "createAdHocCircle (bao) — khán giả chọn tại chỗ [alice, john]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "vòng ad-hoc: isAdHoc=true, tên rỗng (nhãn là việc của FE, DB không chứa bản dịch)",
+    "status": "OK",
+    "detail": "{\"id\":\"cmt7c7kwk00coe0k1cuc1ezxk\",\"name\":\"\",\"isAdHoc\":true,\"memberCount\":2,\"members\":[{\"id\":\"user_4_id\"},{\"id\":\"user_3_id\"}]}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "createAdHocCircle (bao) — CÙNG tập người, ĐẢO thứ tự [john, alice]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "memberHash TÁI DÙNG: cùng tập người (khác thứ tự) ⇒ ĐÚNG MỘT vòng, không đẻ bản thứ hai",
+    "status": "OK",
+    "detail": "lần 1=cmt7c7kwk00coe0k1cuc1ezxk lần 2=cmt7c7kwk00coe0k1cuc1ezxk — khác nhau nghĩa là hash không sort trước khi băm"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "createAdHocCircle (bao) — gửi id LẶP [alice, alice, john]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "khử trùng trước khi băm: id lặp vẫn ra đúng vòng cũ",
+    "status": "OK",
+    "detail": "id=cmt7c7kwk00coe0k1cuc1ezxk"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "createAdHocCircle (alice) — tập người khác chủ ⇒ vòng RIÊNG của alice",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "unique là (ownerId, memberHash): vòng ad-hoc của alice KHÔNG đụng vòng của bao",
+    "status": "OK",
+    "detail": "alice=cmt7c7kx900cqe0k1nh6z8f9v bao=cmt7c7kwk00coe0k1cuc1ezxk"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "myCircles mặc định ẨN vòng ad-hoc; includeAdHoc:true mới hiện — hai nhánh, cùng một query",
+    "status": "OK",
+    "detail": "ẩn={cmt7c7krt00cge0k189h8528t, cmt7c7kvh00cie0k1lnsi2hy4, cmt7c7kvx00cke0k1u5ypjtsr, cmt7c7kw300cme0k1uwrwcu8n} hiện={cmt7c7krt00cge0k189h8528t, cmt7c7kvh00cie0k1lnsi2hy4, cmt7c7kvx00cke0k1u5ypjtsr, cmt7c7kw300cme0k1uwrwcu8n, cmt7c7kwk00coe0k1cuc1ezxk}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "updateCircle lên vòng ad-hoc — chặn (memberHash chỉ đúng khi tập thành viên đứng yên)",
+    "status": "EXPECTED",
+    "detail": "This is an ad-hoc audience. Save it with a name first, then edit it."
+  },
+  {
+    "group": "GQL/circles",
+    "name": "addCircleMembers lên vòng ad-hoc — chặn",
+    "status": "EXPECTED",
+    "detail": "This is an ad-hoc audience. Save it with a name first, then edit it."
+  },
+  {
+    "group": "GQL/circles",
+    "name": "saveAdHocCircle (bao) — đặt tên ⇒ thành vòng bình thường",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "lưu vòng ad-hoc: CÙNG id (pin đã ghim giữ nguyên khán giả), isAdHoc=false, có tên + rank",
+    "status": "OK",
+    "detail": "{\"id\":\"cmt7c7kwk00coe0k1cuc1ezxk\",\"name\":\"xhb đã lưu\",\"rank\":2,\"isAdHoc\":false,\"memberCount\":2}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "sau khi lưu: vòng XUẤT HIỆN ở màn quản lý",
+    "status": "OK",
+    "detail": "{cmt7c7krt00cge0k189h8528t, cmt7c7kvh00cie0k1lnsi2hy4, cmt7c7kvx00cke0k1u5ypjtsr, cmt7c7kw300cme0k1uwrwcu8n, cmt7c7kwk00coe0k1cuc1ezxk}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "saveAdHocCircle lần hai — chặn (vòng đã lưu rồi)",
+    "status": "EXPECTED",
+    "detail": "This circle is already saved."
+  },
+  {
+    "group": "GQL/circles",
+    "name": "saveAdHocCircle vòng của người khác — 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "createAdHocCircle lại đúng tập [alice, john] SAU khi đã lưu",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "lưu vòng xoá memberHash ⇒ vòng ad-hoc mới KHÔNG nuốt vòng đã đặt tên của người dùng",
+    "status": "OK",
+    "detail": "mới=cmt7c7kyx00cse0k11fho7cvs đã-lưu=cmt7c7kwk00coe0k1cuc1ezxk"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "circleMemberSuggestions (bao) — cho vòng đang sửa",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles",
+    "name": "gợi ý loại đúng: không có chính mình, không có thành viên hiện có, không trùng nhau",
+    "status": "OK",
+    "detail": "gợi ý={cmt7c69zz000ae0k1mqd70e31, user_2_id, user_4_id, user_5_id} thành viên hiện có={user_3_id}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "gợi ý KHÔNG rò email",
+    "status": "OK",
+    "detail": "[null,null,null,null]"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "circleMemberSuggestions không kèm circleId: dành cho vòng sắp lập ⇒ KHÔNG loại thành viên của vòng khác",
+    "status": "OK",
+    "detail": "không-vòng={cmt7c69zz000ae0k1mqd70e31, user_2_id, user_3_id, user_4_id, user_5_id} thành viên={user_3_id}"
+  },
+  {
+    "group": "GQL/circles",
+    "name": "circleMemberSuggestions cho vòng của NGƯỜI KHÁC — 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "createCircle (bao) — vòng cho phép XH-QĐ-3, thành viên: john",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "john (thành viên) mở pin CIRCLE qua URL thẳng — được",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "john lưu pin vào board BÍ MẬT của chính mình — được (XH-QĐ-4)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "TRƯỚC khi bị bớt: pin có mặt ở board đã lưu + savedPins + exploreFeed của john",
+    "status": "OK",
+    "detail": "board=true saved=true explore=true"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "bao bớt john khỏi vòng (XH-QĐ-3)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "sau removeCircleMember: vòng còn 0 thành viên",
+    "status": "OK",
+    "detail": "memberCount=0"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "URL THẲNG sau khi bị bớt — john ăn 404 \"Pin not found\", KHÔNG phải 403",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "HỒI TỐ: pin biến mất khỏi BOARD ĐÃ LƯU của john (bộ lọc lúc đọc thắng cả pin đã nằm trong board)",
+    "status": "OK",
+    "detail": "boardPins vẫn còn: {}"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "HỒI TỐ: pin biến mất khỏi savedPins của john",
+    "status": "OK",
+    "detail": "{pin_10_id, pin_9_id}"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "HỒI TỐ: pin biến mất khỏi exploreFeed của john",
+    "status": "OK",
+    "detail": "{cmt7c6j900011e0k1axmhxcf8, pin_10_id, pin_11_id, pin_12_id, pin_13_id, pin_14_id, pin_15_id, pin_16_id, pin_17_id, pin_18_id, pin_19_id, pin_1_id, pin_20_id, pin_2_id, pin_3_id, pin_4_id, pin_5_id, pin_6_id, pin_7_id, pin_8_id, pin_9_id, xh_pin_public}"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "IM LẶNG: john KHÔNG nhận thông báo nào về việc bị bớt khỏi vòng (số chưa đọc + số thông báo đứng yên)",
+    "status": "OK",
+    "detail": "chưa đọc 16 → 16; danh sách 16 → 16"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "bao (chủ pin) vẫn mở được pin của mình sau khi vòng rỗng",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "dòng SavedPin của john VẪN CÒN trong DB — pin biến mất vì BỘ LỌC lúc đọc, không phải vì xoá dữ liệu của người khác",
+    "status": "OK",
+    "detail": "SavedPin(john, pin) = 1 dòng (phải 1)"
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "bao thêm john trở lại vòng",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "sau khi được thêm lại: john mở pin qua URL thẳng — ĐƯỢC (chứng minh cơ chế là lọc, không phải xoá)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-qd3",
+    "name": "sau khi được thêm lại: pin HIỆN LẠI đúng chỗ cũ trong board đã lưu",
+    "status": "OK",
+    "detail": "board=true saved=true"
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "tiền đề trần: john đang có đúng 20 vòng",
+    "status": "OK",
+    "detail": "đang có 20"
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "vòng thứ 21 — chặn",
+    "status": "EXPECTED",
+    "detail": "You can only have up to 20 circles (ad-hoc audiences included)."
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "nhân bản khi đã đủ 20 — cũng chặn (không có cửa sau qua duplicate)",
+    "status": "EXPECTED",
+    "detail": "You can only have up to 20 circles (ad-hoc audiences included)."
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "vòng AD-HOC khi đã đủ 20 — cũng chặn: trần ĐẾM CẢ ad-hoc (XH-QĐ-13)",
+    "status": "EXPECTED",
+    "detail": "You can only have up to 20 circles (ad-hoc audiences included)."
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "alice tạo vòng đúng 50 thành viên — được",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "vòng 50 người: memberCount = 50",
+    "status": "OK",
+    "detail": "memberCount=50"
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "thêm người thứ 51 vào vòng đã đủ 50 — chặn (trần tính trên TỔNG sau khi thêm)",
+    "status": "EXPECTED",
+    "detail": "A circle can hold up to 50 members."
+  },
+  {
+    "group": "GQL/circles-limits",
+    "name": "gửi thẳng 51 id trong MỘT lô — chặn ngay ở tầng validation",
+    "status": "EXPECTED",
+    "detail": "userIds must contain no more than 50 elements"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "dọn state sống lâu Ở ĐẦU BƯỚC (pin xh74* + xoá SẠCH Circle/CircleMember)",
+    "status": "OK",
+    "detail": "pin=0 circle=29"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "tiền đề: CẢ alice VÀ john đều theo dõi bao",
+    "status": "OK",
+    "detail": "followers(bao)=user_2_id,user_4_id,user_5_id,user_3_id — cần cả hai để chứng minh \"thành viên vòng ≠ follower\""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "createPin PUBLIC (mặc định — không gửi visibility)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "createPin FOLLOWERS",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "createPin CIRCLE — khán giả ad-hoc [alice]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "createPin ONLY_ME",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "không gửi visibility ⇒ PUBLIC, và PUBLIC không ghim vòng nào",
+    "status": "OK",
+    "detail": "visibility=PUBLIC audienceCircleId=null"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "CIRCLE ad-hoc: server tự tạo vòng và ghim vào pin",
+    "status": "OK",
+    "detail": "visibility=CIRCLE audienceCircleId=cmt7c7lbu00ece0k1ud4sld4z"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "createPin CIRCLE ad-hoc lần 2 — [alice, alice, bao]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "memberHash tái dùng vòng: cùng tập người ⇒ ĐÚNG MỘT Circle",
+    "status": "OK",
+    "detail": "lần 1=cmt7c7lbu00ece0k1ud4sld4z · lần 2=cmt7c7lbu00ece0k1ud4sld4z"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "đối chứng ở tầng dữ liệu: 2 lần đăng chỉ đẻ 1 vòng ad-hoc",
+    "status": "OK",
+    "detail": "Circle(ownerId=bao, memberHash≠null) = 1"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "john tạo pin CIRCLE ad-hoc [bob] (dựng vòng của NGƯỜI KHÁC)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "john nhận được id vòng của chính john",
+    "status": "OK",
+    "detail": "audienceCircleId=cmt7c7lcl00eke0k1whr66jrv"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "bao ghim vòng của john ⇒ 404 Circle not found (không 403)",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "ghim vòng KHÔNG TỒN TẠI ⇒ cùng 404, không phân biệt được với vòng người khác",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "bao ghim LẠI vòng của chính mình bằng id ⇒ được",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "PUBLIC + audienceCircleId ⇒ 400 (không im lặng bỏ vòng)",
+    "status": "EXPECTED",
+    "detail": "audienceCircleId/audienceUserIds only apply when visibility is CIRCLE (got PUBLIC)"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "ONLY_ME + audienceUserIds ⇒ 400",
+    "status": "EXPECTED",
+    "detail": "audienceCircleId/audienceUserIds only apply when visibility is CIRCLE (got ONLY_ME)"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "CIRCLE mà không có khán giả ⇒ 400",
+    "status": "EXPECTED",
+    "detail": "visibility: CIRCLE requires exactly one of audienceCircleId or audienceUserIds"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "CIRCLE mà gửi CẢ HAI ⇒ 400",
+    "status": "EXPECTED",
+    "detail": "visibility: CIRCLE requires exactly one of audienceCircleId or audienceUserIds"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "audienceUserIds chỉ có chính mình ⇒ 400",
+    "status": "EXPECTED",
+    "detail": "audienceUserIds must contain at least one user other than yourself"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "audienceUserIds có id rác ⇒ 400 nói ĐÚNG id sai",
+    "status": "EXPECTED",
+    "detail": "Unknown userId: xh74_nguoi_ma"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "expiresAt quá khứ ⇒ 400",
+    "status": "EXPECTED",
+    "detail": "expiresAt must be in the future"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "createPin kèm 3 URL biến thể hợp lệ",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "3 biến thể được LƯU đúng như gửi lên",
+    "status": "OK",
+    "detail": "thumb=http://localhost:4000/uploads/xh74.png?s=t medium=http://localhost:4000/uploads/xh74.png?s=m large=http://localhost:4000/uploads/xh74.png?s=l"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "thumbnailUrl domain lạ ⇒ chặn, và nói RÕ field nào",
+    "status": "EXPECTED",
+    "detail": "thumbnailUrl domain is not allowed"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "mediumUrl domain lạ ⇒ chặn",
+    "status": "EXPECTED",
+    "detail": "mediumUrl domain is not allowed"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "largeUrl domain lạ ⇒ chặn",
+    "status": "EXPECTED",
+    "detail": "largeUrl domain is not allowed"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "biến thể là URL TƯƠNG ĐỐI ⇒ chặn (phải tuyệt đối)",
+    "status": "EXPECTED",
+    "detail": "Invalid thumbnailUrl"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "imageUrl domain lạ ⇒ thông điệp CŨ giữ nguyên (hợp đồng của apps/web)",
+    "status": "EXPECTED",
+    "detail": "Image URL domain is not allowed"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "thiếu imageWidth ⇒ schema từ chối (kích thước ảnh GỐC vẫn bắt buộc)",
+    "status": "EXPECTED",
+    "detail": "Variable \"$i\" got invalid value { imageUrl: \"http://localhost:4000/uploads/xh74.png\", imageHeight: 10, title: \"xh74 noW\" }; Field \"imageWidth\" of requ"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "userPins(bao) dưới mắt bao — đúng tập 4 pin vừa ĐĂNG THẬT",
+    "status": "OK",
+    "detail": "thấy {cmt7c7lbd00e8e0k1crymlwwy, cmt7c7lbj00eae0k1viocld0x, cmt7c7lc000eee0k1sd10g8kf, cmt7c7lc500ege0k1uje5mev6} ≠ kỳ vọng {cmt7c7lbd00e8e0k1crymlwwy, cmt7c7lbj00eae0k1viocld0x, cmt7c7lc000eee0k1sd10g8kf, cmt7c7lc500ege0k1uje5mev6}"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "userPins(bao) dưới mắt alice — đúng tập 4 pin vừa ĐĂNG THẬT",
+    "status": "OK",
+    "detail": "thấy {cmt7c7lbd00e8e0k1crymlwwy, cmt7c7lbj00eae0k1viocld0x, cmt7c7lc000eee0k1sd10g8kf} ≠ kỳ vọng {cmt7c7lbd00e8e0k1crymlwwy, cmt7c7lbj00eae0k1viocld0x, cmt7c7lc000eee0k1sd10g8kf}"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "userPins(bao) dưới mắt john — đúng tập 4 pin vừa ĐĂNG THẬT",
+    "status": "OK",
+    "detail": "thấy {cmt7c7lbd00e8e0k1crymlwwy, cmt7c7lbj00eae0k1viocld0x} ≠ kỳ vọng {cmt7c7lbd00e8e0k1crymlwwy, cmt7c7lbj00eae0k1viocld0x}"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "userPins(bao) dưới mắt guest — đúng tập 4 pin vừa ĐĂNG THẬT",
+    "status": "OK",
+    "detail": "thấy {cmt7c7lbd00e8e0k1crymlwwy} ≠ kỳ vọng {cmt7c7lbd00e8e0k1crymlwwy}"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "updatePin đổi TIÊU ĐỀ thôi ⇒ không đụng khán giả",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "sửa tiêu đề KHÔNG âm thầm công khai pin (visibility + vòng còn nguyên)",
+    "status": "OK",
+    "detail": "visibility=CIRCLE audienceCircleId=cmt7c7lbu00ece0k1ud4sld4z"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "updatePin ONLY_ME → CIRCLE ad-hoc [alice]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "đổi khán giả CÓ HIỆU LỰC NGAY: alice không thấy ⇒ thấy (cùng một pin, hai thời điểm)",
+    "status": "OK",
+    "detail": "trước=false sau=true vòng=cmt7c7lbu00ece0k1ud4sld4z (kỳ vọng tái dùng cmt7c7lbu00ece0k1ud4sld4z)"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "updatePin CIRCLE → ONLY_ME (thu hẹp khán giả)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "đổi sang cấp khác CIRCLE ⇒ audienceCircleId bị XOÁ, alice mất quyền xem",
+    "status": "OK",
+    "detail": "visibility=ONLY_ME vòng=null alice-còn-thấy=false"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "updatePin gửi vòng mà KHÔNG gửi visibility ⇒ 400",
+    "status": "EXPECTED",
+    "detail": "audienceCircleId/audienceUserIds must be sent together with visibility: CIRCLE"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "updatePin ghim vòng của john ⇒ 404",
+    "status": "EXPECTED",
+    "detail": "Circle not found"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "alice ĐỌC ĐƯỢC pin vòng nhưng KHÔNG đọc được id vòng (bao thì có)",
+    "status": "OK",
+    "detail": "alice: pin=cmt7c7lc000eee0k1sd10g8kf vòng=null · bao: vòng=cmt7c7lbu00ece0k1ud4sld4z"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "createPin có hạn sống 2.5s, khán giả vòng [alice]",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/archive",
+    "name": "lúc CÒN HẠN: alice (trong vòng) thấy pin trong exploreFeed",
+    "status": "OK",
+    "detail": "has=true"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "lúc CÒN HẠN: pin chưa nằm trong kho của bao",
+    "status": "OK",
+    "detail": "kho={xh_pin_expired}"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "HẾT HẠN: alice không còn thấy trong exploreFeed",
+    "status": "OK",
+    "detail": "vẫn thấy=false"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "HẾT HẠN: CHÍNH CHỦ cũng không thấy ở bề mặt danh sách (kho là query riêng)",
+    "status": "OK",
+    "detail": "bao vẫn thấy=false"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "HẾT HẠN: alice mở URL thẳng ⇒ 404",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "HẾT HẠN: chính chủ VẪN mở được URL thẳng (màn chi tiết trong kho)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/archive",
+    "name": "kho của bao chứa đúng pin vừa hết hạn",
+    "status": "OK",
+    "detail": "kho={cmt7c7lgf00ese0k1v8vu54jo, xh_pin_expired}"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "kho là của RIÊNG người gọi: alice không thấy pin của bao trong kho mình",
+    "status": "OK",
+    "detail": "kho alice={}"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "archivedPins yêu cầu đăng nhập (khách ⇒ Unauthorized)",
+    "status": "EXPECTED",
+    "detail": "Unauthorized"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "john đăng lại pin của bao ⇒ 404 (không 403)",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "bao đăng lại pin từ kho",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/archive",
+    "name": "đăng lại gỡ hạn sống (expiresAt = null)",
+    "status": "OK",
+    "detail": "expiresAt=null"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "sau khi đăng lại: alice THẤY LẠI trong feed, và pin rời khỏi kho",
+    "status": "OK",
+    "detail": "alice thấy=true · còn trong kho=false"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "đăng lại pin vốn không có hạn ⇒ 400 (không im lặng thành công)",
+    "status": "EXPECTED",
+    "detail": "Pin has no expiry to remove"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "createPin thứ hai có hạn 2.5s (để kho có 2 dòng)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/archive",
+    "name": "keyset bất biến: archivedPins first:1 đi hết trang == first:50",
+    "status": "OK",
+    "detail": "từng-trang {cmt7c7nje00eue0k1jye9o87c, xh_pin_expired} ≠ một-lần {cmt7c7nje00eue0k1jye9o87c, xh_pin_expired}"
+  },
+  {
+    "group": "GQL/archive",
+    "name": "pin mới hết hạn nằm trong kho (story2)",
+    "status": "OK",
+    "detail": "kho={cmt7c7nje00eue0k1jye9o87c, xh_pin_expired}"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "đăng 21 pin trong CÙNG MỘT NGÀY đều được (trần 20/ngày đã bỏ — XH-QĐ-8)",
+    "status": "OK",
+    "detail": "tạo được 21/21"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "dọn 21 pin vừa tạo (giữ exploreFeed đúng kích thước cho bước sau)",
+    "status": "OK",
+    "detail": "xoá 21/21"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "dựng nền: bao đang sở hữu đúng 20 vòng (tính cả ad-hoc)",
+    "status": "OK",
+    "detail": "đếm được 20"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "chạm trần: khán giả ad-hoc mới ⇒ vòng thứ 21 bị chặn",
+    "status": "EXPECTED",
+    "detail": "Circle limit reached (20 per user, ad-hoc circles included)"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "ở đúng trần vẫn đăng được cho khán giả CŨ (tái dùng vòng, không đẻ vòng mới)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "không có vòng thứ 21 nào lọt vào DB",
+    "status": "OK",
+    "detail": "đếm được 20"
+  },
+  {
+    "group": "GQL/pin-audience",
+    "name": "dọn cuối bước: mọi pin + vòng của bước 74 đã biến mất",
+    "status": "OK",
+    "detail": "xoá pin=11 circle=21 · còn sót pin=0 circle=0"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "dọn state sống lâu Ở ĐẦU BƯỚC (PinView sạch + pin xh75* + xoá SẠCH Circle/CircleMember)",
+    "status": "OK",
+    "detail": "pinView=0 pin=0 circle=0"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "tiền đề: CẢ alice VÀ john đều theo dõi bao",
+    "status": "OK",
+    "detail": "followers(bao)=user_2_id,user_4_id,user_5_id,user_3_id — cần cả hai cho pin FOLLOWERS"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "bao lập vòng ĐẶT TÊN [alice, john] (ad-hoc không bớt thành viên được)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "createPin PUBLIC",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "createPin CIRCLE ghim vòng vừa lập",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "createPin FOLLOWERS",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "createPin ONLY_ME",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "alice xem pin CIRCLE ⇒ lượt xem được đếm",
+    "status": "OK",
+    "detail": "trả=true"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "john (cũng trong vòng) xem pin CIRCLE ⇒ được đếm",
+    "status": "OK",
+    "detail": "trả=true"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "pinViewers dưới mắt CHỦ PIN: đúng hai người vừa xem",
+    "status": "OK",
+    "detail": "thấy {alice_chef, john_traveler}"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "xếp theo lượt xem MỚI NHẤT trước (john xem sau alice ⇒ john đứng đầu)",
+    "status": "OK",
+    "detail": "thứ tự=john_traveler → alice_chef"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "tiền đề: john ĐỌC ĐƯỢC pin CIRCLE (nên 404 dưới đây là do SỞ HỮU, không do quyền xem)",
+    "status": "OK",
+    "detail": "pin(john)=cmt7c7ppn00g8e0k13p830wrr"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "john gọi pinViewers trên pin của bao ⇒ 404 (không 403)",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "alice (cũng trong vòng) gọi pinViewers ⇒ cùng 404",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "pinViewers với pinId không tồn tại ⇒ CÙNG thông điệp (không suy ra được pin có thật)",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "pinViewers yêu cầu đăng nhập (khách ⇒ Unauthorized)",
+    "status": "EXPECTED",
+    "detail": "Unauthorized"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "bao tự xem pin của mình: lượt xem vẫn đếm nhưng KHÔNG đẻ dòng PinView nào",
+    "status": "OK",
+    "detail": "trả=true · PinView 2→2 · danh sách={alice_chef, john_traveler}"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "pin PUBLIC: khách vãng lai (anonId) + alice đều làm viewCount tăng — TỔNG +2",
+    "status": "OK",
+    "detail": "anon=true alice=true · viewCount 0→2"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "pin PUBLIC KHÔNG đẻ dòng PinView nào (luật 1 — ghi cho pin công khai vừa đắt vừa phản cảm)",
+    "status": "OK",
+    "detail": "PinView(pin PUBLIC) = 0"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "đối chứng: mọi dòng PinView trong DB đều thuộc pin GIỚI HẠN, không dòng nào của khách vãng lai",
+    "status": "OK",
+    "detail": "tổng=2 · của pin CIRCLE=2 (kỳ vọng 2 = alice + john)"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "alice: viewCount của pin PUBLIC là SỐ, của pin CIRCLE là null — cùng một response",
+    "status": "OK",
+    "detail": "pub=2 lim=null"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "chủ pin đọc được CẢ HAI (số bị giấu với người khác, không phải bị xoá)",
+    "status": "OK",
+    "detail": "pub=2 lim=3"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "khách vãng lai vẫn đọc được viewCount của pin PUBLIC (luật 3 không đụng pin công khai)",
+    "status": "OK",
+    "detail": "pub=2"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "clickCount KHÔNG bị giấu (luật 3 nói đích danh viewCount — đừng ẩn dư)",
+    "status": "OK",
+    "detail": "clickCount(alice, pin CIRCLE)=0"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "pin FOLLOWERS cũng ghi PinView: john xem ⇒ bao thấy john",
+    "status": "OK",
+    "detail": "trả=true · danh sách={john_traveler}"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "pin ONLY_ME chưa ai xem ⇒ danh sách RỖNG, không phải lỗi",
+    "status": "OK",
+    "detail": "danh sách={}"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "bao bớt alice khỏi vòng (XH-QĐ-3: alice không nhận tín hiệu nào)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "bớt khỏi vòng ⇒ alice BIẾN MẤT khỏi pinViewers ngay, chỉ còn john",
+    "status": "OK",
+    "detail": "memberCount=1 · danh sách={john_traveler}"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "và dòng PinView của alice VẪN CÒN trong DB — lọc lúc ĐỌC, không phải xoá dữ liệu",
+    "status": "OK",
+    "detail": "PinView(pin CIRCLE) 2→2 (xoá dữ liệu sẽ cho 1)"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "đối chứng chiều ĐỌC PIN: alice cũng mất luôn quyền xem chính pin đó (404)",
+    "status": "OK",
+    "detail": "pin(alice)=Pin not found"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "q=\"bob\": gợi ý được trên pin PUBLIC nhưng KHÔNG trên pin CIRCLE (cùng q, hai pin, hai câu trả lời)",
+    "status": "OK",
+    "detail": "PUBLIC={bob_photographer} · CIRCLE={}"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "người CÒN trong vòng vẫn được gợi ý (bộ lọc không quét sạch mọi người)",
+    "status": "OK",
+    "detail": "CIRCLE q=\"john\"={john_traveler}"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "người vừa bị bớt khỏi vòng BIẾN MẤT khỏi gợi ý (cùng nguồn khán giả với pinViewers)",
+    "status": "OK",
+    "detail": "CIRCLE q=\"alice\"={}"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "không ai @ chính mình: bao không nằm trong gợi ý của bao",
+    "status": "OK",
+    "detail": "PUBLIC q=\"bao\"={}"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "dưới mắt thành viên vòng: gợi ý gồm CHỦ PIN, và không có chính john",
+    "status": "OK",
+    "detail": "john thấy={bao_developer}"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "pin ONLY_ME: khán giả đúng một người ⇒ gợi ý RỖNG (không phải lỗi)",
+    "status": "OK",
+    "detail": "gợi ý={}"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "alice (đã ngoài khán giả) gọi mentionSuggestions ⇒ 404 như mọi bề mặt pin",
+    "status": "EXPECTED",
+    "detail": "Pin not found"
+  },
+  {
+    "group": "GQL/mention-suggest",
+    "name": "mentionSuggestions yêu cầu đăng nhập (khách ⇒ Unauthorized)",
+    "status": "EXPECTED",
+    "detail": "Unauthorized"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "dọn cuối bước: pin + vòng biến mất, và PinView đi theo pin qua CASCADE",
+    "status": "OK",
+    "detail": "xoá pin=4 circle=1 · còn sót pin=0 pinView=0"
+  },
+  {
+    "group": "GQL/pin-viewers",
+    "name": "đã dọn khoá debounce của bước này (TTL 30′ dài hơn khoảng cách 2 lần chạy)",
+    "status": "OK",
+    "detail": "còn sót 0/16"
+  },
+  {
+    "group": "REST/purge",
+    "name": "POST /internal/purge-deleted KHÔNG secret → 403",
+    "status": "EXPECTED",
+    "detail": "403 {\"message\":\"Invalid internal secret\",\"error\":\"Forbidden\",\"statusCode\":403}"
+  },
+  {
+    "group": "REST/purge",
+    "name": "POST /internal/purge-deleted secret SAI → 403",
+    "status": "EXPECTED",
+    "detail": "403 {\"message\":\"Invalid internal secret\",\"error\":\"Forbidden\",\"statusCode\":403}"
+  },
+  {
+    "group": "REST/purge",
+    "name": "đăng ký tài khoản throwaway cho B-9",
+    "status": "OK",
+    "detail": "201"
+  },
+  {
+    "group": "REST/purge",
+    "name": "dựng được tài khoản throwaway kèm pin + comment (tiền đề của phép cascade)",
+    "status": "OK",
+    "detail": "user=cmt7c7q4f00gde0k1h9xp7zjk pin=cmt7c7u1a00gje0k14yn6b2w7 comment=cmt7c7u1i00gle0k1wrc28eft"
+  },
+  {
+    "group": "REST/purge",
+    "name": "grace 30 ngày (mặc định): tài khoản vừa xoá mềm KHÔNG nằm trong danh sách purge",
+    "status": "OK",
+    "detail": "graceDays=30 found=0 · có user vừa xoá? false"
+  },
+  {
+    "group": "REST/purge",
+    "name": "graceDays=0: danh sách purge CÓ tài khoản vừa xoá mềm",
+    "status": "OK",
+    "detail": "found=15 purged=0 · có user? true"
+  },
+  {
+    "group": "REST/purge",
+    "name": "dry-run KHÔNG xoá gì (purged=0, và lần gọi sau vẫn thấy đúng tài khoản đó)",
+    "status": "OK",
+    "detail": "purged=0"
+  },
+  {
+    "group": "REST/purge",
+    "name": "không tài khoản seed nào lọt vào danh sách purge (kể cả graceDays=0)",
+    "status": "OK",
+    "detail": "ứng viên=[cmt7c6n2d006ge0k10wgn8zzu,cmt7c6n2i006me0k1mntd96g5,cmt7c6n9q006se0k12r8r2aw6,cmt7c6n2r006pe0k1vxi6fmsx,cmt7c6n2e006he0k1foplvxcs,cmt7c6n9s006te0k13sjovgov,cmt7c6na80071e0k1m5tywgzh,cmt7c6n9z006ye0k1cm0uv7x2,cmt7c6nie0074e0k164bbx8fe,cmt7c6nim007ae0k1opsoc2n0,cmt7c6nih0077e0k12kwzgi8v,cmt7c6niu007de0k11hhigh28,cmt7c6y6n00b5e0k1zfs34ix9,cmt7c7g8200bqe0k1vqyo81xu,cmt7c7q4f00gde0k1h9xp7zjk]"
+  },
+  {
+    "group": "REST/purge",
+    "name": "xoá thật: tài khoản throwaway bị hard-delete (purged khớp found)",
+    "status": "OK",
+    "detail": "found=15 purged=15 capped=false"
+  },
+  {
+    "group": "REST/purge",
+    "name": "sau purge: tài khoản KHÔNG còn trong bảng User (không còn là ứng viên)",
+    "status": "OK",
+    "detail": "còn 0 ứng viên khác"
+  },
+  {
+    "group": "REST/purge",
+    "name": "cascade: comment của tài khoản đã purge biến mất khỏi pin của bao (trước=CÓ, sau=KHÔNG)",
+    "status": "OK",
+    "detail": "trước purge: có · sau purge: đã mất"
+  },
+  {
+    "group": "REST/purge",
+    "name": "cascade: pin của tài khoản đã purge không còn đọc được",
+    "status": "OK",
+    "detail": "không còn (Pin not found)"
+  },
+  {
+    "group": "REST/purge",
+    "name": "bao vẫn đăng nhập/đọc được sau khi job purge chạy thật",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "REST/purge",
+    "name": "purge KHÔNG đụng tài khoản mốc (bao còn nguyên)",
+    "status": "OK",
+    "detail": "me.id=user_1_id"
+  },
+  {
+    "group": "REST/purge",
+    "name": "body rỗng ⇒ dryRun mặc định TRUE (xoá thật phải yêu cầu tường minh)",
+    "status": "OK",
+    "detail": "dryRun=true purged=0 graceDays=30"
+  },
+  {
+    "group": "GQL/security",
+    "name": "createPin không token → 401",
+    "status": "EXPECTED",
+    "detail": "Unauthorized"
+  },
+  {
+    "group": "GQL/security",
+    "name": "me không token → 401",
+    "status": "EXPECTED",
+    "detail": "Unauthorized"
+  },
+  {
+    "group": "GQL/mut",
+    "name": "deletePin",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "unfollow",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/mut",
+    "name": "deleteAccount (user probe)",
+    "status": "OK",
+    "detail": ""
+  },
+  {
+    "group": "GQL/security",
+    "name": "tài khoản đã xoá KHÔNG đăng nhập lại được (P0 #4)",
+    "status": "OK",
+    "detail": "bị chặn 401"
+  },
+  {
+    "group": "REST/auth",
+    "name": "POST /auth/logout",
+    "status": "OK",
+    "detail": "204"
+  }
+]

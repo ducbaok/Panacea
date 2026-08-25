@@ -54,7 +54,7 @@ type Pin {
   imageWidth: Int!
   imageHeight: Int!
   sourceUrl: String
-  viewCount: Int!
+  viewCount: Int
   clickCount: Int!
   creatorId: String!
   createdAt: DateTime!
@@ -287,6 +287,8 @@ type Query {
   archivedPins(first: Int! = 20, after: String): PaginatedPins!
   relatedPins(first: Int! = 20, after: String, pinId: ID!): PaginatedPins!
   homeFeed(first: Int! = 20, after: String, source: FeedSource): HomeFeed!
+  pinViewers(pinId: ID!): [User!]!
+  mentionSuggestions(pinId: ID!, q: String, first: Int = 10): [User!]!
   categories: [Category!]!
   tags(query: String, first: Int = 20): [Tag!]!
   notifications(first: Int! = 20, after: String): PaginatedNotifications!

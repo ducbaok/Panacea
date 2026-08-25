@@ -27,6 +27,12 @@ import {
   GUEST_AUDIENCE_CTX,
 } from '../blocking';
 import type { PinAudienceCtx } from '../blocking';
+// XH-5 — chiều NGƯỢC của bộ lọc khán giả (từ PIN ra NGƯỜI). Là một hàm THUẦN
+// nhận `prisma`, không phải một service: `PinsService` là singleton còn
+// `DataloaderService` là Scope.REQUEST, inject bên nào vào bên nào cũng kéo
+// theo vòng đời của nhau (và một vòng import). Dùng chung với
+// `PinsService.mentionSuggestions` để luật khán-giả-hiện-tại chỉ có MỘT bản.
+import { currentAudienceIdsByPin } from '../../pins/pin-audience.util';
 // Enum của Prisma (union string literal), KHÔNG phải enum GraphQL cùng tên ở
 // comments/entities/reaction-type.enum.ts. Ở tầng loader ta trả thẳng giá trị
 // đọc từ DB nên dùng kiểu của DB mới đúng; enum GraphQL chỉ cần ở tầng schema.
@@ -162,6 +168,93 @@ export class DataloaderService {
         });
 
         return mapValues(pinIds, pins, (p) => p.id);
+      });
+    });
+  }
+
+  // ─── Ai đã xem pin (XH-5, 24/08/2026) ──────────────────────────────────────
+
+  /**
+   * Danh sách "ai đã xem" của một pin — **CHỈ chủ pin đọc được**.
+   *
+   * @returns mảng `User` xếp theo lượt xem MỚI NHẤT trước, hoặc `null` khi pin
+   *          không tồn tại / không phải của `viewerId`. Bên gọi biến `null`
+   *          thành 404 "Pin not found" — KHÔNG phải 403, cùng chính sách với
+   *          mọi bề mặt pin khác: 403 tự nó đã xác nhận pin đó có thật.
+   *
+   * ⚠️ QUYỀN NẰM TRONG `where`, KHÔNG phải trong một nhánh `if` ở resolver:
+   * `creatorId: viewerId` là điều kiện của chính câu query, nên "quên kiểm tra"
+   * không phải một trạng thái có thể tồn tại ở đây. Cùng khuôn với
+   * `buildVisiblePinLoader` ngay trên.
+   *
+   * ⚠️ BA BỘ LỌC CỘNG DỒN trên tập `PinView` đọc lên, và cả ba đều đánh giá
+   * **lúc đọc** chứ không phải lúc ghi:
+   *   1. **Khán giả HIỆN TẠI của vòng — XH-QĐ-15 (chốt 24/08).** Người bị bớt
+   *      khỏi vòng biến mất khỏi danh sách, dù dòng `PinView` của họ vẫn còn.
+   *      Quyết định này cố ý ĐẢO đề xuất "giữ — lịch sử là lịch sử" của spec
+   *      archive, để nhất quán hồi tố với XH-QĐ-3 (rời vòng phải im lặng): giữ
+   *      họ trong danh sách chính là tiết lộ "người này TỪNG ở trong vòng".
+   *   2. **Chặn hai chiều.** Chặn và quyền riêng tư CỘNG DỒN (AND) ở mọi bề
+   *      mặt của dự án, không thay thế nhau.
+   *   3. **Chính chủ.** `_recordPinView` đã không ghi lượt xem của chủ pin, nên
+   *      đây là dây bảo hiểm cho dữ liệu cũ chứ không phải luật thứ hai.
+   *
+   * `blockedIds` truyền vào thay vì tự lấy: resolver đã memo nó cho cả request
+   * (`blockedUserIds`), và nó là hàm của đúng `viewerId` đang làm khoá
+   * `perViewer` — nên không có cách nào để hai lời gọi trong cùng request nhìn
+   * thấy hai bộ lọc chặn khác nhau.
+   */
+  buildPinViewersLoader(
+    viewerId: string,
+    blockedIds: string[],
+  ): DataLoader<string, any[] | null> {
+    return this.perViewer('pinViewers', viewerId, () => {
+      return new DataLoader<string, any[] | null>(async (pinIds) => {
+        // Middleware soft-delete lọc `deletedAt` cho findMany — pin đã xoá mềm
+        // rơi ra ngoài và bên gọi thấy 404, đúng như pin của người khác.
+        const pins = await this.prisma.pin.findMany({
+          where: { id: { in: [...pinIds] }, creatorId: viewerId },
+          select: { id: true, creatorId: true, visibility: true, audienceCircleId: true },
+        });
+        if (!pins.length) return pinIds.map(() => null);
+
+        const [rows, audienceByPin] = await Promise.all([
+          this.prisma.pinView.findMany({
+            where: { pinId: { in: pins.map((p) => p.id) } },
+            select: { pinId: true, viewerId: true },
+            orderBy: { firstViewedAt: 'desc' },
+          }),
+          currentAudienceIdsByPin(this.prisma, pins),
+        ]);
+
+        const blocked = new Set(blockedIds);
+        const keptByPin = new Map<string, string[]>();
+        for (const r of rows) {
+          if (r.viewerId === viewerId || blocked.has(r.viewerId)) continue;
+          const audience = audienceByPin.get(r.pinId);
+          // `null` = PUBLIC = không lọc. Pin PUBLIC không đẻ dòng `PinView`
+          // nào (luật 1), nên nhánh này chỉ chạm dữ liệu của pin ĐÃ ĐƯỢC MỞ
+          // công khai sau khi có người xem — và lúc đó không còn gì để giấu.
+          if (audience && !audience.has(r.viewerId)) continue;
+          const list = keptByPin.get(r.pinId);
+          if (list) list.push(r.viewerId);
+          else keptByPin.set(r.pinId, [r.viewerId]);
+        }
+
+        // MỘT lời gọi `userByIdLoader` cho toàn bộ lô, không phải một lời gọi
+        // mỗi pin: loader ở đây gom theo instance, và instance là dùng chung.
+        const needed = [...new Set([...keptByPin.values()].flat())];
+        const users = needed.length ? await this.userByIdLoader.loadMany(needed) : [];
+        const byId = new Map<string, any>();
+        needed.forEach((id, i) => {
+          const u = users[i];
+          if (u && !(u instanceof Error)) byId.set(id, u);
+        });
+
+        const owned = new Set(pins.map((p) => p.id));
+        return pinIds.map((id) =>
+          owned.has(id) ? (keptByPin.get(id) ?? []).map((uid) => byId.get(uid)).filter(Boolean) : null,
+        );
       });
     });
   }
