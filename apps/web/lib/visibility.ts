@@ -76,6 +76,35 @@ export function expiryLeftLabel(t: TFunction, expiresAt: string | null | undefin
 }
 
 /**
+ * F2 · XH-ARCHIVE — mặt SAU của `expiryLeftLabel`: "Hết hạn 3 ngày trước".
+ *
+ * Hai hàm cố ý tách đôi thay vì một hàm trả cả hai chiều, vì hai chiều xuất
+ * hiện ở hai bề mặt loại trừ nhau: pin CÒN hạn nằm trên lưới của người xem,
+ * pin ĐÃ hết hạn chỉ còn ở Kho của chính chủ. Một hàm đổi dấu sẽ mời gọi việc
+ * gọi nó ở bề mặt sai và in "còn -3 ngày".
+ *
+ * Ba mốc (giờ · ngày · tháng) theo đúng từ vựng bản vẽ ("Hết hạn 3 ngày trước"
+ * · "Hết hạn 1 tháng trước"). Ngưỡng tháng dùng 30 ngày chẵn — nhãn này là
+ * cảm giác thời gian, không phải phép tính lịch.
+ *
+ * Trả chuỗi rỗng khi chưa hết hạn hoặc thiếu mốc: chỗ gọi ở Kho luôn có
+ * `expiresAt` trong quá khứ (backend lọc `expiresAt <= now()`), nên chuỗi rỗng
+ * là dấu hiệu gọi nhầm bề mặt chứ không phải trạng thái bình thường.
+ */
+export function expiredAgoLabel(t: TFunction, expiresAt: string | null | undefined): string {
+  if (!expiresAt) return '';
+  const at = new Date(expiresAt).getTime();
+  if (!Number.isFinite(at)) return '';
+  const hours = Math.floor((Date.now() - at) / 3_600_000);
+  if (hours < 0) return '';
+  if (hours < 1) return t('archive.expiredJustNow');
+  if (hours < 24) return t('archive.expiredHoursAgo', { count: hours });
+  const days = Math.floor(hours / 24);
+  if (days < 30) return t('archive.expiredDaysAgo', { count: days });
+  return t('archive.expiredMonthsAgo', { count: Math.floor(days / 30) });
+}
+
+/**
  * Tên khán giả trong hộp xác nhận "riêng → công khai" (chép từ bản vẽ:
  * "Đang chỉ <X> xem được").
  */
@@ -93,6 +122,32 @@ export function audienceName(
       return t('circles.audienceOnlyMe');
     default:
       return t('circles.audienceEveryone');
+  }
+}
+
+/**
+ * F2 · XH-ARCHIVE — CHỦ NGỮ ĐẦU CÂU của hộp xác nhận đăng lại ("Mọi người sẽ
+ * thấy lại pin này").
+ *
+ * Vì sao không dùng lại `audienceName` ở trên: bộ chữ kia nằm GIỮA câu ("Đang
+ * chỉ vòng Bạn thân xem được") nên viết thường và có giới từ; bộ này đứng ĐẦU
+ * câu nên viết hoa và không giới từ. Bản vẽ ghi hai bộ khác nhau ở hai hộp
+ * confirm (`xhSetVis` ⇄ `xhArchRepost`) — gộp lại là sai một trong hai chỗ.
+ */
+export function republishAudienceName(
+  t: TFunction,
+  visibility: Visibility | null | undefined,
+  circleName: string,
+): string {
+  switch (visibility) {
+    case Visibility.Circle:
+      return t('archive.audienceCircle', { name: circleName });
+    case Visibility.Followers:
+      return t('archive.audienceFollowers');
+    case Visibility.OnlyMe:
+      return t('archive.audienceOnlyMe');
+    default:
+      return t('archive.audienceEveryone');
   }
 }
 

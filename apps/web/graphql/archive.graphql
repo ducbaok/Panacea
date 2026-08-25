@@ -1,0 +1,64 @@
+# ─────────── F2 · XH-10 — KHO (pin đã hết hạn) ───────────
+# Hợp đồng đọc thẳng từ apps/api/schema.graphql (luồng A, merge ở M1).
+#
+# `archivedPins` là bề mặt DUY NHẤT trong cả dự án trả về pin quá hạn
+# (`pins.service.ts` — "ĐẢO NGƯỢC vế hết hạn của bộ lọc kia"). Khán giả của nó
+# đúng một người: backend gắn `GqlAuthGuard` và lọc cứng `creatorId = viewer`,
+# nên KHÔNG có tham số userId — đừng đi tìm.
+#
+# Keyset `(createdAt, id) DESC`, cùng hình dạng cursor với `userPins`.
+#
+# `createdAt` BẮT BUỘC có trong ô chọn: màn kho nhóm thẻ theo THÁNG ĐĂNG chứ
+# không phải tháng hết hạn (xem docblock `archive-view.tsx`). Bỏ field này thì
+# lưới vẫn chạy nhưng mọi thẻ rơi vào một nhóm câm — hỏng im lặng.
+query ArchivedPins($first: Int! = 20, $after: String) {
+  archivedPins(first: $first, after: $after) {
+    items {
+      id
+      title
+      description
+      imageUrl
+      thumbnailUrl
+      mediumUrl
+      imageWidth
+      imageHeight
+      savedCount
+      commentCount
+      createdAt
+      creator {
+        id
+        username
+        name
+        avatarUrl
+      }
+      visibility
+      audienceCircleId
+      expiresAt
+      isSavedByViewer
+      viewerReaction
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+# Đăng lại = gỡ hạn sống (`expiresAt = null`). "Kho là kho, không phải nghĩa địa."
+#
+# ⚠️ Backend CỐ Ý không đụng `createdAt` (QĐ-24): pin về đúng chỗ cũ theo ngày
+# đăng gốc chứ không nhảy lên đầu feed. Vì thế phải chọn `createdAt` ở đây —
+# nó là bằng chứng tại chỗ rằng mốc thời gian không đổi, và cũng là thứ Apollo
+# cần để vá lại entry cache của pin đó ở mọi lưới đang mở.
+#
+# Pin vốn không có hạn ⇒ backend trả 400 (`Pin has no expiry to remove`) chứ
+# không im lặng thành công. Nút này chỉ hiện trong kho / trên pin đã hết hạn.
+mutation RepublishPin($id: ID!) {
+  republishPin(id: $id) {
+    id
+    createdAt
+    expiresAt
+    visibility
+    audienceCircleId
+  }
+}

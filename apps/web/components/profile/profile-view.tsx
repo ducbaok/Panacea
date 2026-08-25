@@ -22,6 +22,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useAvatarUpload } from '@/components/profile/use-avatar-upload';
+import { ArchiveView } from '@/components/profile/archive-view';
 import { formatCount } from '@/lib/format';
 import { useT } from '@/lib/i18n/provider';
 
@@ -101,7 +102,13 @@ function ProfileContent({
   const { openAuthPrompt } = useAuthPrompt();
   // REVIEW-1 (#7) — thêm tab 'saved'. Trước đợt này pin lưu bằng nút "Lưu" mặc
   // định (không chọn board) không hiện ở BẤT KỲ màn nào.
-  const [tab, setTab] = useState<'pin' | 'board' | 'saved'>('pin');
+  //
+  // F2 · QĐ-24 — thêm tab 'archive' (Kho), CHỈ trên hồ sơ của mình. Bản vẽ gọi
+  // nó là "tab thứ 3" vì mock chỉ có Pin | Board | Kho; ở app thật tab thứ ba
+  // đã là "Đã lưu" (REVIEW-1 #7), nên Kho là tab thứ TƯ. Điều bản vẽ chốt là
+  // "lối vào kho = một tab trên hồ sơ của chính mình", không phải con số 3 —
+  // đẩy "Đã lưu" xuống để giành chỗ số 3 mới là dịch sai bản vẽ.
+  const [tab, setTab] = useState<'pin' | 'board' | 'saved' | 'archive'>('pin');
   const [hoverFollow, setHoverFollow] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -473,14 +480,25 @@ function ProfileContent({
           </div>
         )}
 
-        {/* 3 tab Pin | Board | Đã lưu.
-            REVIEW-1 (#7): bản vẽ C1 chốt 2 tab, tab thứ ba thêm theo yêu cầu
+        {/* Pin | Board | Đã lưu | (Kho).
+            REVIEW-1 (#7): bản vẽ C1 chốt 2 tab, tab "Đã lưu" thêm theo yêu cầu
             người dùng — pin lưu bằng nút "Lưu" mặc định trước nay không có chỗ
-            nào hiển thị. */}
+            nào hiển thị.
+            F2 · QĐ-24: tab "Kho" CHỈ dựng khi `isSelf`. Không phải ẩn bằng CSS,
+            không phải tab mờ — người xem hồ sơ người khác không được biết rằng
+            kho tồn tại, và `archivedPins` cũng không có tham số userId để họ
+            thử. Hai lớp chặn (không có nút · không có tham số) là cố ý. */}
         <div style={{ display: 'flex', gap: 4, margin: '24px 0 18px', background: 'var(--color-surface-muted)', borderRadius: 999, padding: 4 }}>
           <TabButton label={t('profile.tabPins')} active={tab === 'pin'} onClick={() => setTab('pin')} />
           <TabButton label={t('profile.tabBoards')} active={tab === 'board'} onClick={() => setTab('board')} />
           <TabButton label={t('profile.tabSaved')} active={tab === 'saved'} onClick={() => setTab('saved')} />
+          {isSelf && (
+            <TabButton
+              label={t('archive.tab')}
+              active={tab === 'archive'}
+              onClick={() => setTab('archive')}
+            />
+          )}
         </div>
       </div>
 
@@ -503,6 +521,8 @@ function ProfileContent({
           loading={boardsTab.loading}
           onOpen={(id) => router.push(`/board/${id}`)}
         />
+      ) : tab === 'archive' ? (
+        <ArchiveView />
       ) : savedPinItems.length === 0 && !savedTab.loading ? (
         <EmptyTab>
           {isSelf ? t('profile.emptySavedSelf') : t('profile.emptySavedOther')}

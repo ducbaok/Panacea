@@ -160,3 +160,26 @@ query UserPins($userId: ID!, $first: Int! = 20, $after: String) {
     }
   }
 }
+
+# ─────────── F2 · XH-10 — AI ĐÃ XEM (XH-VIEWERS) ───────────
+# CHỈ chủ pin gọi được; pin của người khác trả 404 (KHÔNG phải 403 — 403 tự nó
+# đã xác nhận pin có thật). Ba trạng thái "không phải pin của bạn" / "pin không
+# tồn tại" / "pin đã xoá mềm" cố ý trả về cùng một thứ.
+#
+# Ba luật của danh sách này nằm ở BACKEND, FE không lặp lại bộ lọc nào:
+#   1. chỉ ghi PinView cho pin KHÔNG công khai ⇒ pin PUBLIC luôn trả mảng rỗng;
+#   2. khách vãng lai vào `viewCount` nhưng không có danh tính ⇒ không vào đây;
+#   3. XH-QĐ-15 — ai bị bớt khỏi vòng thì BIẾN MẤT khỏi danh sách (luồng C lọc
+#      theo `CircleMember` HIỆN TẠI, không phải theo lúc xem).
+#
+# ⚠️ Trả `[User!]!` — KHÔNG có `firstViewedAt`. Backend dùng mốc đó để XẾP THỨ
+# TỰ (mới nhất trước) rồi bỏ đi (`pins.resolver.ts` docblock `pinViewers`). Thứ
+# tự mảng LÀ thông tin: render đúng thứ tự nhận được, đừng sort lại ở client.
+query PinViewers($pinId: ID!) {
+  pinViewers(pinId: $pinId) {
+    id
+    name
+    username
+    avatarUrl
+  }
+}
