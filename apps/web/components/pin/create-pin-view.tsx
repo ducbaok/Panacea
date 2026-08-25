@@ -11,8 +11,6 @@ import {
   SavePinDocument,
   type SavePinMutation,
   type SavePinMutationVariables,
-  CategoriesDocument,
-  type CategoriesQuery,
   TagsDocument,
   type TagsQuery,
   type TagsQueryVariables,
@@ -52,6 +50,12 @@ import { CaptureView } from '@/components/pin/capture-view';
  *   • Q4 (A2) — confirm rời trang: `beforeunload` cho hard-exit + chặn soft-nav
  *     (click <a> nội bộ, capture-phase) khi form dirty → mở confirm-dialog.
  *
+ * 🔴 GỠ 25/08/2026 (luồng B) — ô "Link nguồn" (`sourceUrl`) và chip "Danh mục"
+ * (`categoryIds`) KHÔNG còn ở form này, và cũng không còn được gửi trong
+ * `createPin`. Cả hai field vẫn OPTIONAL ở backend/DB và dữ liệu cũ giữ
+ * nguyên: màn chi tiết vẫn hiện dòng "Nguồn:" cho pin cũ còn `sourceUrl`,
+ * query `Categories` vẫn sống cho việc gán nhãn sau này. Chỉ chỗ NHẬP bị gỡ.
+ *
  * 🔴 Ảnh KHÔNG qua GraphQL: `POST /uploads/local` (lib/upload) trả URL tuyệt đối
  * → `createPin.imageUrl`. `imageWidth`/`imageHeight` ĐO từ File (masonry cần tỉ lệ).
  * Đo + upload chạy SONG SONG; ưu tiên lỗi upload (server) để phơi 413/400 (T2.2).
@@ -60,7 +64,6 @@ import { CaptureView } from '@/components/pin/capture-view';
 const TITLE_MAX = 200;
 const DESC_MAX = 2000;
 const TAGS_MAX = 10;
-const CATS_MAX = 3;
 
 /*
  * Q1 — 5 chuỗi lỗi upload đã DUYỆT 16/08/2026 nay ở `lib/errors/upload-error-vi.ts`.
@@ -72,15 +75,6 @@ const CATS_MAX = 3;
  * createPin) nay nằm ở từ điển: `pin.tooManyPins` và `pin.saveToBoardFailed`.
  * Nội dung KHÔNG đổi, chỉ đổi chỗ chứa.
  */
-
-function isValidHttpUrl(s: string): boolean {
-  try {
-    const u = new URL(s);
-    return u.protocol === 'http:' || u.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
@@ -147,10 +141,8 @@ export function CreatePinView() {
   // --- Form ---
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [sourceUrl, setSourceUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [board, setBoard] = useState<BoardLite | null>(null);
   /**
    * Khán giả — LUÔN bắt đầu ở PUBLIC. Không có "nhớ khán giả lần trước" ở v1
@@ -175,7 +167,6 @@ export function CreatePinView() {
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState<string | null>(null);
 
-  const catsQuery = useQuery<CategoriesQuery>(CategoriesDocument);
   const [tagQuery, setTagQuery] = useState('');
   useEffect(() => {
     const id = setTimeout(() => setTagQuery(tagInput.trim()), 200);
@@ -219,12 +210,10 @@ export function CreatePinView() {
     if (!circles.some((c) => c.id === preset)) setAudience(DEFAULT_AUDIENCE);
   }, [circles, circlesLoaded, searchParams]);
 
-  const sourceUrlValid = sourceUrl.trim() === '' || isValidHttpUrl(sourceUrl.trim());
   const canSubmit =
     uploadPhase === 'done' &&
     !!prepared &&
     !submitting &&
-    sourceUrlValid &&
     // CIRCLE mà chưa chọn vòng lẫn chưa chọn người ⇒ backend 400. Khoá ở đây.
     isAudienceComplete(audience);
 
@@ -233,9 +222,7 @@ export function CreatePinView() {
     file !== null ||
     title.trim() !== '' ||
     description.trim() !== '' ||
-    sourceUrl.trim() !== '' ||
     tags.length > 0 ||
-    categoryIds.length > 0 ||
     board !== null ||
     audience.visibility !== DEFAULT_AUDIENCE.visibility ||
     audience.expiresAt !== null;
@@ -335,14 +322,6 @@ export function CreatePinView() {
     setTagInput('');
   }
 
-  function toggleCategory(id: string) {
-    if (categoryIds.includes(id)) {
-      setCategoryIds(categoryIds.filter((c) => c !== id));
-    } else if (categoryIds.length < CATS_MAX) {
-      setCategoryIds([...categoryIds, id]);
-    }
-  }
-
   async function onSubmit() {
     if (!canSubmit || !prepared) return;
     setSubmitting(true);
@@ -361,9 +340,7 @@ export function CreatePinView() {
             ...audienceToInput(audience),
             title: title.trim() || undefined,
             description: description.trim() || undefined,
-            sourceUrl: sourceUrl.trim() || undefined,
             tagNames: tags.length > 0 ? tags : undefined,
-            categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
           },
         },
       });
@@ -615,25 +592,6 @@ export function CreatePinView() {
             <Counter n={description.length} max={DESC_MAX} />
           </div>
 
-          <div>
-            <label style={labelStyle} htmlFor="pin-source">
-              {t('pin.fieldSourceUrl')}
-            </label>
-            <input
-              id="pin-source"
-              type="url"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="https://"
-              style={inputStyle}
-            />
-            {!sourceUrlValid && (
-              <div style={{ fontSize: 12, color: 'var(--color-danger)', marginTop: 6 }}>
-                {t('pin.errSourceUrl')}
-              </div>
-            )}
-          </div>
-
           {/* Thẻ — autocomplete tags(query), tối đa 10 (§4.4, KHÔNG chép 6 nhãn cứng) */}
           <div>
             <label style={labelStyle} htmlFor="pin-tags">
@@ -684,42 +642,6 @@ export function CreatePinView() {
             )}
             <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>
               {t('pin.tagsLeft', { count: TAGS_MAX - tags.length, n: TAGS_MAX - tags.length })}
-            </div>
-          </div>
-
-          {/* Danh mục — chip toggle, tối đa 3 (§4.5) */}
-          <div>
-            <label style={labelStyle}>{t('pin.fieldCategories')}</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(catsQuery.data?.categories ?? []).map((c) => {
-                const active = categoryIds.includes(c.id);
-                const atCap = !active && categoryIds.length >= CATS_MAX;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    aria-pressed={active}
-                    disabled={atCap}
-                    onClick={() => toggleCategory(c.id)}
-                    style={{
-                      ...chipStyle,
-                      cursor: atCap ? 'not-allowed' : 'pointer',
-                      opacity: atCap ? 0.5 : 1,
-                      border: active ? '1px solid var(--color-primary-strong)' : '1px solid var(--color-border)',
-                      background: active ? 'var(--color-primary-soft)' : 'var(--color-surface)',
-                    }}
-                  >
-                    {c.icon ? `${c.icon} ` : ''}
-                    {c.name}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>
-              {t('pin.categoriesLeft', {
-                count: CATS_MAX - categoryIds.length,
-                n: CATS_MAX - categoryIds.length,
-              })}
             </div>
           </div>
 

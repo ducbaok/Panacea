@@ -182,12 +182,22 @@ function isoFromNow(msAhead: number): string {
   return new Date(Date.now() + msAhead).toISOString();
 }
 
-/** ISO nếu mốc tự chọn nằm ở tương lai; null nếu trống/không hợp lệ/đã qua. */
-function isoIfFuture(date: string, time: string): string | null {
-  if (!date) return null;
-  const at = new Date(`${date}T${time || '00:00'}`);
-  if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) return null;
-  return at.toISOString();
+/**
+ * Đọc giá trị của `<input type="datetime-local">` (`YYYY-MM-DDTHH:mm`, GIỜ ĐỊA
+ * PHƯƠNG) thành ISO UTC.
+ *
+ * 🔴 Phân biệt BA trạng thái, không phải hai — đây chính là chỗ hỏng của bản
+ * cũ (hai ô date+time rời): ô giờ trống được đọc thành `00:00`, nên chọn ngày
+ * hôm nay là "quá khứ" NGAY LẬP TỨC, và bấm chip "Tự chọn…" là ăn một dòng đỏ
+ * trước khi kịp gõ gì. "Chưa nhập/đang nhập dở" KHÁC "đã nhập đủ mà ở quá
+ * khứ": chỉ trạng thái thứ hai mới được báo lỗi.
+ */
+function parseCustomExpiry(value: string): { at: string | null; past: boolean } {
+  if (!value) return { at: null, past: false };
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return { at: null, past: false };
+  if (at.getTime() <= Date.now()) return { at: null, past: true };
+  return { at: at.toISOString(), past: false };
 }
 
 /** Suy ngược mốc chọn sẵn từ một ISO có sẵn (màn sửa pin điền lại bộ chọn). */
@@ -206,6 +216,30 @@ function localDateValue(d: Date): string {
 
 function localTimeValue(d: Date): string {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+/** `YYYY-MM-DDTHH:mm` theo GIỜ ĐỊA PHƯƠNG — đúng dạng `<input type="datetime-local">`. */
+function localDateTimeValue(d: Date): string {
+  return `${localDateValue(d)}T${localTimeValue(d)}`;
+}
+
+/**
+ * Gợi ý điền sẵn lúc bấm "Tự chọn…": bây giờ + 1 giờ, làm tròn LÊN 15 phút.
+ *
+ * Có gợi ý thì chip "Tự chọn…" mở ra ở một mốc HỢP LỆ, nên không có nhịp nào
+ * người dùng nhìn thấy lỗi đỏ do chính cú bấm của mình sinh ra.
+ */
+function suggestedCustomExpiry(): string {
+  const d = new Date(Date.now() + 3_600_000);
+  d.setSeconds(0, 0);
+  d.setMinutes(d.getMinutes() + ((15 - (d.getMinutes() % 15)) % 15));
+  return localDateTimeValue(d);
+}
+
+type CustomExpiry = { value: string; at: string | null; past: boolean };
+
+function customExpiryFrom(value: string): CustomExpiry {
+  return { value, ...parseCustomExpiry(value) };
 }
 
 type Props = {
@@ -227,10 +261,6 @@ export function AudiencePicker({ value, onChange, showExpiry = true, disabled }:
   const toast = useToast();
 
   const [open, setOpen] = useState(false);
-  // `min` của ô ngày là "hôm nay". Chốt MỘT lần lúc mount thay vì đọc đồng hồ
-  // mỗi render — cùng lý do với `isoFromNow`; qua nửa đêm mà form vẫn mở thì
-  // sàn lệch một ngày, còn chốt chặn thật vẫn là `isoIfFuture`.
-  const [todayValue] = useState(() => localDateValue(new Date()));
   const [adHocOpen, setAdHocOpen] = useState(false);
   // Ô tên nằm NGAY TRONG panel thay vì `window.prompt`: hộp thoại gốc của trình
   // duyệt khoá cả trang, không kiểm được bằng trình duyệt tự động, và ở một số
@@ -261,15 +291,29 @@ export function AudiencePicker({ value, onChange, showExpiry = true, disabled }:
     initialExpiryChoice(value.expiresAt),
   );
   /**
-   * `at` = ISO đã CHỐT lúc bấm (null = chưa hợp lệ). Giữ trong state thay vì
-   * tính lại mỗi render — xem docblock của `isoIfFuture`. Giá trị ban đầu lấy
-   * thẳng từ pin đang sửa: nó đến từ dữ liệu, không phải từ đồng hồ.
+   * `at` = ISO đã CHỐT lúc người dùng gõ (null = chưa đủ dữ liệu hoặc đã qua);
+   * `past` = đã đủ dữ liệu NHƯNG ở quá khứ — chỉ trạng thái này mới báo đỏ.
+   * Giữ trong state thay vì tính lại mỗi render — xem docblock của `isoFromNow`.
+   * Giá trị ban đầu lấy thẳng từ pin đang sửa: đến từ dữ liệu, không từ đồng hồ.
    */
-  const [custom, setCustom] = useState<{ date: string; time: string; at: string | null }>(() => ({
-    date: value.expiresAt ? localDateValue(new Date(value.expiresAt)) : '',
-    time: value.expiresAt ? localTimeValue(new Date(value.expiresAt)) : '',
+  const [custom, setCustom] = useState<CustomExpiry>(() => ({
+    value: value.expiresAt ? localDateTimeValue(new Date(value.expiresAt)) : '',
     at: value.expiresAt ?? null,
+    past: false,
   }));
+  /**
+   * Sàn `min` của ô hạn sống.
+   *
+   * KHÔNG đọc được đồng hồ lúc render: `react-hooks/purity` (eslint-config-next
+   * 16) chặn thẳng `Date.now()` trong thân component, và chặn đúng — xem
+   * docblock của `isoFromNow`. Nhưng chốt MỘT lần lúc mount cũng sai: form mở
+   * qua nửa đêm thì sàn lệch một ngày. Đường ở giữa: làm mới trong CHÍNH các
+   * handler của người dùng — bấm chip "Tự chọn…" (lúc ô hiện ra) và mỗi lần
+   * gõ. Không đặt trong `useEffect`: `react-hooks/set-state-in-effect` chặn.
+   * Chốt chặn THẬT vẫn là `parseCustomExpiry`, sàn này chỉ để bộ chọn native
+   * của trình duyệt không mời người dùng vào một mốc đã qua.
+   */
+  const [minCustom, setMinCustom] = useState(() => localDateTimeValue(new Date()));
 
   const pickedCircle = circles.find((c) => c.id === value.circleId) ?? null;
   const pickedCircleName = pickedCircle ? circleDisplayName(t, pickedCircle) : '';
@@ -297,7 +341,6 @@ export function AudiencePicker({ value, onChange, showExpiry = true, disabled }:
   }, [open]);
 
   const customAt = custom.at ? new Date(custom.at) : null;
-  const customOk = customAt != null;
 
   // Mốc chọn sẵn → ISO, chốt TẠI LÚC BẤM: người dùng mở form 10 phút rồi mới
   // bấm "24 giờ" thì mốc phải đếm từ lúc bấm, không phải từ lúc mở.
@@ -306,14 +349,20 @@ export function AudiencePicker({ value, onChange, showExpiry = true, disabled }:
     if (choice === 'none') return emitAudience({ expiresAt: null });
     if (choice === '24h') return emitAudience({ expiresAt: isoFromNow(24 * 3600_000) });
     if (choice === '7d') return emitAudience({ expiresAt: isoFromNow(7 * 24 * 3600_000) });
-    // custom — chưa hợp lệ thì để trống, echo đỏ đã báo lý do.
-    emitAudience({ expiresAt: custom.at });
+    // custom — mở ra ở một mốc HỢP LỆ. Chỉ giữ lại giá trị cũ khi nó còn dùng
+    // được; mốc đã qua (mở form lâu, hoặc quay lại chip này) thì gieo mốc gợi ý
+    // thay vì để nguyên một dòng đỏ mà người dùng chưa hề gõ gì.
+    setMinCustom(localDateTimeValue(new Date()));
+    const seeded = custom.at ? custom : customExpiryFrom(suggestedCustomExpiry());
+    setCustom(seeded);
+    emitAudience({ expiresAt: seeded.at });
   };
 
-  const applyCustom = (date: string, time: string) => {
-    const at = isoIfFuture(date, time);
-    setCustom({ date, time, at });
-    emitAudience({ expiresAt: at });
+  const applyCustom = (raw: string) => {
+    setMinCustom(localDateTimeValue(new Date()));
+    const next = customExpiryFrom(raw);
+    setCustom(next);
+    emitAudience({ expiresAt: next.at });
   };
 
   /** Ràng buộc 2 — chỉ chiều RIÊNG → CÔNG KHAI mới hỏi. */
@@ -713,42 +762,38 @@ export function AudiencePicker({ value, onChange, showExpiry = true, disabled }:
 
               {expiryChoice === 'custom' && (
                 <div style={{ marginTop: 10 }}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <label style={{ ...inlineFieldLabel, flex: '1 1 150px' }}>
-                      {t('circles.expiryDate')}
-                      <input
-                        type="date"
-                        value={custom.date}
-                        min={todayValue}
-                        onChange={(e) => applyCustom(e.target.value, custom.time)}
-                        style={inlineInput}
-                      />
-                    </label>
-                    <label style={{ ...inlineFieldLabel, flex: '0 1 110px' }}>
-                      {t('circles.expiryTime')}
-                      <input
-                        type="time"
-                        value={custom.time}
-                        onChange={(e) => applyCustom(custom.date, e.target.value)}
-                        style={inlineInput}
-                      />
-                    </label>
-                  </div>
+                  {/* MỘT ô duy nhất thay cho cặp date+time rời: cặp cũ không có
+                      cách nào biết "chưa gõ giờ" khác "gõ 00:00", nên mọi lựa
+                      chọn trong ngày hôm nay đều rơi vào quá khứ. */}
+                  <label style={{ ...inlineFieldLabel, display: 'block' }}>
+                    {t('circles.expiryWhen')}
+                    <input
+                      type="datetime-local"
+                      data-testid="expiry-at"
+                      value={custom.value}
+                      min={minCustom}
+                      onChange={(e) => applyCustom(e.target.value)}
+                      style={{ ...inlineInput, width: '100%' }}
+                    />
+                  </label>
                   <div
+                    data-testid="expiry-echo"
                     style={{
                       fontSize: 11.5,
                       lineHeight: 1.6,
                       marginTop: 8,
-                      color: customOk ? 'var(--color-muted)' : 'var(--color-danger)',
+                      color: custom.past ? 'var(--color-danger)' : 'var(--color-muted)',
                     }}
                   >
-                    {customOk && customAt
+                    {customAt
                       ? t('circles.expiryEcho', {
                           time: localTimeValue(customAt),
                           date: `${customAt.getDate()}/${customAt.getMonth() + 1}/${customAt.getFullYear()}`,
                           left: expiryLeftLabel(t, customAt.toISOString()),
                         })
-                      : t('circles.expiryPast')}
+                      : custom.past
+                        ? t('circles.expiryPast')
+                        : t('circles.expiryPickHint')}
                   </div>
                 </div>
               )}

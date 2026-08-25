@@ -49,13 +49,14 @@ export const circles = {
   'circles.expiry24h': '24 giờ',
   'circles.expiry7d': '7 ngày',
   'circles.expiryCustom': 'Tự chọn…',
-  'circles.expiryDate': 'Ngày',
-  'circles.expiryTime': 'Giờ',
+  'circles.expiryWhen': 'Thời điểm hết hạn',
   'circles.expiryEcho': 'Hết hạn {time} ngày {date} — {left}.',
-  'circles.expiryPast': 'Chọn một thời điểm trong tương lai.',
+  'circles.expiryPickHint': 'Chọn ngày và giờ pin tự hết hạn.',
+  'circles.expiryPast': 'Thời điểm này đã qua — chọn một mốc trong tương lai.',
   'circles.expiryNoteNone': 'Pin ở lại cho tới khi bạn xoá.',
   'circles.expiryNoteSet':
     'Hết hạn, pin biến mất khỏi mọi bề mặt — kể cả hồ sơ của bạn — và rơi vào Kho. Bình luận và cảm xúc giữ nguyên.',
+  'circles.leftUnderHour': 'còn dưới 1 giờ',
   'circles.leftHours': 'còn {count} giờ',
   'circles.leftDays': 'còn {count} ngày',
 
