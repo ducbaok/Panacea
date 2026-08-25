@@ -513,6 +513,110 @@ export class BoardsService {
     });
   }
 
+  /**
+   * XH-QĐ-17 — mời NGUYÊN MỘT VÒNG vào board.
+   *
+   * ⚠️ QUYẾT ĐỊNH HÌNH DẠNG, KHÔNG PHẢI CHI TIẾT: lời mời **NỞ NGAY thành từng
+   * dòng `BoardCollaborator`** lúc mời, y hệt mời tay. KHÔNG lưu `circleId` lên
+   * board, KHÔNG có "board thuộc vòng X". Hệ quả trực tiếp và ĐÃ CHỐT: người
+   * rời vòng sau đó **VẪN là cộng tác viên** — muốn bỏ thì chủ board gỡ tay.
+   *
+   * Đây là chỗ DUY NHẤT trong nhánh xã hội cố ý ĐI NGƯỢC luật hồi tố của §3
+   * ("bớt khỏi vòng ⇒ mất quyền xem ngay"), nên lý do phải nằm ngay đây: quyền
+   * xem pin tính LÚC ĐỌC nên rút lại được im lặng, còn cộng tác viên thì đã
+   * viết vào board — họ đã lưu pin, đã sửa mô tả. Gỡ họ theo một thay đổi ở
+   * màn `/settings/circles` là xoá công việc của người khác vì một thao tác
+   * trông chẳng liên quan. Một bản cài đặt "giữ circleId rồi tính lúc đọc" sẽ
+   * xanh mọi phép khác và chỉ chết ở phép quyết định của bước 76.
+   *
+   * Ba việc bộ lọc dưới đây làm, mỗi việc một lý do:
+   *   1. `ownerId: userId` NẰM TRONG where — vòng của người khác và vòng không
+   *      tồn tại phải không phân biệt được (luật 1 của circles). Đồng thời đó
+   *      là rào chắn quyền riêng tư thật: danh sách thành viên một vòng chỉ chủ
+   *      vòng được biết, mà mời vòng thì làm nó hiện nguyên trên màn cộng tác
+   *      viên. Chủ board mời vòng của CHÍNH MÌNH thì không rò gì cả.
+   *   2. Lọc qua `user.findMany` chứ không tin thẳng `CircleMember`: quan hệ
+   *      lồng trong `include` KHÔNG đi qua middleware soft-delete (cùng bẫy đã
+   *      ghi ở `circles.service._shapeMany`), nên tài khoản đã xoá vẫn còn dòng
+   *      thành viên và sẽ thành cộng tác viên ma.
+   *   3. Chỉ thêm người CÒN THIẾU (QĐ-25) — `role` áp cho người mới, người đã
+   *      có mặt GIỮ NGUYÊN vai trò cũ. `updateMany` ở đây sẽ hạ quyền một
+   *      EDITOR xuống VIEWER chỉ vì họ tình cờ nằm trong vòng vừa mời.
+   *
+   * KHÔNG kiểm tra chặn, cố ý: `inviteCollaborator` cũng không, và `Circle` đã
+   * chặn thêm người bị block lúc lập vòng (`_assertUsersAddable`). Thêm một
+   * luật ở riêng đường này làm hai đường mời lệch nhau — thứ đắt hơn nhiều so
+   * với một cộng tác viên không bao giờ thấy pin của nhau.
+   */
+  async inviteCircleToBoard(
+    userId: string,
+    boardId: string,
+    circleId: string,
+    role: CollaboratorRole,
+  ) {
+    const board = await this.prisma.board.findFirst({
+      where: { id: boardId, userId, deletedAt: null },
+    });
+    if (!board) throw new ForbiddenException('Only board owner can invite collaborators');
+
+    const circle = await this.prisma.circle.findFirst({
+      where: { id: circleId, ownerId: userId },
+      include: { members: { select: { userId: true } } },
+    });
+    if (!circle) throw new NotFoundException('Circle not found');
+
+    // `filter(id !== userId)` là bảo hiểm rẻ, không phải nhánh sống: vòng không
+    // bao giờ chứa chính chủ (`_assertUsersAddable` chặn từ đường ghi). Nhưng
+    // nếu một ngày nào đó nó chứa, dòng này là thứ ngăn chủ board thành cộng
+    // tác viên của chính board mình — trạng thái mà màn C7 không vẽ được.
+    const memberIds = [...new Set(circle.members.map((m) => m.userId))].filter(
+      (id) => id !== userId,
+    );
+    const alive = memberIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: memberIds } },
+          select: { id: true },
+        })
+      : [];
+    const aliveIds = alive.map((u) => u.id);
+
+    const existing = aliveIds.length
+      ? await this.prisma.boardCollaborator.findMany({
+          where: { boardId, userId: { in: aliveIds } },
+          select: { userId: true },
+        })
+      : [];
+    const already = new Set(existing.map((c) => c.userId));
+    const missing = aliveIds.filter((id) => !already.has(id));
+
+    if (missing.length) {
+      // `skipDuplicates` chứ không phải `create` từng dòng: hai lời mời song
+      // song cùng một vòng sẽ đâm vào `@@unique([boardId, userId])` và ném
+      // P2002 THÔ ra client (đúng bẫy §4.6 mà FE đang phải tự né bằng cách
+      // khoá nút). Ở đây bỏ qua dòng trùng là hành vi ĐÚNG, không phải nuốt lỗi.
+      await this.prisma.boardCollaborator.createMany({
+        data: missing.map((id) => ({ boardId, userId: id, role })),
+        skipDuplicates: true,
+      });
+    }
+
+    const added = missing.length
+      ? await this.prisma.boardCollaborator.findMany({
+          where: { boardId, userId: { in: missing } },
+          orderBy: { createdAt: 'asc' },
+        })
+      : [];
+
+    return {
+      boardId,
+      circleId,
+      memberCount: aliveIds.length,
+      addedCount: added.length,
+      alreadyCount: already.size,
+      added,
+    };
+  }
+
   async removeCollaborator(userId: string, boardId: string, collabUserId: string) {
     const board = await this.prisma.board.findFirst({ where: { id: boardId, deletedAt: null } });
     if (!board) throw new NotFoundException('Board not found');

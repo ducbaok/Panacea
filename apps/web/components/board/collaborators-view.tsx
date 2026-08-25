@@ -11,9 +11,15 @@ import {
   MeDocument,
   type MeQuery,
   InviteCollaboratorDocument,
+  InviteCircleToBoardDocument,
+  type InviteCircleToBoardMutation,
+  type InviteCircleToBoardMutationVariables,
   RemoveCollaboratorDocument,
   UpdateCollaboratorRoleDocument,
   CollaboratorRole,
+  MyCirclesDocument,
+  type MyCirclesQuery,
+  type MyCirclesQueryVariables,
 } from '@/lib/gql/graphql';
 import { useSearchUsers } from '@/lib/hooks/usePaginatedQuery';
 import { useConfirm } from '@/components/ui/confirm-dialog';
@@ -46,6 +52,19 @@ import type { TranslationKey } from '@/lib/i18n/translate';
  * • **N ĐẾM CẢ chủ board** (`collaborators.length + 1`) — heading bản vẽ là "N
  *   người trong board", mà chủ board rõ ràng ở trong board.
  *
+ * ─── XH-BOARD-CIRCLE (24/08, luồng D) — mời NGUYÊN VÒNG ───
+ * Khối "Mời cả vòng tròn" nằm NGAY TRONG màn này chứ không phải một màn riêng:
+ * bản vẽ vẽ nó như một khối thêm của C7, và lời mời vòng "nở" thành đúng những
+ * `CollaboratorRow` mà danh sách bên dưới đang hiển thị (XH-QĐ-17).
+ *
+ * ⚠️ MỘT CHỖ CỐ Ý KHÁC BẢN VẼ: bản vẽ hiện câu "3/5 đã có mặt" NGAY TRONG
+ * picker, tức trước khi bấm Mời. FE KHÔNG biết con số đó trước: `myCircles`
+ * chỉ trả `memberCount`, còn ai trong vòng đã là cộng tác viên thì phải đối
+ * chiếu từng thành viên — một query `circle(id)` nữa cho MỖI vòng, và vẫn có
+ * thể lệch nếu ai đó đổi danh sách giữa chừng. Nên câu đếm hiện SAU khi mời,
+ * lấy đúng ba con số backend trả về (QĐ-25) — đó là con số THẬT của thao tác
+ * vừa xảy ra, không phải một ước lượng.
+ *
  * ─── Trạng thái thứ 6 ngoài bản vẽ, cố ý ───
  * Bản vẽ có 5 trạng thái (idle/notfound/owneronly/self/neterr) × 2 biến thể vai
  * trò, tất cả đều giả định người xem LÀ chủ board hoặc cộng tác viên. Nhưng route
@@ -70,6 +89,10 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
   const meQuery = useQuery<MeQuery>(MeDocument, { skip: sessionStatus !== 'authenticated' });
 
   const [inviteM] = useMutation(InviteCollaboratorDocument);
+  const [inviteCircleM] = useMutation<
+    InviteCircleToBoardMutation,
+    InviteCircleToBoardMutationVariables
+  >(InviteCircleToBoardDocument);
   const [removeM] = useMutation(RemoveCollaboratorDocument);
   const [roleM] = useMutation(UpdateCollaboratorRoleDocument);
 
@@ -91,6 +114,22 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
   const [state, setState] = useState<C7State>('idle');
   const [bannerOverride, setBannerOverride] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // ─── Mời cả vòng (XH-BOARD-CIRCLE) ────────────────────────────────────────
+  // `skip: !isOwner` — chỉ chủ board mới mời được, và `myCircles` là danh sách
+  // riêng tư: đừng bắn query đó ra từ màn của một cộng tác viên.
+  const circlesQuery = useQuery<MyCirclesQuery, MyCirclesQueryVariables>(MyCirclesDocument, {
+    variables: { includeAdHoc: false },
+    skip: !isOwner,
+  });
+  const myCircles = circlesQuery.data?.myCircles ?? [];
+  const [circlePickerOpen, setCirclePickerOpen] = useState(false);
+  const [pickedCircleId, setPickedCircleId] = useState<string | null>(null);
+  const [circleRole, setCircleRole] = useState<CollaboratorRole>(CollaboratorRole.Editor);
+  /** Kết quả lần mời vòng gần nhất — nguồn của cả câu đếm lẫn danh sách "vừa thêm". */
+  const [circleResult, setCircleResult] = useState<
+    (InviteCircleToBoardMutation['inviteCircleToBoard'] & { circleName: string }) | null
+  >(null);
 
   // Ô tìm người: gõ 300ms mới gọi `search` (mỗi ký tự một request là vô lý).
   const [rawQuery, setRawQuery] = useState('');
@@ -161,6 +200,40 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
       });
     } catch (err) {
       showError(err, 'board.inviteFailed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Mời NGUYÊN VÒNG. Một mutation, backend tự bỏ qua người đã có mặt (QĐ-25) —
+   * FE KHÔNG tự lọc trước: danh sách cộng tác viên trên màn có thể cũ vài giây,
+   * và lọc theo bản cũ thì bỏ sót đúng người vừa bị gỡ ở tab khác.
+   */
+  async function onInviteCircle() {
+    const circle = myCircles.find((c) => c.id === pickedCircleId);
+    if (!isOwner || busy || !circle) return;
+    setBannerOverride(null);
+    setBusy(true);
+    try {
+      const res = await inviteCircleM({
+        variables: { boardId, circleId: circle.id, role: circleRole },
+      });
+      const data = res.data?.inviteCircleToBoard;
+      if (data) setCircleResult({ ...data, circleName: circle.name });
+      setState('idle');
+      await boardQuery.refetch();
+      if (data && data.addedCount > 0) {
+        toast({
+          message: t('board.inviteCircleAdded', {
+            count: data.addedCount,
+            countText: formatCount(data.addedCount),
+            name: circle.name,
+          }),
+        });
+      }
+    } catch (err) {
+      showError(err, 'board.inviteCircleFailed');
     } finally {
       setBusy(false);
     }
@@ -415,6 +488,184 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
           </div>
         )}
 
+        {/* ─── XH-BOARD-CIRCLE — "Mời cả vòng tròn" (chỉ chủ board) ───
+            5 trạng thái của bản vẽ: idle · picker · done · empty · dup.
+            `data-state` gộp chúng lại đúng theo tên bản vẽ để soát bằng mắt. */}
+        {isOwner && (
+          <div
+            data-screen="XH-BOARD-CIRCLE"
+            data-state={
+              myCircles.length === 0
+                ? 'empty'
+                : circleResult
+                  ? circleResult.alreadyCount > 0
+                    ? 'dup'
+                    : 'done'
+                  : circlePickerOpen
+                    ? 'picker'
+                    : 'idle'
+            }
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 18,
+              padding: 22,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: 'var(--color-foreground)' }}>
+              {t('board.inviteCircleTitle')}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 14 }}>
+              {t('board.inviteCircleBody')}
+            </div>
+
+            {myCircles.length === 0 ? (
+              /* Trạng thái 3 — chưa có vòng nào. Không vẽ picker rỗng: người
+                 dùng cần biết đi đâu để tạo, và rằng mời tay vẫn còn đó. */
+              <div
+                style={{
+                  padding: 22,
+                  borderRadius: 14,
+                  background: 'var(--color-surface-muted)',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-foreground)' }}>
+                  {t('board.inviteCircleNoneTitle')}
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginTop: 6, lineHeight: 1.6 }}>
+                  {t('board.inviteCircleNoneBody')}
+                </div>
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setCirclePickerOpen((v) => !v)}
+                  aria-expanded={circlePickerOpen}
+                  style={{
+                    padding: '11px 20px',
+                    borderRadius: 999,
+                    border: '1px solid var(--color-border)',
+                    background: 'var(--color-surface-muted)',
+                    color: 'var(--color-foreground)',
+                    fontWeight: 700,
+                    fontSize: 13.5,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {t('board.inviteCircleOpen')}
+                </button>
+
+                {circlePickerOpen && (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                    <PickerLabel>{t('board.inviteCirclePickLabel')}</PickerLabel>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {myCircles.map((c) => (
+                        <PickerChip
+                          key={c.id}
+                          active={pickedCircleId === c.id}
+                          onClick={() => setPickedCircleId(c.id)}
+                          label={t('board.inviteCircleChip', {
+                            name: c.name,
+                            count: c.memberCount,
+                            countText: formatCount(c.memberCount),
+                          })}
+                        />
+                      ))}
+                    </div>
+
+                    <PickerLabel style={{ margin: '14px 0 8px' }}>
+                      {t('board.inviteCircleRoleLabel')}
+                    </PickerLabel>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <PickerChip
+                        active={circleRole === CollaboratorRole.Viewer}
+                        onClick={() => setCircleRole(CollaboratorRole.Viewer)}
+                        label={t('board.roleViewer')}
+                      />
+                      <PickerChip
+                        active={circleRole === CollaboratorRole.Editor}
+                        onClick={() => setCircleRole(CollaboratorRole.Editor)}
+                        label={t('board.roleEditor')}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => void onInviteCircle()}
+                      disabled={busy || pickedCircleId == null}
+                      style={{
+                        marginTop: 14,
+                        padding: '11px 20px',
+                        borderRadius: 999,
+                        border: 'none',
+                        background: 'var(--color-primary)',
+                        color: 'var(--color-primary-foreground)',
+                        fontWeight: 700,
+                        fontSize: 13.5,
+                        fontFamily: 'inherit',
+                        cursor: busy || pickedCircleId == null ? 'not-allowed' : 'pointer',
+                        opacity: busy || pickedCircleId == null ? 0.5 : 1,
+                      }}
+                    >
+                      {t('board.inviteCircleSubmit')}
+                    </button>
+                  </div>
+                )}
+
+                {/* Kết quả — QĐ-25. Bốn nhánh chữ cho bốn tình huống KHÁC NHAU;
+                    gộp lại thành một câu thì "cả vòng đã có mặt" và "vòng rỗng"
+                    đều hiện thành "đã thêm 0 người", nói sai chuyện đã xảy ra. */}
+                {circleResult && (
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                    <div style={{ fontSize: 12.5, color: 'var(--color-muted)', marginBottom: 10, lineHeight: 1.55 }}>
+                      {circleResult.memberCount === 0
+                        ? t('board.inviteCircleEmptyCircle')
+                        : circleResult.addedCount === 0
+                          ? t('board.inviteCircleAllPresent', { total: circleResult.memberCount })
+                          : circleResult.alreadyCount > 0
+                            ? t('board.inviteCircleDup', {
+                                already: circleResult.alreadyCount,
+                                total: circleResult.memberCount,
+                                added: circleResult.addedCount,
+                              })
+                            : t('board.inviteCircleDoneNote', { name: circleResult.circleName })}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {circleResult.added.map((m) => (
+                        <div
+                          key={m.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 11,
+                            padding: 10,
+                            borderRadius: 12,
+                            border: '1px solid var(--color-border)',
+                          }}
+                        >
+                          <Avatar size={38} name={m.user?.name ?? m.user?.username} url={m.user?.avatarUrl} />
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--color-foreground)' }}>
+                              {m.user?.name ?? m.user?.username}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>@{m.user?.username}</div>
+                          </div>
+                          <div style={{ fontSize: 12.5, color: 'var(--color-muted)', fontWeight: 600 }}>
+                            {m.role === CollaboratorRole.Editor ? t('board.roleEditor') : t('board.roleViewer')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         {/* Danh sách thành viên — hiện cho chủ board và cộng tác viên. */}
         {canManage && (
           <div
@@ -565,6 +816,49 @@ export function CollaboratorsView({ boardId }: { boardId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** Nhãn nhóm trong picker vòng — chữ nhỏ, in hoa, theo bản vẽ. */
+function PickerLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: '.06em',
+        textTransform: 'uppercase',
+        color: 'var(--color-muted)',
+        marginBottom: 8,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Chip chọn một-trong-nhiều (vòng / vai trò). */
+function PickerChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        padding: '8px 14px',
+        borderRadius: 999,
+        border: active ? '1px solid var(--color-primary)' : '1px solid var(--color-border)',
+        background: active ? 'var(--color-primary-soft)' : 'var(--color-surface-muted)',
+        color: active ? 'var(--color-primary-strong)' : 'var(--color-foreground)',
+        fontWeight: 600,
+        fontSize: 12.5,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

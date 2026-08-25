@@ -11,6 +11,9 @@ import {
   FollowDocument,
   type FollowMutation,
   type FollowMutationVariables,
+  MyCirclesDocument,
+  type MyCirclesQuery,
+  type MyCirclesQueryVariables,
 } from '@/lib/gql/graphql';
 import { useHomeFeed } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
@@ -18,7 +21,6 @@ import { ExploreSection } from '@/components/home/explore-section';
 import { useToast } from '@/components/ui/toast';
 import { formatCount } from '@/lib/format';
 import { useT } from '@/lib/i18n/provider';
-import type { TranslationKey } from '@/lib/i18n/translate';
 
 /**
  * B1 — Trang chủ (FE-6). Hai vai:
@@ -53,6 +55,15 @@ function GuestHome() {
 }
 
 /**
+ * Nguồn đang xem ở trang chủ. Nhánh vòng mang theo id NGAY TRONG giá trị tab
+ * chứ không nằm ở một state riêng — xem docblock của `tab` trong `AuthHome`.
+ */
+type HomeTab = 'following' | 'explore' | { circleId: string };
+
+const tabCircleId = (t: HomeTab | null): string | null =>
+  t !== null && typeof t === 'object' ? t.circleId : null;
+
+/**
  * Khoá localStorage cho việc đóng banner gợi ý (#5).
  * Đặt tên có tiền tố màn để sau này còn phân biệt được với các dismiss khác.
  */
@@ -78,17 +89,61 @@ function AuthHome() {
    * REVIEW-1 (#2) — `tab` thay cho `forcedSource` cũ.
    *   null      = chưa chọn, để backend tự quyết nguồn (giữ QĐ-1).
    *   'following' / 'explore' = người dùng đã chọn tường minh.
+   *   { circleId } = nhánh THỨ BA (XH-QĐ-17 / luồng D) — xem riêng một vòng.
    *
    * Phải phân biệt "explore vì backend fallback (chưa follow ai)" với "explore
    * vì người dùng bấm chip" — bản cũ gộp cả hai vào `source === EXPLORE`, nên
    * bấm chip Khám phá là banner "Bạn chưa theo dõi ai" hiện lại dù người dùng
    * đang theo dõi cả chục người.
+   *
+   * ⚠️ NHÁNH VÒNG VÀO ĐÚNG BIẾN `tab` NÀY, KHÔNG THÊM MỘT STATE THỨ HAI. Một
+   * `circleId` sống song song với `tab` là hai nguồn sự thật cho cùng một câu
+   * hỏi ("đang xem gì"), và chúng sẽ lệch nhau đúng ở chỗ bản cũ đã lệch: bấm
+   * chip vòng rồi bấm lại Khám phá thì `circleId` cũ còn nguyên, request đi
+   * kèm cả `source=EXPLORE` lẫn `circleId` — backend NÉM (cặp lệch, luồng D)
+   * và người dùng thấy lưới trắng. Một biến thì trạng thái đó không tồn tại.
    */
-  const [tab, setTab] = useState<'following' | 'explore' | null>(null);
+  const [tab, setTab] = useState<HomeTab | null>(null);
 
-  const feed = useHomeFeed(tab === 'following' ? { source: FeedSource.Following } : {}, {
-    skip: tab === 'explore',
+  /**
+   * Danh sách vòng cho dải chip. `includeAdHoc: false` — khán giả chọn tại chỗ
+   * ẨN khỏi mọi bề mặt quản lý (XH-QĐ-5), và tên của chúng là chuỗi RỖNG nên
+   * chip sẽ không có chữ. QĐ-26: không có vòng nào ⇒ ẩn CẢ chip LẪN vạch ngăn.
+   */
+  const circlesQuery = useQuery<MyCirclesQuery, MyCirclesQueryVariables>(MyCirclesDocument, {
+    variables: { includeAdHoc: false },
   });
+  const circles = circlesQuery.data?.myCircles ?? [];
+
+  /**
+   * Vòng đang chọn có thể BIẾN MẤT giữa chừng (xoá ở tab khác, hoặc chủ vòng
+   * bớt mình ra). Không rơi về nhánh mặc định thì `homeFeed` trả 404 "Circle
+   * not found" và người dùng nhận lưới trắng không lời giải thích.
+   *
+   * Xử bằng cách SUY RA lúc render, KHÔNG `setTab` trong `useEffect`: đặt lại
+   * state trong effect thì lần render đầu vẫn kịp bắn một request 404 (effect
+   * chạy SAU render) và lưới nháy trắng một nhịp — chưa kể lint của dự án cấm
+   * đúng hình dạng đó. Vòng biến mất thì tab CHỈ ĐƯỢC ĐỌC như 'following';
+   * `tab` giữ nguyên giá trị cũ và không ai nhìn thấy nó nữa vì chip tương ứng
+   * cũng đã rụng khỏi danh sách.
+   */
+  const requestedCircleId = tabCircleId(tab);
+  const circleGone =
+    requestedCircleId != null &&
+    !circlesQuery.loading &&
+    !circles.some((c) => c.id === requestedCircleId);
+
+  const activeTab: HomeTab | null = circleGone ? 'following' : tab;
+  const activeCircleId = tabCircleId(activeTab);
+
+  const feed = useHomeFeed(
+    activeCircleId
+      ? { source: FeedSource.Circle, circleId: activeCircleId }
+      : activeTab === 'following'
+        ? { source: FeedSource.Following }
+        : {},
+    { skip: activeTab === 'explore' },
+  );
 
   // Nguồn THỰC backend trả về. Chỉ có nghĩa khi không ở tab explore (lúc đó
   // homeFeed bị skip nên `feed.source` là giá trị cũ).
@@ -96,8 +151,8 @@ function AuthHome() {
 
   // `fallback` = backend tự chọn EXPLORE vì người dùng chưa theo dõi ai. Đây
   // mới là điều kiện đúng cho banner, không phải "đang xem explore".
-  const isFallbackExplore = tab === null && source === FeedSource.Explore;
-  const effectiveTab: 'following' | 'explore' = tab ?? (isFallbackExplore ? 'explore' : 'following');
+  const isFallbackExplore = activeTab === null && source === FeedSource.Explore;
+  const effectiveTab: HomeTab = activeTab ?? (isFallbackExplore ? 'explore' : 'following');
 
   const [dismissed, setDismissed] = useState<boolean>(readDismissed);
 
@@ -113,6 +168,13 @@ function AuthHome() {
 
   const showFollowingEmpty =
     effectiveTab === 'following' && !feed.loading && feed.items.length === 0;
+
+  /**
+   * Card rỗng của vòng CỐ Ý khác card rỗng FOLLOWING (spec §2 trạng thái 3):
+   * đây là nhóm thân, "chưa ai chia sẻ gì riêng cho nhóm này" chứ không phải
+   * "bạn chưa theo dõi ai". Cùng một lưới rỗng, hai câu chuyện khác nhau.
+   */
+  const showCircleEmpty = activeCircleId != null && !feed.loading && feed.items.length === 0;
 
   return (
     <div style={{ padding: '24px 0 0' }}>
@@ -175,29 +237,60 @@ function AuthHome() {
           </div>
         )}
 
-        {/* Chip nguồn — 2 chip, active = nguồn THỰC (không phải forced) */}
+        {/* Chip nguồn — 2 chip cố định + dải chip vòng, active = nguồn THỰC
+            (không phải forced). Bản vẽ XH-CIRCLE-FEED: hàng chip cuộn NGANG,
+            vạch ngăn 1px giữa hai nhóm. `maxWidth: '100%'` + `overflowX` là
+            thứ giữ cho 20 vòng (trần XH-QĐ-13) không đẩy vỡ lưới bên dưới. */}
         <div
           role="tablist"
           aria-label={t('home.sourceTablist')}
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             gap: 4,
             background: 'var(--color-surface-muted)',
             borderRadius: 999,
             padding: 4,
             marginBottom: 16,
+            maxWidth: '100%',
+            width: 'fit-content',
+            overflowX: 'auto',
           }}
         >
           <SourceChip
-            labelKey="home.tabFollowing"
+            label={t('home.tabFollowing')}
             active={effectiveTab === 'following'}
             onClick={() => setTab('following')}
           />
           <SourceChip
-            labelKey="home.tabExplore"
+            label={t('home.tabExplore')}
             active={effectiveTab === 'explore'}
             onClick={() => setTab('explore')}
           />
+          {/* QĐ-26 — chưa có vòng nào thì ẨN CẢ vạch ngăn lẫn chip. Bản vẽ luôn
+              có vòng nên nhánh này không có trong bundle; ghi rõ ở
+              `ban-do-man-panacea.md` là FE tự xử. */}
+          {circles.length > 0 && (
+            <>
+              <span
+                aria-hidden
+                style={{
+                  width: 1,
+                  height: 24,
+                  background: 'var(--color-border)',
+                  flex: 'none',
+                  margin: '4px 3px',
+                }}
+              />
+              {circles.map((c) => (
+                <SourceChip
+                  key={c.id}
+                  label={c.name}
+                  active={activeCircleId === c.id}
+                  onClick={() => setTab({ circleId: c.id })}
+                />
+              ))}
+            </>
+          )}
         </div>
 
       </div>
@@ -211,7 +304,9 @@ function AuthHome() {
         <ExploreSection skip={effectiveTab !== 'explore'} />
       </div>
 
-      {effectiveTab === 'explore' ? null : showFollowingEmpty ? (
+      {effectiveTab === 'explore' ? null : showCircleEmpty ? (
+        <CircleEmptyCard onCreate={() => router.push('/pin/new')} />
+      ) : showFollowingEmpty ? (
         <FollowingEmptyCard onExplore={() => setTab('explore')} />
       ) : (
         <PinGrid
@@ -227,16 +322,19 @@ function AuthHome() {
   );
 }
 
+/**
+ * `label` là CHỮ ĐÃ DỊCH, không phải key: tên vòng do người dùng đặt nên nó
+ * không nằm trong từ điển. Hai chip cố định tự dịch ở nơi gọi.
+ */
 function SourceChip({
-  labelKey,
+  label,
   active,
   onClick,
 }: {
-  labelKey: TranslationKey;
+  label: string;
   active: boolean;
   onClick: () => void;
 }) {
-  const t = useT();
   return (
     <button
       type="button"
@@ -254,9 +352,13 @@ function SourceChip({
         fontSize: 13.5,
         cursor: 'pointer',
         whiteSpace: 'nowrap',
+        flex: 'none',
+        maxWidth: 180,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
       }}
     >
-      {t(labelKey)}
+      {label}
     </button>
   );
 }
@@ -313,6 +415,68 @@ function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
         }}
       >
         {t('home.seeExplore')}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Card rỗng của FEED VÒNG (bản vẽ XH-CIRCLE-FEED, state `empty-circle`). Chép
+ * nguyên văn 3 chuỗi từ bản vẽ — §9: chép, đừng sáng tác.
+ *
+ * ⚠️ Nút "Đăng cho vòng này" điều hướng sang `/pin/new` mà KHÔNG chọn sẵn vòng.
+ * Bản vẽ ghi `createPin(visibility:CIRCLE)`, nhưng chọn sẵn khán giả phải sửa
+ * `create-pin-view.tsx` — vùng file của luồng F1, ngoài phạm vi luồng D
+ * (`xahoi-dieu-phoi.md` §3). Ghi lại thành việc còn thiếu thay vì lấn vùng.
+ */
+function CircleEmptyCard({ onCreate }: { onCreate: () => void }) {
+  const t = useT();
+  return (
+    <div
+      data-screen="XH-CIRCLE-FEED"
+      data-state="empty-circle"
+      style={{
+        margin: '0 16px',
+        padding: '56px 24px',
+        textAlign: 'center',
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
+    >
+      <div style={{ fontFamily: "'Varela Round', sans-serif", fontSize: 21, color: 'var(--color-foreground)' }}>
+        {t('home.emptyCircleTitle')}
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          color: 'var(--color-muted)',
+          marginTop: 8,
+          lineHeight: 1.6,
+          maxWidth: 460,
+        }}
+      >
+        {t('home.emptyCircleBody')}
+      </div>
+      <button
+        type="button"
+        onClick={onCreate}
+        style={{
+          marginTop: 18,
+          padding: '11px 22px',
+          borderRadius: 999,
+          border: 'none',
+          background: 'var(--color-primary)',
+          color: 'var(--color-primary-foreground)',
+          fontWeight: 700,
+          fontSize: 14,
+          cursor: 'pointer',
+        }}
+      >
+        {t('home.postToCircle')}
       </button>
     </div>
   );

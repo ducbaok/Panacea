@@ -25,4 +25,8 @@ export const home: Mirror<Vi> = {
   'home.categoryTablist': 'Topic filter',
   'home.categoryAll': 'All',
   'home.exploreEmpty': 'No pins in this topic yet.',
+  // ── Chip vòng + feed một vòng (XH-CIRCLE-FEED, luồng D) ──
+  'home.emptyCircleTitle': 'Nothing here yet',
+  'home.emptyCircleBody': 'No one has shared anything just for this circle. You could be the first.',
+  'home.postToCircle': 'Post to this circle',
 };

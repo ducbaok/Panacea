@@ -114,4 +114,23 @@ export const board = {
   'board.addSection': 'Thêm section',
   'board.dragToReorder': 'Kéo để đổi thứ tự',
   'board.sectionNameAria': 'Tên section {name}',
+
+  // ── XH-BOARD-CIRCLE (luồng D) — mời NGUYÊN VÒNG vào board ──
+  // Chuỗi chép nguyên văn từ bản vẽ `Panacea-v3.1.html` (5 trạng thái).
+  'board.inviteCircleTitle': 'Mời cả vòng tròn',
+  'board.inviteCircleBody': 'Chọn một vòng, chọn vai trò, mọi người trong vòng thành cộng tác viên.',
+  'board.inviteCircleOpen': 'Mời cả vòng…',
+  'board.inviteCirclePickLabel': 'Vòng',
+  'board.inviteCircleRoleLabel': 'Vai trò',
+  'board.inviteCircleSubmit': 'Mời',
+  'board.inviteCircleChip': '{name} · {countText} người',
+  'board.inviteCircleNoneTitle': 'Bạn chưa có vòng nào',
+  'board.inviteCircleNoneBody': 'Tạo vòng ở Cài đặt rồi quay lại — hoặc cứ mời từng người như cũ.',
+  'board.inviteCircleDoneNote': 'Vừa thêm từ vòng {name} — hiện thành từng người, không phải một dòng “vòng”.',
+  'board.inviteCircleDup':
+    '{already}/{total} người trong vòng này đã là cộng tác viên. Chỉ {added} người còn lại được thêm, vai trò cũ của {already} người kia giữ nguyên.',
+  'board.inviteCircleAllPresent': 'Cả {total} người trong vòng này đã là cộng tác viên — không thêm ai mới.',
+  'board.inviteCircleEmptyCircle': 'Vòng này chưa có ai, nên không thêm được cộng tác viên nào.',
+  'board.inviteCircleAdded': 'Đã thêm {countText} người từ vòng {name}',
+  'board.inviteCircleFailed': 'Không mời được cả vòng, thử lại sau.',
 } as const;

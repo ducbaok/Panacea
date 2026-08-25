@@ -1,5 +1,5 @@
-import { ArgsType, Field } from '@nestjs/graphql';
-import { IsEnum, IsOptional } from 'class-validator';
+import { ArgsType, Field, ID } from '@nestjs/graphql';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 import { CursorPaginationArgs } from '../../common/pagination';
 import { FeedSource } from '../entities/home-feed.entity';
@@ -16,6 +16,12 @@ import { FeedSource } from '../entities/home-feed.entity';
  *
  * Gộp vào MỘT @ArgsType kế thừa `CursorPaginationArgs`: trộn `@Args('source')`
  * với `@Args()` không tên làm query trả 400 im lặng (xem cursor-pagination.ts).
+ *
+ * XH-QĐ-17 / luồng D — nguồn THỨ BA `CIRCLE` đi kèm `circleId`. Hai field này
+ * BUỘC PHẢI ĐI CÙNG NHAU và luật đó cưỡng chế ở SERVICE, không ở đây: quan hệ
+ * giữa hai field không phải thứ `class-validator` diễn đạt được mà không kéo
+ * theo một decorator tuỳ biến, và thông điệp lỗi của nó phải nói được cả hai
+ * chiều sai (thiếu `circleId` ⇄ thừa `circleId`).
  */
 @ArgsType()
 export class HomeFeedArgs extends CursorPaginationArgs {
@@ -23,4 +29,10 @@ export class HomeFeedArgs extends CursorPaginationArgs {
   @IsOptional()
   @IsEnum(FeedSource)
   source?: FeedSource;
+
+  /** Vòng cần xem — CHỈ có nghĩa khi `source = CIRCLE`. */
+  @Field(() => ID, { nullable: true })
+  @IsOptional()
+  @IsString()
+  circleId?: string;
 }

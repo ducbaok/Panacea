@@ -28,6 +28,16 @@ export enum FeedSource {
   FOLLOWING = 'FOLLOWING',
   /** Chưa follow ai ⇒ rơi về explore feed để trang chủ không rỗng. */
   EXPLORE = 'EXPLORE',
+  /**
+   * XH-QĐ-17 / luồng D — "xem riêng nội dung của MỘT vòng".
+   *
+   * ⚠️ NGUỒN DUY NHẤT KHÔNG TỰ CHỌN ĐƯỢC: hai nhánh trên suy ra từ trạng thái
+   * người dùng (`followingCount`), nhánh này thì phải có `circleId` đi kèm nên
+   * backend không bao giờ tự rơi vào. Nó chỉ xuất hiện khi client ÉP — và vì
+   * thế `homeFeed` KHÔNG bao giờ trả `source: CIRCLE` cho một request không
+   * gửi `circleId` (service ném BadRequest thay vì đoán một vòng).
+   */
+  CIRCLE = 'CIRCLE',
 }
 
 registerEnumType(FeedSource, {

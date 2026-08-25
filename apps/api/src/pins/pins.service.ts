@@ -1130,7 +1130,27 @@ export class PinsService {
     blockedIds: string[],
     audienceCtx: PinAudienceCtx,
     forcedSource?: FeedSource,
+    circleId?: string,
   ): Promise<PaginatedResult<any> & { source: FeedSource }> {
+    // ── Nguồn THỨ BA: một vòng cụ thể (XH-QĐ-17 / luồng D) ───────────────────
+    //
+    // Kiểm cặp `source` ⇄ `circleId` TRƯỚC MỌI THỨ KHÁC, và ném ở CẢ HAI chiều
+    // sai. Chiều thứ hai (`circleId` gửi kèm nguồn khác) mới là chiều nguy
+    // hiểm: bỏ qua im lặng thì client tưởng feed đã lọc theo vòng trong khi nó
+    // đang trả nguyên nhánh following — không lỗi nào nổ, dữ liệu trông hợp lý.
+    // Cùng lý do `_resolveAudience` ném thay vì "ưu tiên field kia".
+    if (forcedSource === FeedSource.CIRCLE || circleId != null) {
+      if (forcedSource !== FeedSource.CIRCLE) {
+        throw new BadRequestException(
+          `circleId only applies when source is CIRCLE (got ${forcedSource ?? 'no source'})`,
+        );
+      }
+      if (circleId == null) {
+        throw new BadRequestException('source: CIRCLE requires circleId');
+      }
+      return this._circleFeed(viewerId, circleId, pagination, blockedIds, audienceCtx);
+    }
+
     // ── Chọn nguồn ────────────────────────────────────────────────────────────
     // `forcedSource` có giá trị (§6b.1 / QĐ-1): client ÉP nguồn ⇒ tôn trọng tuyệt
     // đối, KHÔNG fallback. Ép FOLLOWING khi follow 0 người ⇒ nhánh raw SQL bên
@@ -1207,6 +1227,82 @@ export class PinsService {
       ...this._buildPaginatedResult(rows, first),
       source: FeedSource.FOLLOWING,
     };
+  }
+
+  /**
+   * Nguồn thứ ba của `homeFeed` — pin đã gửi cho ĐÚNG một vòng.
+   *
+   * "Nội dung của một vòng" = pin `visibility = CIRCLE` ghim đúng `circleId`
+   * đó. KHÔNG phải "pin của những người trong vòng": chỉ chủ vòng ghim được
+   * vòng của mình (`_resolveAudience`), nên dưới mắt một THÀNH VIÊN đây đúng
+   * là "những gì người ta gửi riêng cho nhóm này", còn dưới mắt CHỦ VÒNG là
+   * "mình đã gửi gì cho nhóm này". Gộp thêm pin PUBLIC của các thành viên vào
+   * sẽ biến chip vòng thành một bộ lọc người-theo-dõi thứ hai, và pin riêng tư
+   * lẫn trong đó thì không còn nhìn ra được nữa.
+   *
+   * ⚠️ HAI CỬA, KHÔNG PHẢI MỘT:
+   *   1. `ownerId = tôi OR tôi là thành viên` — cửa vào chính, 404 nếu trượt.
+   *      404 chứ không 403, và CÙNG thông điệp với vòng không tồn tại: "vòng
+   *      này có thật và bạn không ở trong đó" là đúng thứ luật 1 của circles
+   *      giấu đi.
+   *   2. `visiblePinSql` VẪN chạy đầy đủ bên dưới. Cửa 1 đã đủ để chặn người
+   *      ngoài, nhưng cửa 2 mới là thứ ẩn pin HẾT HẠN (XH-QĐ-7) — kể cả với
+   *      chính chủ, và kể cả pin gửi cho đúng vòng đang mở. Bỏ nó đi thì chip
+   *      vòng thành lối vòng qua bộ lọc khán giả, đúng loại rò rỉ §3 liệt kê.
+   *
+   * `memberCircleIds` KHÔNG dùng để xét quyền vào vòng: nó chỉ chứa vòng tôi
+   * là THÀNH VIÊN, không chứa vòng tôi SỞ HỮU (docblock `PinAudienceCtx`), nên
+   * chủ vòng sẽ ăn 404 trên chính vòng mình. Phải hỏi `Circle` một câu riêng.
+   */
+  private async _circleFeed(
+    viewerId: string,
+    circleId: string,
+    pagination: CursorPaginationArgs,
+    blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
+  ): Promise<PaginatedResult<any> & { source: FeedSource }> {
+    const circle = await this.prisma.circle.findFirst({
+      where: {
+        id: circleId,
+        OR: [{ ownerId: viewerId }, { members: { some: { userId: viewerId } } }],
+      },
+      select: { id: true },
+    });
+    if (!circle) throw new NotFoundException('Circle not found');
+
+    const { first, after } = pagination;
+    const take = first + 1;
+
+    const q = this._sqlParams();
+    const where = [
+      '"deletedAt" IS NULL',
+      `"visibility" = 'CIRCLE'`,
+      `"audienceCircleId" = ${q.bind(circleId)}`,
+      visiblePinSql(audienceCtx, q),
+    ];
+
+    if (after) {
+      const cursor = decodeCursor(after);
+      where.push(
+        `("createdAt", "id") < (${q.bind(cursor.createdAt)}::timestamp, ${q.bind(cursor.id)}::text)`,
+      );
+    }
+
+    // Vòng có thể chứa người mà tôi đã chặn — chủ vòng không thấy được block
+    // của tôi nên không cách nào tránh trước. Giữ mệnh đề này để feed vòng
+    // không phải là bề mặt duy nhất người bị chặn còn hiện ra.
+    const notInBlocked = this._notInBlocked(q, blockedIds);
+    if (notInBlocked) where.push(notInBlocked);
+
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT * FROM "Pin"
+         WHERE ${where.join('\n           AND ')}
+         ORDER BY "createdAt" DESC, "id" DESC
+         LIMIT ${q.bind(take)}`,
+      ...q.values,
+    );
+
+    return { ...this._buildPaginatedResult(rows, first), source: FeedSource.CIRCLE };
   }
 
   // ─── User Pins ───────────────────────────────────────────────────────────────

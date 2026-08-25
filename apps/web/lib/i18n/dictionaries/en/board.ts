@@ -118,4 +118,22 @@ export const board: Mirror<Vi> = {
   'board.addSection': 'Add section',
   'board.dragToReorder': 'Drag to reorder',
   'board.sectionNameAria': 'Name of section {name}',
+
+  // ── XH-BOARD-CIRCLE (luồng D) — mời NGUYÊN VÒNG vào board ──
+  'board.inviteCircleTitle': 'Invite a whole circle',
+  'board.inviteCircleBody': 'Pick a circle, pick a role — everyone in it becomes a collaborator.',
+  'board.inviteCircleOpen': 'Invite a circle…',
+  'board.inviteCirclePickLabel': 'Circle',
+  'board.inviteCircleRoleLabel': 'Role',
+  'board.inviteCircleSubmit': 'Invite',
+  'board.inviteCircleChip': '{name} · {countText} people',
+  'board.inviteCircleNoneTitle': 'You have no circles yet',
+  'board.inviteCircleNoneBody': 'Create one in Settings and come back — or keep inviting people one by one.',
+  'board.inviteCircleDoneNote': 'Just added from circle {name} — they show up as individual people, not as one “circle” row.',
+  'board.inviteCircleDup':
+    '{already}/{total} people in this circle are already collaborators. Only the other {added} were added; the {already} existing roles stay as they were.',
+  'board.inviteCircleAllPresent': 'All {total} people in this circle are already collaborators — nobody new was added.',
+  'board.inviteCircleEmptyCircle': 'This circle has no members, so no collaborator was added.',
+  'board.inviteCircleAdded': 'Added {countText} people from circle {name}',
+  'board.inviteCircleFailed': 'Could not invite the circle, try again later.',
 };
