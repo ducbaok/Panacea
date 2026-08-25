@@ -21,6 +21,9 @@ import {
   UserPinsDocument,
   type UserPinsQuery,
   type UserPinsQueryVariables,
+  ArchivedPinsDocument,
+  type ArchivedPinsQuery,
+  type ArchivedPinsQueryVariables,
   HomeFeedDocument,
   type HomeFeedQuery,
   type HomeFeedQueryVariables,
@@ -171,6 +174,46 @@ export function useUserPins(
     variables,
     pickPage: (d) =>
       d.userPins as PaginatedShape<UserPinsQuery['userPins']['items'][number]>,
+    merge,
+    skip: opts.skip,
+  });
+}
+
+/**
+ * F2 · XH-10 — KHO của chính người gọi (pin đã hết hạn).
+ *
+ * KHÔNG có `userId`: backend gắn `GqlAuthGuard` và lọc cứng `creatorId =
+ * viewer`, nên kho của người khác là một khái niệm không tồn tại ở tầng hợp
+ * đồng. Màn gọi phải tự chặn bằng `isSelf` TRƯỚC khi bật hook (`skip`), nếu
+ * không người xem hồ sơ người khác sẽ bắn một request 401/rỗng vô nghĩa.
+ *
+ * Thứ tự trả về là keyset `(createdAt, id) DESC` — nhóm-theo-tháng ở màn kho
+ * dựa vào tính đơn điệu đó để mỗi tiêu đề tháng chỉ xuất hiện một lần qua
+ * nhiều trang. Sort lại ở client là phá luôn tính chất ấy.
+ */
+export function useArchivedPins(
+  variables: Omit<ArchivedPinsQueryVariables, 'after'> = {},
+  opts: { skip?: boolean } = {},
+): UseInfinitePaginationResult<ArchivedPinsQuery['archivedPins']['items'][number]> {
+  const merge = useCallback(
+    (previous: ArchivedPinsQuery, incoming: ArchivedPinsQuery): ArchivedPinsQuery => ({
+      ...previous,
+      archivedPins: {
+        ...incoming.archivedPins,
+        items: [...previous.archivedPins.items, ...incoming.archivedPins.items],
+      },
+    }),
+    [],
+  );
+  return useInfinitePagination<
+    ArchivedPinsQuery,
+    ArchivedPinsQueryVariables,
+    ArchivedPinsQuery['archivedPins']['items'][number]
+  >({
+    query: ArchivedPinsDocument,
+    variables,
+    pickPage: (d) =>
+      d.archivedPins as PaginatedShape<ArchivedPinsQuery['archivedPins']['items'][number]>,
     merge,
     skip: opts.skip,
   });

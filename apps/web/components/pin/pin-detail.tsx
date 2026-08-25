@@ -24,16 +24,25 @@ import {
   TogglePinReactionDocument,
   FollowDocument,
   UnfollowDocument,
+  RepublishPinDocument,
+  type RepublishPinMutation,
+  type RepublishPinMutationVariables,
+  MyCirclesDocument,
+  type MyCirclesQuery,
+  type MyCirclesQueryVariables,
+  Visibility,
   type ReactionType,
 } from '@/lib/gql/graphql';
 import { toReadState } from '@/lib/errors/map-error';
 import { REACTION_ORDER, REACTION_EMOJI, REACTION_LABEL_KEY } from '@/lib/reactions';
+import { circleDisplayName, republishAudienceName } from '@/lib/visibility';
 import { useT } from '@/lib/i18n/provider';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useBoardPicker } from '@/components/board/board-picker';
 import { PinComments } from './pin-comments';
+import { PinViewersRow } from './pin-viewers';
 
 /**
  * FE-4 — Body chi tiết pin, dùng chung cho bản modal và bản trang đầy đủ.
@@ -264,6 +273,37 @@ function PinDetailContent({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isOwner = meQuery.data?.me?.id != null && meQuery.data.me.id === pin.creator.id;
+
+  /**
+   * F2 · XH-ARCHIVE — pin trong KHO mở ra vẫn là màn này (spec §1 trạng thái 3:
+   * "như chi tiết pin thường + nút Đăng lại + giữ nút xoá"). Không có màn chi
+   * tiết thứ hai bên trong tab Kho.
+   *
+   * Điều kiện hiện nút: chính chủ VÀ mốc hết hạn đã qua. Không đọc "đang ở tab
+   * Kho" — cùng một pin mở từ link trực tiếp cũng phải đăng lại được, và một
+   * điều kiện dựa vào đường đi thì sai ngay lần đầu ai đó gửi link cho chính họ.
+   *
+   * `Date.now()` ở đây KHÔNG gây lệch hydration: `pin` tới từ Apollo (client),
+   * nên lượt render server không bao giờ chạy tới nhánh này.
+   */
+  const isExpired =
+    pin.expiresAt != null && new Date(pin.expiresAt).getTime() <= Date.now();
+  const canRepublish = isOwner && isExpired;
+  const [republishM] = useMutation<RepublishPinMutation, RepublishPinMutationVariables>(
+    RepublishPinDocument,
+  );
+  const [republishBusy, setRepublishBusy] = useState(false);
+  // Tên vòng chỉ cần cho MỘT câu trong hộp xác nhận ⇒ chỉ chủ pin CIRCLE đã hết
+  // hạn mới tra. `includeAdHoc: true` vì pin có thể thuộc một vòng tại chỗ —
+  // vòng đó ẩn khỏi mọi danh sách chọn nhưng vẫn phải dịch được id sang tên.
+  const republishCircleQuery = useQuery<MyCirclesQuery, MyCirclesQueryVariables>(
+    MyCirclesDocument,
+    {
+      variables: { includeAdHoc: true },
+      skip: !canRepublish || pin.visibility !== Visibility.Circle,
+      fetchPolicy: 'cache-first',
+    },
+  );
 
   /**
    * FE-10 (wire B-4) — đo lượt xem pin. MỘT điểm gọi cho cả hai bản (modal
@@ -583,6 +623,56 @@ function PinDetailContent({
       router.push('/');
     } catch {
       toast({ message: t('pin.deleteFailed') });
+    }
+  };
+
+  /**
+   * Đăng lại = gỡ hạn sống. CÓ confirm (QĐ-24) và nội dung phải nêu rõ hai điều
+   * bản vẽ chốt từng chữ: AI sẽ thấy lại, và pin về ĐÚNG CHỖ CŨ THEO NGÀY ĐĂNG
+   * GỐC. Vế thứ hai không phải câu trấn an — backend cố ý không đụng
+   * `createdAt` (`PinsService.republishPin`), nên nếu người dùng tưởng pin sẽ
+   * nhảy lên đầu feed thì họ sẽ đi tìm nó ở sai chỗ.
+   *
+   * `refetchPin()` chứ không set state cục bộ: nút này biến mất khi `expiresAt`
+   * về `null`, mà cờ đó nằm trong chính `pin` — cùng lý do đã ghi ở docblock
+   * `refetchPin` phía trên.
+   */
+  const onRepublish = async () => {
+    if (republishBusy) return;
+    const circleName = circleDisplayName(
+      t,
+      republishCircleQuery.data?.myCircles.find((c) => c.id === pin.audienceCircleId),
+    );
+    const ok = await confirm({
+      title: t('archive.republishConfirmTitle', {
+        title: pin.title?.trim() || t('pin.thisPin'),
+      }),
+      body: t('archive.republishConfirmBody', {
+        audience: republishAudienceName(t, pin.visibility, circleName),
+      }),
+      yesLabel: t('archive.republish'),
+    });
+    if (!ok) return;
+    setRepublishBusy(true);
+    try {
+      await republishM({
+        variables: { id: pin.id },
+        // Kho đọc qua `archivedPins` — một field GỐC khác hẳn `pin(id)`, nên
+        // `expiresAt: null` trả về từ mutation cập nhật đúng entry Pin mà
+        // KHÔNG rút pin ra khỏi danh sách kho: danh sách là một mảng con trỏ
+        // do server dựng, Apollo không có cách nào biết điều kiện lọc của nó.
+        // Đá cả field đi để lần đọc kho kế tiếp phải hỏi lại server.
+        update: (cache) => {
+          cache.evict({ id: 'ROOT_QUERY', fieldName: 'archivedPins' });
+          cache.gc();
+        },
+      });
+      await refetchPin();
+      toast({ message: t('archive.republished') });
+    } catch {
+      toast({ message: t('archive.republishFailed') });
+    } finally {
+      setRepublishBusy(false);
     }
   };
 
@@ -999,6 +1089,37 @@ function PinDetailContent({
       )}
 
       {authorRow}
+
+      {/* XH-ARCHIVE — Đăng lại. Đặt NGAY DƯỚI hàng tác giả, trên khối "ai đã
+          xem" và bình luận, đúng thứ tự bản vẽ dựng cho chi tiết pin trong kho
+          (ảnh · tiêu đề · meta · [Đăng lại] [Xoá] · bình luận). Nút Xoá không
+          nhân bản ở đây — nó đã sống trong menu ⋯ cho mọi pin của chính chủ,
+          và bản vẽ yêu cầu "GIỮ nút xoá", không phải "thêm nút xoá thứ hai". */}
+      {canRepublish && (
+        <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', paddingTop: 16 }}>
+          <button
+            type="button"
+            data-testid="pin-republish"
+            disabled={republishBusy}
+            onClick={() => void onRepublish()}
+            style={{
+              padding: '11px 20px',
+              borderRadius: 'var(--radius-button)',
+              border: 'none',
+              background: 'var(--color-primary)',
+              color: 'var(--color-primary-foreground)',
+              fontWeight: 700,
+              fontSize: 13.5,
+              cursor: republishBusy ? 'default' : 'pointer',
+              opacity: republishBusy ? 0.6 : 1,
+            }}
+          >
+            {t('archive.republish')}
+          </button>
+        </div>
+      )}
+
+      <PinViewersRow pinId={pin.id} visibility={pin.visibility} isOwner={isOwner} />
 
       <div style={{ paddingTop: 16 }}>
         <div

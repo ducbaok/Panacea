@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { auth } from '@/auth';
 import { PinDetail } from '@/components/pin/pin-detail';
 import { BackToGridLink } from './back-link';
 import { fetchPinForServer, type ServerPin } from './fetch-pin-server';
@@ -32,7 +33,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const locale = await getLocale();
-  const { pin } = await fetchPinForServer(id);
+  // Cùng token với `PinPage` bên dưới — nếu hai lượt hỏi backend bằng hai danh
+  // tính khác nhau thì trang render ra được mà thẻ <title> lại ghi "Pin không
+  // tồn tại", một kiểu sai chỉ lộ ra khi chia sẻ link.
+  const session = await auth();
+  const { pin } = await fetchPinForServer(id, session?.accessToken);
   if (!pin) {
     return { title: translate(locale, 'pin.notFoundMeta') };
   }
@@ -45,7 +50,10 @@ export default async function PinPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { pin, error } = await fetchPinForServer(id);
+  // 🔴 Token BẮT BUỘC ở đây — thiếu nó, chính chủ mở thẳng URL pin non-PUBLIC
+  // của mình cũng ăn 404 (lý do đầy đủ ở đầu `fetch-pin-server.ts`).
+  const session = await auth();
+  const { pin, error } = await fetchPinForServer(id, session?.accessToken);
   // Explicit 'not-found' ⇒ 404 chuẩn. Nếu lỗi mạng (API tắt), giao lại cho
   // client PinDetail xử lý (có thể recover khi API bật lại) — không notFound.
   if (error === 'not-found' || (!pin && error === null)) {
