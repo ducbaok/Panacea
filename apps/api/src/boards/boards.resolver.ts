@@ -4,6 +4,7 @@ import { Board, PaginatedBoards } from './entities/board.entity';
 import { BoardSection } from './entities/board-section.entity';
 import { SavedPin, PaginatedSavedPins } from './entities/saved-pin.entity';
 import { BoardCollaborator, CollaboratorRole } from './entities/board-collaborator.entity';
+import { InviteCircleResult } from './entities/invite-circle-result.entity';
 import { BoardsService } from './boards.service';
 import { CreateBoardInput } from './dto/create-board.input';
 import { UpdateBoardInput } from './dto/update-board.input';
@@ -169,6 +170,23 @@ export class BoardsResolver {
     @CurrentUser() user: AuthUser,
   ) {
     return this.boardsService.inviteCollaborator(user.userId, boardId, userIdToInvite, role);
+  }
+
+  /**
+   * XH-QĐ-17 — mời NGUYÊN MỘT VÒNG. Mutation RIÊNG chứ không thêm một arg
+   * `circleId` tuỳ chọn vào `inviteCollaborator`: hai thao tác có kiểu trả về
+   * khác nhau (một dòng ⇄ bản tổng kết ba con số) và một cái tên gộp sẽ có
+   * đúng một trong hai nhánh đó là `null` ở mọi lời gọi.
+   */
+  @Mutation(() => InviteCircleResult)
+  @UseGuards(GqlAuthGuard)
+  async inviteCircleToBoard(
+    @Args('boardId', { type: () => ID }) boardId: string,
+    @Args('circleId', { type: () => ID }) circleId: string,
+    @Args('role', { type: () => CollaboratorRole }) role: CollaboratorRole,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.boardsService.inviteCircleToBoard(user.userId, boardId, circleId, role);
   }
 
   @Mutation(() => Boolean)

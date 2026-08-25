@@ -21,4 +21,9 @@ export const home = {
   'home.categoryTablist': 'Bộ lọc chủ đề',
   'home.categoryAll': 'Tất cả',
   'home.exploreEmpty': 'Chưa có pin nào ở mục này.',
+
+  // ── Chip vòng + feed một vòng (XH-CIRCLE-FEED, luồng D) ──
+  'home.emptyCircleTitle': 'Vòng này chưa có gì',
+  'home.emptyCircleBody': 'Chưa ai chia sẻ riêng cho nhóm này. Bạn đăng trước một tấm cũng được.',
+  'home.postToCircle': 'Đăng cho vòng này',
 } as const;

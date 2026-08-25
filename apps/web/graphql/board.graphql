@@ -149,6 +149,29 @@ mutation InviteCollaborator($boardId: ID!, $userId: ID!, $role: CollaboratorRole
   }
 }
 
+# Mời NGUYÊN MỘT VÒNG (luồng D · XH-QĐ-17). Ba con số trả về là thứ dựng nên
+# câu "x/y đã có mặt" (QĐ-25) — `added` một mình không phân biệt được "vòng 5
+# người, 3 đã có mặt" với "vòng 2 người".
+mutation InviteCircleToBoard($boardId: ID!, $circleId: ID!, $role: CollaboratorRole!) {
+  inviteCircleToBoard(boardId: $boardId, circleId: $circleId, role: $role) {
+    boardId
+    circleId
+    memberCount
+    addedCount
+    alreadyCount
+    added {
+      id
+      role
+      user {
+        id
+        name
+        username
+        avatarUrl
+      }
+    }
+  }
+}
+
 # Dùng cho CẢ hai nút: "Gỡ" (chủ gỡ người khác) và "Rời board" (CTV tự gỡ mình).
 # Không có mutation `leaveBoard` — §4.7.
 mutation RemoveCollaborator($boardId: ID!, $userId: ID!) {

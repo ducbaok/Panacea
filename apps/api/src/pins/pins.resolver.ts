@@ -193,7 +193,10 @@ export class PinsResolver {
   async homeFeed(
     // `source` tuỳ chọn (§6b.1): bỏ trống ⇒ backend tự chọn nhánh như cũ; có ⇒
     // client ép nguồn, không fallback. Gộp cùng first/after trong MỘT ArgsType.
-    @Args() { source, ...pagination }: HomeFeedArgs,
+    //
+    // `circleId` (luồng D) đi CẶP với `source: CIRCLE`; luật cặp cưỡng chế ở
+    // service cùng chỗ với việc chọn nguồn — resolver vẫn chỉ chuyển tiếp.
+    @Args() { source, circleId, ...pagination }: HomeFeedArgs,
     @CurrentUser() user: AuthUser,
   ) {
     // Cùng khuôn với 3 query trên (Đợt 3e): resolver đọc memo rồi TRUYỀN XUỐNG.
@@ -201,7 +204,14 @@ export class PinsResolver {
     // và sẽ kéo cả `PinsController` theo.
     const blockedIds = await this.dataloaderService.blockedUserIds(user.userId);
     const audienceCtx = await this.dataloaderService.pinAudienceCtx(user.userId);
-    return this.pinsService.homeFeed(user.userId, pagination, blockedIds, audienceCtx, source);
+    return this.pinsService.homeFeed(
+      user.userId,
+      pagination,
+      blockedIds,
+      audienceCtx,
+      source,
+      circleId,
+    );
   }
 
   // ─── XH-5: ai đã xem · gợi ý @mention ────────────────────────────────────────

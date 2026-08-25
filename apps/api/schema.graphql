@@ -109,6 +109,7 @@ type HomeFeed {
 enum FeedSource {
   FOLLOWING
   EXPLORE
+  CIRCLE
 }
 
 type Comment {
@@ -231,6 +232,15 @@ enum CollaboratorRole {
   EDITOR
 }
 
+type InviteCircleResult {
+  boardId: ID!
+  circleId: ID!
+  memberCount: Int!
+  addedCount: Int!
+  alreadyCount: Int!
+  added: [BoardCollaborator!]!
+}
+
 type SearchResponse {
   pins: PaginatedPins
   users: PaginatedUsers
@@ -286,7 +296,7 @@ type Query {
   userPins(first: Int! = 20, after: String, userId: ID!): PaginatedPins!
   archivedPins(first: Int! = 20, after: String): PaginatedPins!
   relatedPins(first: Int! = 20, after: String, pinId: ID!): PaginatedPins!
-  homeFeed(first: Int! = 20, after: String, source: FeedSource): HomeFeed!
+  homeFeed(first: Int! = 20, after: String, source: FeedSource, circleId: ID): HomeFeed!
   pinViewers(pinId: ID!): [User!]!
   mentionSuggestions(pinId: ID!, q: String, first: Int = 10): [User!]!
   categories: [Category!]!
@@ -354,6 +364,7 @@ type Mutation {
   reorderSections(boardId: ID!, sectionIds: [ID!]!): Boolean!
   reorderPins(boardId: ID!, pinIds: [ID!]!): Boolean!
   inviteCollaborator(boardId: ID!, userId: ID!, role: CollaboratorRole!): BoardCollaborator!
+  inviteCircleToBoard(boardId: ID!, circleId: ID!, role: CollaboratorRole!): InviteCircleResult!
   removeCollaborator(boardId: ID!, userId: ID!): Boolean!
   updateCollaboratorRole(boardId: ID!, userId: ID!, role: CollaboratorRole!): Boolean!
   setBoardCover(boardId: ID!, pinId: ID!): Boolean!

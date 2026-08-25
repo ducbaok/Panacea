@@ -1,5 +1,8 @@
-query HomeFeed($first: Int! = 20, $after: String, $source: FeedSource) {
-  homeFeed(first: $first, after: $after, source: $source) {
+# `circleId` (luồng D · XH-QĐ-17) — CHỈ gửi kèm `source: CIRCLE`; backend ném
+# ở CẢ HAI chiều lệch cặp, nên nơi gọi phải bỏ hẳn biến này khi đổi sang chip
+# khác chứ không được để lại giá trị cũ.
+query HomeFeed($first: Int! = 20, $after: String, $source: FeedSource, $circleId: ID) {
+  homeFeed(first: $first, after: $after, source: $source, circleId: $circleId) {
     source
     items {
       id
