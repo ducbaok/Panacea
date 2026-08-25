@@ -193,6 +193,9 @@ query SavedPins($userId: ID!, $first: Int! = 20, $after: String) {
           name
           avatarUrl
         }
+        visibility
+        audienceCircleId
+        expiresAt
         isSavedByViewer
         viewerReaction
       }
@@ -227,6 +230,9 @@ query BoardPins($boardId: ID!, $sectionId: ID, $first: Int! = 20, $after: String
           name
           avatarUrl
         }
+        visibility
+        audienceCircleId
+        expiresAt
         isSavedByViewer
         viewerReaction
       }

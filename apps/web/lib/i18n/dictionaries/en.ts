@@ -9,6 +9,7 @@ import { board } from './en/board';
 import { profile } from './en/profile';
 import { messages } from './en/messages';
 import { settings } from './en/settings';
+import { circles } from './en/circles';
 import { errors } from './en/errors';
 
 /**
@@ -25,5 +26,6 @@ export const en: Mirror<typeof vi> = {
   ...profile,
   ...messages,
   ...settings,
+  ...circles,
   ...errors,
 };

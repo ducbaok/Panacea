@@ -14,6 +14,9 @@ import {
   type DeleteAccountMutation,
   BlockedUsersDocument,
   type BlockedUsersQuery,
+  MyCirclesDocument,
+  type MyCirclesQuery,
+  type MyCirclesQueryVariables,
 } from '@/lib/gql/graphql';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageToggle } from '@/components/language-toggle';
@@ -50,6 +53,12 @@ export default function SettingsPage() {
   const avatarUpload = useAvatarUpload();
   const meQuery = useQuery<MeQuery>(MeDocument);
   const blockedQuery = useQuery<BlockedUsersQuery>(BlockedUsersDocument, { variables: { first: 50 } });
+  // F1 · XH-8 — thẻ "Vòng tròn" (bản vẽ v3.1, view=settings). `includeAdHoc:
+  // false` vì con số hiện ra phải là số vòng NGƯỜI DÙNG biết mình có; vòng ad-hoc
+  // ẩn hẳn khỏi mọi bề mặt quản lý (XH-QĐ-5 + QĐ-22).
+  const circlesQuery = useQuery<MyCirclesQuery, MyCirclesQueryVariables>(MyCirclesDocument, {
+    variables: { includeAdHoc: false },
+  });
   const [updateProfile, { loading: saving }] = useMutation<UpdateProfileMutation, UpdateProfileMutationVariables>(UpdateProfileDocument);
   const [deleteAccount] = useMutation<DeleteAccountMutation>(DeleteAccountDocument);
 
@@ -247,6 +256,44 @@ export default function SettingsPage() {
             {t('settings.languageHint')}
           </div>
           <LanguageToggle />
+        </Card>
+
+        {/* Vòng tròn (F1 · XH-8) — bản vẽ v3.1 đặt thành thẻ RIÊNG, không nhét
+            vào thẻ Tài khoản: đây là chỗ quyết định ai xem được nội dung, cùng
+            hạng với Hồ sơ chứ không phải một mục con của đăng xuất. */}
+        <Card>
+          <CardTitle noMargin>{t('circles.title')}</CardTitle>
+          <div style={{ fontSize: 13, color: 'var(--color-muted)', margin: '6px 0 14px' }}>
+            {t('circles.settingsCardBody')}
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/settings/circles')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 15px',
+              borderRadius: 14,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface-muted)',
+              color: 'var(--color-foreground)',
+              fontWeight: 600,
+              fontSize: 13.5,
+              cursor: 'pointer',
+              textAlign: 'left',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <span style={{ flex: 1 }}>{t('circles.settingsCardAction')}</span>
+            <span style={{ color: 'var(--color-muted)', fontSize: 13 }}>
+              {t('circles.settingsCardCount', {
+                count: circlesQuery.data?.myCircles.length ?? 0,
+              })}
+            </span>
+            <span style={{ color: 'var(--color-muted)' }}>›</span>
+          </button>
         </Card>
 
         {/* Tài khoản */}

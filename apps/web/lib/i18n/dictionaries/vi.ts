@@ -7,6 +7,7 @@ import { board } from './vi/board';
 import { profile } from './vi/profile';
 import { messages } from './vi/messages';
 import { settings } from './vi/settings';
+import { circles } from './vi/circles';
 import { errors } from './vi/errors';
 
 /**
@@ -26,5 +27,6 @@ export const vi = {
   ...profile,
   ...messages,
   ...settings,
+  ...circles,
   ...errors,
 } as const;

@@ -6,6 +6,7 @@ mutation CreatePin($input: CreatePinInput!) {
     imageUrl
     thumbnailUrl
     mediumUrl
+    largeUrl
     imageWidth
     imageHeight
     sourceUrl
@@ -28,6 +29,9 @@ mutation CreatePin($input: CreatePinInput!) {
       slug
       icon
     }
+    visibility
+    audienceCircleId
+    expiresAt
     isSavedByViewer
     viewerReaction
   }
@@ -52,6 +56,9 @@ mutation UpdatePin($input: UpdatePinInput!) {
       slug
       icon
     }
+    visibility
+    audienceCircleId
+    expiresAt
     isSavedByViewer
     viewerReaction
   }
@@ -99,6 +106,9 @@ query Pin($id: ID!) {
       slug
       icon
     }
+    visibility
+    audienceCircleId
+    expiresAt
     isSavedByViewer
     viewerReaction
   }
@@ -138,6 +148,9 @@ query UserPins($userId: ID!, $first: Int! = 20, $after: String) {
         name
         avatarUrl
       }
+      visibility
+      audienceCircleId
+      expiresAt
       isSavedByViewer
       viewerReaction
     }

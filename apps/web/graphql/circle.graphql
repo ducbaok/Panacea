@@ -1,0 +1,133 @@
+# ─────────── F1 · XH-8 — vòng tròn (khán giả) ───────────
+# Hợp đồng đọc thẳng từ apps/api/schema.graphql (luồng B, merge ở M1).
+#
+# `myCircles(includeAdHoc)` có HAI chỗ gọi với hai nghĩa khác nhau — đừng gộp:
+#   • includeAdHoc: false → danh sách người dùng CHỌN được (bộ chọn khán giả,
+#     /settings/circles). Vòng ad-hoc ẨN HẲN ở đây (XH-QĐ-5 + QĐ-22).
+#   • includeAdHoc: true  → bảng tra id→tên để PinCard/nhãn dịch được
+#     `audienceCircleId` của pin CHÍNH MÌNH sang tên vòng. Vòng ad-hoc có
+#     `name` là chuỗi RỖNG (backend cố ý không nhét chuỗi tiếng Việt vào DB),
+#     nên chỗ hiển thị phải tự sinh nhãn từ `memberCount`.
+
+query MyCircles($includeAdHoc: Boolean = false) {
+  myCircles(includeAdHoc: $includeAdHoc) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+  }
+}
+
+query Circle($id: ID!) {
+  circle(id: $id) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+    members {
+      id
+      name
+      username
+      avatarUrl
+    }
+  }
+}
+
+query CircleMemberSuggestions($circleId: ID, $first: Int = 10) {
+  circleMemberSuggestions(circleId: $circleId, first: $first) {
+    id
+    name
+    username
+    avatarUrl
+  }
+}
+
+mutation CreateCircle($input: CreateCircleInput!) {
+  createCircle(input: $input) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+  }
+}
+
+mutation UpdateCircle($input: UpdateCircleInput!) {
+  updateCircle(input: $input) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+  }
+}
+
+mutation DeleteCircle($id: ID!) {
+  deleteCircle(id: $id)
+}
+
+mutation DuplicateCircle($input: DuplicateCircleInput!) {
+  duplicateCircle(input: $input) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+  }
+}
+
+mutation AddCircleMembers($input: CircleMembersInput!) {
+  addCircleMembers(input: $input) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+    members {
+      id
+      name
+      username
+      avatarUrl
+    }
+  }
+}
+
+mutation RemoveCircleMember($circleId: ID!, $userId: ID!) {
+  removeCircleMember(circleId: $circleId, userId: $userId) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+    members {
+      id
+      name
+      username
+      avatarUrl
+    }
+  }
+}
+
+# Khán giả chọn tại chỗ. KHÔNG dùng ở đường đăng pin (createPin nhận thẳng
+# `audienceUserIds` và tự tái dùng vòng theo memberHash) — mutation này chỉ
+# phục vụ nút "Lưu vòng tròn này": phải có id vòng trước khi đặt tên được.
+mutation CreateAdHocCircle($input: CreateAdHocCircleInput!) {
+  createAdHocCircle(input: $input) {
+    id
+    name
+    isAdHoc
+    memberCount
+  }
+}
+
+mutation SaveAdHocCircle($input: SaveAdHocCircleInput!) {
+  saveAdHocCircle(input: $input) {
+    id
+    name
+    rank
+    isAdHoc
+    memberCount
+  }
+}

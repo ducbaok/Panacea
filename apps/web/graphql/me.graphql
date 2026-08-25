@@ -2,6 +2,9 @@ query Me {
   me {
     id
     username
+    # F1 — phụ đề mức FOLLOWERS trong bộ chọn khán giả ghi số người theo dõi
+    # THẬT ("1.204 người đang theo dõi bạn" của bản vẽ là số minh hoạ).
+    followerCount
     email
     name
     avatarUrl

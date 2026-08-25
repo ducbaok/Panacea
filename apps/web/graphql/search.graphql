@@ -16,6 +16,9 @@ query SearchPins($query: String!, $first: Int! = 20, $after: String) {
           name
           avatarUrl
         }
+        visibility
+        audienceCircleId
+        expiresAt
         isSavedByViewer
         viewerReaction
       }

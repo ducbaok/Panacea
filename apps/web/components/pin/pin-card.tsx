@@ -11,11 +11,13 @@ import {
   UnsavePinDocument,
   type UnsavePinMutation,
   type UnsavePinMutationVariables,
+  type Visibility,
 } from '@/lib/gql/graphql';
 import { REACTION_EMOJI } from '@/lib/reactions';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
 import { useToast } from '@/components/ui/toast';
 import { useT } from '@/lib/i18n/provider';
+import { PinBadgeRow } from '@/components/pin/pin-badges';
 
 /**
  * FE-3 — Thẻ pin (khung + 6 trạng thái §3.3 của brief).
@@ -61,6 +63,10 @@ export type PinCardItem = {
   imageHeight: number;
   isSavedByViewer?: boolean | null;
   viewerReaction?: ReactionType | null;
+  /** F1 · XH-8 — nhãn quyền. Nguồn nào chưa chọn 3 field này thì thẻ không có nhãn. */
+  visibility?: Visibility | null;
+  audienceCircleId?: string | null;
+  expiresAt?: string | null;
   creator: {
     id: string;
     name?: string | null;
@@ -279,6 +285,11 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
             {t('pin.imageLoadFailed')}
           </div>
         )}
+
+        {/* Nhãn quyền + hạn sống (F1 · QĐ-21) — PHỦ TRÊN ẢNH, góc trái-trên.
+            Khối chữ 67px bên dưới KHÔNG đổi: đó là điều kiện để masonry không
+            đè thẻ, và cũng là lý do QĐ-21 chọn badge thay vì một dòng chữ. */}
+        <PinBadgeRow pin={item} />
 
         {/* Nút Lưu — trạng thái 2 (hover) + trạng thái 5 (đã lưu) */}
         <button
