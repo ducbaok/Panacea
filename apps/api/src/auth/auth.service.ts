@@ -9,6 +9,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -36,6 +37,13 @@ const BCRYPT_ROUNDS = 12;
  * 3. Sử dụng DUMMY_HASH trong login() khi user không tìm thấy.
  */
 const DUMMY_HASH = '$2b$12$LJ3m4ys3Lgzwe5KPqdVGje6B/FJzHMSmh7fSsGiV0bNzT2eLFJKMy';
+
+/**
+ * Hạn chờ khi hỏi Google về một `idToken`. 5 giây: đủ rộng cho một round-trip
+ * quốc tế bình thường, đủ hẹp để một endpoint treo không giữ luôn request của
+ * người dùng. Hết hạn ⇒ 503 (tạm thời), KHÔNG phải 401 (token sai).
+ */
+const GOOGLE_TOKENINFO_TIMEOUT_MS = 5_000;
 
 export interface TokenPair {
   accessToken: string;
@@ -788,15 +796,42 @@ export class AuthService {
     }
   }
 
+  /**
+   * Hỏi Google xem `idToken` có thật không.
+   *
+   * ⚠️ BA HÌNH DẠNG HỎNG KHÁC NHAU, ĐỪNG GỘP LÀM MỘT (sửa 25/08/2026, nợ ghi từ M2):
+   *
+   *   1. **Google trả lời "token sai"** (`!res.ok`) ⇒ **401**. Lỗi của người gọi.
+   *   2. **Không hỏi được Google** (DNS chết, ETIMEDOUT, proxy chặn) ⇒ **503**.
+   *      KHÔNG phải lỗi của người gọi, và cũng không phải lỗi lập trình.
+   *   3. `aud` lệch ⇒ 401: token thật nhưng của ứng dụng khác.
+   *
+   * Bản cũ để `fetch` ném xuyên qua, nên hình dạng (2) rơi vào bộ lọc mặc định
+   * của Nest và ra **500 Internal Server Error** — một câu nói dối có hậu quả
+   * thật: 500 nghĩa là "server này hỏng, đừng thử lại", client Android sẽ báo
+   * người dùng sai sự thật, còn giám sát thì đếm sự cố mạng thành lỗi sản phẩm.
+   * Bằng chứng: ngày 25/08 mạng ra `oauth2.googleapis.com` timeout, phép kiểm
+   * `00-auth.mjs` đỏ với 500 và mất nửa buổi mới lần ra nguyên nhân nằm ngoài
+   * máy. 503 nói đúng thứ đang xảy ra: tạm thời, thử lại được.
+   *
+   * `AbortSignal.timeout` có mặt vì hình dạng (2) không phải lúc nào cũng
+   * "hỏng ngay": một endpoint treo sẽ giữ request cho tới khi client bỏ cuộc.
+   */
   private async _verifyGoogleToken(idToken: string, clientId: string) {
-    // TODO:
-    // 1. Gọi Google OAuth API: fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`).
-    // 2. Ném lỗi nếu fetch không thành công.
-    // 3. Kiểm tra payload trả về, xem trường `aud` có khớp với `clientId` của ứng dụng không.
-    // 4. Ép kiểu và trả về payload.
-    
-    // Verify với Google tokeninfo endpoint
-    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+    let res: Response;
+    try {
+      res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`, {
+        signal: AbortSignal.timeout(GOOGLE_TOKENINFO_TIMEOUT_MS),
+      });
+    } catch (e) {
+      // Thông điệp KHÔNG nhắc Google/endpoint/timeout: người gọi chỉ cần biết
+      // "tạm thời chưa xác minh được, thử lại". Chi tiết đi vào log của server.
+      this.logger.warn(
+        `[google-auth] không gọi được tokeninfo của Google (${(e as Error).name}): ${(e as Error).message}`,
+      );
+      throw new ServiceUnavailableException('Could not verify sign-in right now. Please try again.');
+    }
+
     if (!res.ok) throw new UnauthorizedException('Invalid Google token');
 
     const payload = await res.json();

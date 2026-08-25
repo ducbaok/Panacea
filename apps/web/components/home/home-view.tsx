@@ -305,7 +305,9 @@ function AuthHome() {
       </div>
 
       {effectiveTab === 'explore' ? null : showCircleEmpty ? (
-        <CircleEmptyCard onCreate={() => router.push('/pin/new')} />
+        <CircleEmptyCard
+          onCreate={() => router.push(`/pin/new?circle=${encodeURIComponent(activeCircleId ?? '')}`)}
+        />
       ) : showFollowingEmpty ? (
         <FollowingEmptyCard onExplore={() => setTab('explore')} />
       ) : (
@@ -424,10 +426,13 @@ function FollowingEmptyCard({ onExplore }: { onExplore: () => void }) {
  * Card rỗng của FEED VÒNG (bản vẽ XH-CIRCLE-FEED, state `empty-circle`). Chép
  * nguyên văn 3 chuỗi từ bản vẽ — §9: chép, đừng sáng tác.
  *
- * ⚠️ Nút "Đăng cho vòng này" điều hướng sang `/pin/new` mà KHÔNG chọn sẵn vòng.
- * Bản vẽ ghi `createPin(visibility:CIRCLE)`, nhưng chọn sẵn khán giả phải sửa
- * `create-pin-view.tsx` — vùng file của luồng F1, ngoài phạm vi luồng D
- * (`xahoi-dieu-phoi.md` §3). Ghi lại thành việc còn thiếu thay vì lấn vùng.
+ * ✅ 25/08/2026 — nút "Đăng cho vòng này" nay đẩy kèm `?circle=<id>` và màn tạo
+ * pin chọn sẵn khán giả CIRCLE đúng vòng đó (đóng điểm treo `xahoi-dieu-phoi.md`
+ * §7 mục 4; trước đó nó đẩy sang `/pin/new` trần vì `create-pin-view.tsx` thuộc
+ * vùng file của luồng F1, luồng D không lấn).
+ *
+ * `create-pin-view.tsx` tự gỡ tham số nếu id không phải vòng người dùng SỞ HỮU —
+ * feed vòng hiện cả vòng mình chỉ là thành viên, mà đăng thì phải là chủ vòng.
  */
 function CircleEmptyCard({ onCreate }: { onCreate: () => void }) {
   const t = useT();

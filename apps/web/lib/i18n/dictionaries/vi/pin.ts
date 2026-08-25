@@ -105,7 +105,8 @@ export const pin = {
   'pin.metaSomeone': 'người dùng',
 
   // B4 — lỗi và xác nhận rời trang
-  'pin.dailyCap': 'Bạn đã đạt trần 20 pin hôm nay — quay lại vào ngày mai.',
+  'pin.tooManyPins': 'Bạn đang đăng hơi nhanh. Thử lại sau {seconds} giây nhé.',
+  'pin.tooManyPinsNoTime': 'Bạn đang đăng hơi nhanh. Chờ một chút rồi thử lại nhé.',
   'pin.saveToBoardFailed': 'Đã tạo pin, nhưng chưa lưu được vào board — thử lại từ trang pin.',
   'pin.createFailed': 'Không đăng được pin, thử lại sau.',
   'pin.leaveTitle': 'Rời trang khi chưa đăng?',
@@ -122,7 +123,7 @@ export const pin = {
   'pin.dropImageHint': 'Hoặc chọn từ máy. Bước 1 của 2.',
   'pin.pickAnotherImage': 'Chọn ảnh khác',
   'pin.pickImage': 'Chọn ảnh',
-  'pin.uploadLimits': 'Tối đa 10MB · tối thiểu 1KB · chỉ nhận JPG, PNG, WEBP, GIF · tối đa 20 pin/ngày.',
+  'pin.uploadLimits': 'Tối đa 10MB · tối thiểu 1KB · chỉ nhận JPG, PNG, WEBP, GIF · tối đa 10 pin mỗi phút.',
 
   // B4/B5 — các trường của form pin
   'pin.fieldTitle': 'Tiêu đề',

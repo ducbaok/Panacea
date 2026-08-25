@@ -57,10 +57,17 @@ export function PinModal({ id }: { id: string }) {
    *
    * Đặt TRƯỚC mọi effect khác và return sớm ngay dưới: modal này không bao
    * giờ được phép render cho `id === 'new'`.
+   *
+   * ⚠️ GIỮ NGUYÊN QUERY STRING (sửa 25/08/2026). Bản đầu `replace('/pin/new')`
+   * cắt trụi phần `?…`, nên `?circle=<id>` của nút "Đăng cho vòng này" bốc hơi
+   * đúng ở đây: URL đích vẫn là `/pin/new`, form vẫn mở, chỉ có khán giả chọn
+   * sẵn là mất — hỏng đúng kiểu không ai nghi ngờ lưới an toàn này. Đo được
+   * trên trình duyệt ngay lần thử đầu, sau khi `create-pin-view.tsx` đã đọc
+   * tham số đúng và `home-view.tsx` đã gửi tham số đúng.
    */
   useEffect(() => {
     if (id === 'new' && typeof window !== 'undefined') {
-      window.location.replace('/pin/new');
+      window.location.replace(`/pin/new${window.location.search}`);
     }
   }, [id]);
 

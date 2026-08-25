@@ -5,7 +5,7 @@ import { getBlockedUserIds } from '../common/blocking';
 // Import THẲNG FILE, không qua barrel `../common/blocking` — file này là vùng
 // chung của luồng A và luồng B (hai worktree song song); barrel là chỗ hai bên
 // chắc chắn đụng nhau mà nội dung không trùng byte. Xem header của util.
-import { computeMemberHash } from '../common/blocking/member-hash.util';
+import { AD_HOC_CIRCLE_NAME, computeMemberHash } from '../common/blocking/member-hash.util';
 import { MAX_CIRCLES_PER_USER, MAX_MEMBERS_PER_CIRCLE } from './circles.constants';
 import { CreateCircleInput } from './dto/create-circle.input';
 import { UpdateCircleInput } from './dto/update-circle.input';
@@ -15,15 +15,10 @@ import { CreateAdHocCircleInput } from './dto/create-ad-hoc-circle.input';
 import { SaveAdHocCircleInput } from './dto/save-ad-hoc-circle.input';
 import { Circle } from './entities/circle.entity';
 
-/**
- * Tên của vòng ad-hoc khi vừa sinh ra (XH-QĐ-5).
- *
- * RỖNG LÀ CHỦ ĐÍCH: vòng ad-hoc ẩn khỏi màn quản lý, chỗ duy nhất nó hiện tên
- * là hộp "Lưu vòng tròn này" — và ở đó frontend phải vẽ nhãn ĐÃ ĐỊA PHƯƠNG HOÁ
- * của riêng nó. Nhét sẵn một chuỗi tiếng Việt vào database là biến bảng dữ
- * liệu thành nơi chứa bản dịch, đúng thứ đợt i18n vừa dọn xong.
- */
-const AD_HOC_PLACEHOLDER_NAME = '';
+// Tên vòng ad-hoc: một hằng DUY NHẤT ở `member-hash.util.ts` (chốt 25/08/2026).
+// Bản sao cục bộ `AD_HOC_PLACEHOLDER_NAME` đã bị gỡ — chính nó là nửa kia của
+// điểm treo "hai đường tạo lệch nhau": cùng giá trị rỗng, nhưng hai hằng thì
+// hai bên tự do trôi khỏi nhau, và đã trôi thật.
 
 /** Kiểu tối thiểu của một dòng `Circle` kèm thành viên đã nạp. */
 type CircleRow = {
@@ -268,7 +263,7 @@ export class CirclesService {
     const row = await this.prisma.circle.create({
       data: {
         ownerId,
-        name: AD_HOC_PLACEHOLDER_NAME,
+        name: AD_HOC_CIRCLE_NAME,
         rank: null,
         isAdHoc: true,
         memberHash,

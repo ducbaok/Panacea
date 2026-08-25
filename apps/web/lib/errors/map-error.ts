@@ -31,7 +31,8 @@ import type { GraphQLFormattedError } from 'graphql';
  *   - "Account temporarily locked"       → { kind: 'locked', retryAfterSec }
  *   - "Too many failed attempts"         → { kind: 'locked', retryAfterSec: 900 }
  *   - "Invalid credentials"              → { kind: 'invalid-credentials' }
- *   - "Daily pin limit exceeded"         → { kind: 'rate-limit' }
+ *   - "Too many pins created…"           → { kind: 'rate-limit', retryAfterSec }
+ *   - "Daily pin limit exceeded"         → { kind: 'rate-limit' }  (trần NGÀY, đã bỏ 24/08)
  *   - "must be … character(s)"           → { kind: 'validation', hint }
  *   - Bad Request 400 (validation input) → { kind: 'validation' }
  *   - Network / fetch failed / TypeError → { kind: 'network' }
@@ -48,7 +49,7 @@ export type LoadState =
   | { kind: 'not-found' }
   | { kind: 'locked'; retryAfterSec: number }
   | { kind: 'invalid-credentials' }
-  | { kind: 'rate-limit'; message: string }
+  | { kind: 'rate-limit'; message: string; retryAfterSec?: number | null }
   | { kind: 'validation'; message: string }
   | { kind: 'forbidden'; message: string }
   | { kind: 'network' }
@@ -101,8 +102,16 @@ function classifyMessage(rawMessage: string): LoadState | null {
     return { kind: 'invalid-credentials' };
   }
 
-  if (lower.includes('daily pin limit exceeded') || lower.includes('rate limit')) {
-    return { kind: 'rate-limit', message };
+  // `too many pins created` = trần 10 pin/PHÚT (XH-4b, backend trả 403 kèm số
+  // giây). `daily pin limit exceeded` là trần NGÀY đã bị bỏ từ 24/08 — giữ lại
+  // vế đó vì một API cũ hơn đang chạy ở đâu đó vẫn có thể trả nó, và nhận nhầm
+  // thành lỗi lạ thì người dùng mất câu "chờ bao lâu".
+  if (
+    lower.includes('too many pins created') ||
+    lower.includes('daily pin limit exceeded') ||
+    lower.includes('rate limit')
+  ) {
+    return { kind: 'rate-limit', message, retryAfterSec: parseRetryAfter(message) };
   }
 
   // NestJS Bad Request payload có shape { statusCode: 400, error: 'Bad Request',

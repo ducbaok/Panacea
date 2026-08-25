@@ -109,7 +109,8 @@ export const pin: Mirror<Vi> = {
   'pin.metaSomeone': 'someone',
 
   // B4 — lỗi và xác nhận rời trang
-  'pin.dailyCap': 'You have hit today’s limit of 20 pins — come back tomorrow.',
+  'pin.tooManyPins': 'You’re posting a bit fast. Try again in {seconds}s.',
+  'pin.tooManyPinsNoTime': 'You’re posting a bit fast. Give it a moment and try again.',
   'pin.saveToBoardFailed': 'The pin was created but could not be saved to the board — try again from the pin page.',
   'pin.createFailed': 'Could not publish the pin, try again later.',
   'pin.leaveTitle': 'Leave before publishing?',
@@ -126,7 +127,7 @@ export const pin: Mirror<Vi> = {
   'pin.dropImageHint': 'Or pick one from your device. Step 1 of 2.',
   'pin.pickAnotherImage': 'Pick another image',
   'pin.pickImage': 'Pick an image',
-  'pin.uploadLimits': 'Up to 10MB · at least 1KB · JPG, PNG, WEBP and GIF only · up to 20 pins a day.',
+  'pin.uploadLimits': 'Up to 10MB · at least 1KB · JPG, PNG, WEBP and GIF only · up to 10 pins a minute.',
 
   // B4/B5 — các trường của form pin
   'pin.fieldTitle': 'Title',

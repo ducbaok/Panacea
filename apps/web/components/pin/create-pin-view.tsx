@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery } from '@apollo/client/react';
 import {
@@ -16,6 +16,7 @@ import {
   TagsDocument,
   type TagsQuery,
   type TagsQueryVariables,
+  Visibility,
 } from '@/lib/gql/graphql';
 import { UploadError, type UploadErrorKind } from '@/lib/upload';
 import { prepareAndUploadImage, type PreparedImage } from '@/lib/image/prepare';
@@ -68,7 +69,7 @@ const CATS_MAX = 3;
  */
 /*
  * i18n (23/08/2026) — hai chuỗi đã duyệt (Q1 trần ngày, Q2 savePin hỏng sau
- * createPin) nay nằm ở từ điển: `pin.dailyCap` và `pin.saveToBoardFailed`.
+ * createPin) nay nằm ở từ điển: `pin.tooManyPins` và `pin.saveToBoardFailed`.
  * Nội dung KHÔNG đổi, chỉ đổi chỗ chứa.
  */
 
@@ -123,6 +124,7 @@ export function CreatePinView() {
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const toast = useToast();
   const confirm = useConfirm();
@@ -153,8 +155,21 @@ export function CreatePinView() {
   /**
    * Khán giả — LUÔN bắt đầu ở PUBLIC. Không có "nhớ khán giả lần trước" ở v1
    * (XH-QĐ-18, chốt 24/08/2026); lý do đầy đủ ở `audience-picker.tsx`.
+   *
+   * NGOẠI LỆ DUY NHẤT: `?circle=<id>` trên URL (chốt 25/08/2026, đóng điểm treo
+   * §7 mục 4). Nút "Đăng cho vòng này" ở card rỗng của feed vòng trước đây đẩy
+   * sang `/pin/new` trần, nên người dùng vừa nói rõ mình muốn đăng cho vòng nào
+   * thì màn tạo pin lại hỏi lại từ đầu.
+   *
+   * Đây KHÔNG phải "nhớ khán giả lần trước" mà XH-QĐ-18 cấm: nó không đọc lịch
+   * sử, không suy đoán, chỉ mang theo đúng ý định người dùng vừa phát ra ở cú
+   * bấm ngay trước đó — và chỉ đi được về phía RIÊNG TƯ HƠN (PUBLIC → CIRCLE),
+   * không bao giờ ngược lại.
    */
-  const [audience, setAudience] = useState<AudienceValue>(DEFAULT_AUDIENCE);
+  const [audience, setAudience] = useState<AudienceValue>(() => {
+    const preset = searchParams.get('circle');
+    return preset ? { ...DEFAULT_AUDIENCE, visibility: Visibility.Circle, circleId: preset } : DEFAULT_AUDIENCE;
+  });
 
   // --- Submit ---
   const [submitting, setSubmitting] = useState(false);
@@ -174,7 +189,35 @@ export function CreatePinView() {
   const [createPin] = useMutation<CreatePinMutation, CreatePinMutationVariables>(CreatePinDocument);
   const [savePin] = useMutation<SavePinMutation, SavePinMutationVariables>(SavePinDocument);
 
-  const { circles } = useMyCircles();
+  const { circles, loaded: circlesLoaded } = useMyCircles();
+
+  /**
+   * Gỡ `?circle=<id>` nếu id đó KHÔNG phải vòng của mình.
+   *
+   * Backend chỉ nhận `audienceCircleId` của vòng người gửi SỞ HỮU, còn feed
+   * vòng ở trang chủ hiện cả vòng mình chỉ là THÀNH VIÊN — nên một cú bấm hợp
+   * lệ ở đó vẫn có thể mang sang đây một id không đăng được. Không gỡ thì người
+   * dùng chỉ biết điều đó khi bấm Đăng và ăn lỗi từ server.
+   *
+   * ⚠️ Chạy ĐÚNG MỘT LẦN, canh bằng ref: sau lần đầu thì `audience` thuộc về
+   * người dùng, effect này không được quyền đụng nữa. Đây cũng là lý do nó
+   * không "suy ra lúc render" — cùng bài học của chip vòng ở `home-view.tsx`:
+   * giá trị đang sửa dở của người dùng không phải thứ suy ra được từ URL.
+   *
+   * ⚠️ Canh bằng `loaded`, KHÔNG bằng `!loading`. `cache-and-network` với cache
+   * rỗng có một nhịp `loading === false` mà `data` vẫn `undefined` ⇒ danh sách
+   * vòng đọc ra RỖNG ⇒ effect này gỡ mất vòng chọn sẵn của chính người dùng
+   * vừa bấm. Bản đầu viết `!circlesLoading` và hỏng đúng như vậy trên trình
+   * duyệt: URL có `?circle=`, form vẫn hiện "Công khai".
+   */
+  const presetCheckedRef = useRef(false);
+  useEffect(() => {
+    if (presetCheckedRef.current || !circlesLoaded) return;
+    presetCheckedRef.current = true;
+    const preset = searchParams.get('circle');
+    if (!preset) return;
+    if (!circles.some((c) => c.id === preset)) setAudience(DEFAULT_AUDIENCE);
+  }, [circles, circlesLoaded, searchParams]);
 
   const sourceUrlValid = sourceUrl.trim() === '' || isValidHttpUrl(sourceUrl.trim());
   const canSubmit =
@@ -344,7 +387,16 @@ export function CreatePinView() {
       router.push(uname ? `/@${uname}` : '/');
     } catch (err) {
       const st = mapError(err);
-      setSubmitErr(st.kind === 'rate-limit' ? t('pin.dailyCap') : t('pin.createFailed'));
+      // Trần 10 pin/phút (XH-4b): backend gửi kèm số giây còn lại, và đó là
+      // thứ DUY NHẤT người dùng làm được gì với nó. Không có số (API cũ, hoặc
+      // thông điệp đổi) thì rơi về bản không nêu thời gian — đừng bịa ra số.
+      setSubmitErr(
+        st.kind === 'rate-limit'
+          ? st.retryAfterSec != null
+            ? t('pin.tooManyPins', { seconds: st.retryAfterSec })
+            : t('pin.tooManyPinsNoTime')
+          : t('pin.createFailed'),
+      );
       setSubmitting(false);
     }
   }

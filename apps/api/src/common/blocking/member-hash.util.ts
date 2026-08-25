@@ -39,12 +39,23 @@ export const MAX_CIRCLES_PER_USER = 20;
 export const MAX_CIRCLE_MEMBERS = 50;
 
 /**
- * Tên đặt cho vòng ad-hoc sinh ra từ đường ghi pin. Vòng này ẩn khỏi
- * `/settings` (XH-QĐ-5) nên tên chỉ hiện khi người dùng bấm "lưu vòng này lại"
- * và được đổi tên ngay tại đó — giữ một hằng dùng chung để luồng B nhận diện
- * được vòng nào là do đường ghi pin sinh ra.
+ * Tên đặt cho vòng ad-hoc lúc vừa sinh ra (XH-QĐ-5) — **rỗng, và rỗng là chủ đích**.
+ *
+ * ✅ Chủ dự án chốt 25/08/2026, đóng điểm treo "hai đường tạo lệch nhau" (M1 →
+ * M3): trước đó đường ghi pin đặt `'Khán giả chọn tại chỗ'` còn `circles.service`
+ * đặt `''`, nên cùng một thứ có hai hình dạng tuỳ người dùng bấm ở màn nào.
+ *
+ * Chọn `''` chứ không chọn chuỗi tiếng Việt vì **tên hiển thị thuộc về frontend**:
+ * nhét sẵn một chuỗi tiếng Việt vào database là biến bảng dữ liệu thành nơi chứa
+ * bản dịch, đúng thứ đợt i18n vừa dọn xong. Frontend đã dựng sẵn nhánh đó từ
+ * luồng F1 — `circleDisplayName()` (`apps/web/lib/visibility.ts`) thấy tên trắng
+ * thì rơi về khoá i18n `circles.adHocName` kèm số người.
+ *
+ * ⚠️ Cờ nhận diện vòng ad-hoc là `isAdHoc`, KHÔNG phải cái tên này. Đừng viết
+ * `name === AD_HOC_CIRCLE_NAME` ở bất cứ đâu: một vòng có tên do người dùng đặt
+ * cũng có thể trắng nếu ai đó lỡ tay, còn `isAdHoc` thì không nhập nhằng.
  */
-export const AD_HOC_CIRCLE_NAME = 'Khán giả chọn tại chỗ';
+export const AD_HOC_CIRCLE_NAME = '';
 
 /**
  * Băm một TẬP HỢP người dùng thành chuỗi hex sha256 ổn định.

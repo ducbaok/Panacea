@@ -147,7 +147,23 @@ export function useMyCircles(skip = false) {
     MyCirclesDocument,
     { variables: { includeAdHoc: false }, skip, fetchPolicy: 'cache-and-network' },
   );
-  return { circles: data?.myCircles ?? [], loading, error, refetch };
+  return {
+    circles: data?.myCircles ?? [],
+    loading,
+    /**
+     * ĐÃ CÓ CÂU TRẢ LỜI hay chưa — KHÁC `!loading` (25/08/2026, đo trên trình duyệt).
+     *
+     * Với `fetchPolicy: 'cache-and-network'` và cache rỗng, `useQuery` đi qua
+     * một nhịp `loading === false` trong khi `data` vẫn `undefined`. Bên gọi
+     * nào lấy `!loading` làm dấu hiệu "danh sách vòng đã đầy đủ" sẽ đọc ra
+     * **0 vòng** ở đúng nhịp đó — `create-pin-view.tsx` đã ăn đúng cú này: nó
+     * gỡ mất vòng chọn sẵn từ `?circle=` vì tưởng id đó không phải của mình.
+     * `loaded` không có nhịp trung gian: `undefined` cho tới khi có mảng thật.
+     */
+    loaded: data !== undefined,
+    error,
+    refetch,
+  };
 }
 
 type ExpiryChoice = 'none' | '24h' | '7d' | 'custom';
