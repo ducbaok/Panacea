@@ -17,7 +17,8 @@ import {
   type TagsQuery,
   type TagsQueryVariables,
 } from '@/lib/gql/graphql';
-import { measureImage, uploadImage, UploadError, type UploadErrorKind } from '@/lib/upload';
+import { UploadError, type UploadErrorKind } from '@/lib/upload';
+import { prepareAndUploadImage, type PreparedImage } from '@/lib/image/prepare';
 import { UPLOAD_ERROR_KEY } from '@/lib/errors/upload-error';
 import { useLocale, useT } from '@/lib/i18n/provider';
 import type { Locale } from '@/lib/i18n/config';
@@ -26,6 +27,16 @@ import { formatBytes } from '@/lib/format';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useBoardPicker, type BoardLite } from '@/components/board/board-picker';
+import {
+  AudiencePicker,
+  audienceSummary,
+  audienceToInput,
+  DEFAULT_AUDIENCE,
+  isAudienceComplete,
+  useMyCircles,
+  type AudienceValue,
+} from '@/components/pin/audience-picker';
+import { CaptureView } from '@/components/pin/capture-view';
 
 /**
  * B4 — Tạo pin (mockup `view=create`, khuôn thừa từ B5 theo Q1). Trang RIÊNG,
@@ -120,11 +131,16 @@ export function CreatePinView() {
   // --- Upload / ảnh ---
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [dims, setDims] = useState<{ width: number; height: number } | null>(null);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  /**
+   * F1 · XH-9b — thay cặp `dims` + `uploadedUrl` cũ bằng KẾT QUẢ TRỌN GÓI của
+   * một tiến trình: ảnh gốc + 3 URL biến thể + số đo ảnh GỐC (đã áp EXIF).
+   */
+  const [prepared, setPrepared] = useState<PreparedImage | null>(null);
   const [uploadPhase, setUploadPhase] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
   const [uploadErr, setUploadErr] = useState<UploadErrorKind | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** 'capture' = màn XH-CAM đang chiếm chỗ form. Cùng một trang, cùng một luồng đăng. */
+  const [mode, setMode] = useState<'form' | 'capture'>('form');
 
   // --- Form ---
   const [title, setTitle] = useState('');
@@ -134,6 +150,11 @@ export function CreatePinView() {
   const [tagInput, setTagInput] = useState('');
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [board, setBoard] = useState<BoardLite | null>(null);
+  /**
+   * Khán giả — LUÔN bắt đầu ở PUBLIC. Không có "nhớ khán giả lần trước" ở v1
+   * (XH-QĐ-18, chốt 24/08/2026); lý do đầy đủ ở `audience-picker.tsx`.
+   */
+  const [audience, setAudience] = useState<AudienceValue>(DEFAULT_AUDIENCE);
 
   // --- Submit ---
   const [submitting, setSubmitting] = useState(false);
@@ -153,9 +174,16 @@ export function CreatePinView() {
   const [createPin] = useMutation<CreatePinMutation, CreatePinMutationVariables>(CreatePinDocument);
   const [savePin] = useMutation<SavePinMutation, SavePinMutationVariables>(SavePinDocument);
 
+  const { circles } = useMyCircles();
+
   const sourceUrlValid = sourceUrl.trim() === '' || isValidHttpUrl(sourceUrl.trim());
   const canSubmit =
-    uploadPhase === 'done' && !!uploadedUrl && !!dims && !submitting && sourceUrlValid;
+    uploadPhase === 'done' &&
+    !!prepared &&
+    !submitting &&
+    sourceUrlValid &&
+    // CIRCLE mà chưa chọn vòng lẫn chưa chọn người ⇒ backend 400. Khoá ở đây.
+    isAudienceComplete(audience);
 
   // Dirty = có ảnh HOẶC bất kỳ trường nào có nội dung (Q4).
   const dirty =
@@ -165,7 +193,9 @@ export function CreatePinView() {
     sourceUrl.trim() !== '' ||
     tags.length > 0 ||
     categoryIds.length > 0 ||
-    board !== null;
+    board !== null ||
+    audience.visibility !== DEFAULT_AUDIENCE.visibility ||
+    audience.expiresAt !== null;
   const dirtyRef = useRef(dirty);
   useEffect(() => {
     dirtyRef.current = dirty;
@@ -217,36 +247,26 @@ export function CreatePinView() {
     return () => document.removeEventListener('click', onClickCapture, true);
   }, [confirm, router]);
 
+  /**
+   * MỘT tiến trình cho cả thu nhỏ lẫn tải lên (spec capture mục 4) — dùng chung
+   * cho ảnh chọn từ đĩa và ảnh vừa chụp, đúng luật "không có luồng đăng thứ hai".
+   */
   async function onFileChosen(f: File) {
     setUploadErr(null);
-    setUploadedUrl(null);
-    setDims(null);
+    setPrepared(null);
     setSubmitErr(null);
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
     setUploadPhase('working');
 
-    // Đo + upload SONG SONG. Ưu tiên lỗi upload (server) để phơi 413/400 (T2.2) —
-    // .txt sẽ hỏng cả hai, nhưng lỗi server "Unsupported file type" cụ thể hơn.
-    const [measured, uploaded] = await Promise.allSettled([
-      measureImage(f),
-      uploadImage(f, session?.accessToken),
-    ]);
-
-    if (uploaded.status === 'rejected') {
-      const kind = uploaded.reason instanceof UploadError ? uploaded.reason.kind : 'unknown';
+    try {
+      setPrepared(await prepareAndUploadImage(f, session?.accessToken));
+      setUploadPhase('done');
+    } catch (err) {
+      // Lỗi server (413/400) cụ thể hơn lỗi giải mã ⇒ ưu tiên `kind` của nó (T2.2).
       setUploadPhase('error');
-      setUploadErr(kind);
-      return;
+      setUploadErr(err instanceof UploadError ? err.kind : 'unknown');
     }
-    if (measured.status === 'rejected') {
-      setUploadPhase('error');
-      setUploadErr('unknown');
-      return;
-    }
-    setDims(measured.value);
-    setUploadedUrl(uploaded.value.url);
-    setUploadPhase('done');
   }
 
   function pickFileFromInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -281,16 +301,21 @@ export function CreatePinView() {
   }
 
   async function onSubmit() {
-    if (!canSubmit || !uploadedUrl || !dims) return;
+    if (!canSubmit || !prepared) return;
     setSubmitting(true);
     setSubmitErr(null);
     try {
       const res = await createPin({
         variables: {
           input: {
-            imageUrl: uploadedUrl,
-            imageWidth: dims.width,
-            imageHeight: dims.height,
+            imageUrl: prepared.imageUrl,
+            // 🔴 Số đo ảnh GỐC, KHÔNG phải của bản thu nhỏ (PLAN_XAHOI §8 bẫy 3).
+            imageWidth: prepared.width,
+            imageHeight: prepared.height,
+            thumbnailUrl: prepared.thumbnailUrl,
+            mediumUrl: prepared.mediumUrl,
+            largeUrl: prepared.largeUrl,
+            ...audienceToInput(audience),
             title: title.trim() || undefined,
             description: description.trim() || undefined,
             sourceUrl: sourceUrl.trim() || undefined,
@@ -347,6 +372,18 @@ export function CreatePinView() {
         {t('pin.createSubtitle')}
       </p>
 
+      {mode === 'capture' ? (
+        <CaptureView
+          onCapture={(f) => {
+            setMode('form');
+            void onFileChosen(f);
+          }}
+          onFallback={() => {
+            setMode('form');
+            fileInputRef.current?.click();
+          }}
+        />
+      ) : (
       <div
         style={{
           display: 'grid',
@@ -389,9 +426,9 @@ export function CreatePinView() {
                 style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 12, objectFit: 'contain' }}
               />
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-foreground)' }}>{t('pin.uploaded')}</div>
-              {dims && file && (
+              {prepared && file && (
                 <div style={{ fontSize: 12.5, color: 'var(--color-muted)' }}>
-                  {imageHint(dims.width, dims.height, file.size, locale)}
+                  {imageHint(prepared.width, prepared.height, file.size, locale)}
                 </div>
               )}
               <button type="button" onClick={() => fileInputRef.current?.click()} style={outlineBtn}>
@@ -458,9 +495,36 @@ export function CreatePinView() {
                   </div>
                 </>
               )}
-              <button type="button" onClick={() => fileInputRef.current?.click()} style={primaryBtn}>
-                {uploadPhase === 'error' ? t('pin.pickAnotherImage') : t('pin.pickImage')}
-              </button>
+              {/* QĐ-27 — lối vào màn chụp nằm NGAY CẠNH ô chọn file, không phải
+                  một lối vào riêng. Nhãn là "Chụp ảnh" chứ không phải "Chụp /
+                  Quay" của bản vẽ: phần quay video chưa thi công ở F1 (video
+                  làm sau xahoi), và hứa một thứ chưa có là tệ hơn thiếu chữ. */}
+              <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button type="button" onClick={() => fileInputRef.current?.click()} style={primaryBtn}>
+                  {uploadPhase === 'error' ? t('pin.pickAnotherImage') : t('pin.pickImage')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('capture')}
+                  data-testid="open-capture"
+                  style={{ ...outlineBtn, display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  <svg
+                    width={16}
+                    height={16}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M4 8h3l1.5-2h7L17 8h3v11H4z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+                  </svg>
+                  {t('capture.open')}
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -607,6 +671,10 @@ export function CreatePinView() {
             </div>
           </div>
 
+          {/* XH-AUD — bộ chọn khán giả. Đặt SÁT nhóm nút Đăng bên dưới, không
+              nhét vào menu phụ: đây là ràng buộc cứng của mục chống đăng nhầm. */}
+          <AudiencePicker value={audience} onChange={setAudience} />
+
           {/* Board — Q2 H1: mặc định không chọn; mở picker chế độ 'select' */}
           <div>
             <label style={labelStyle}>{t('pin.fieldBoard')}</label>
@@ -652,7 +720,7 @@ export function CreatePinView() {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={onSubmit}
@@ -670,9 +738,19 @@ export function CreatePinView() {
             <button type="button" onClick={() => void leaveTo('/')} style={outlineBtn}>
               {t('common.cancel')}
             </button>
+            {/* Ràng buộc cứng: khán giả hiện NGAY CẠNH nút Đăng, không giấu
+                trong menu phụ (PLAN_XAHOI §9 — chống đăng nhầm). Cùng một hàm
+                với nhãn trên bộ chọn, nên hai chỗ không thể nói khác nhau. */}
+            <div
+              data-testid="publish-audience-label"
+              style={{ fontSize: 12.5, color: 'var(--color-muted)', fontWeight: 600 }}
+            >
+              {audienceSummary(t, audience, circles)}
+            </div>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 

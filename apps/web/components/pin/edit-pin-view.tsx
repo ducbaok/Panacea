@@ -27,6 +27,14 @@ import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useT } from '@/lib/i18n/provider';
 import type { TranslationKey } from '@/lib/i18n/translate';
+import {
+  AudiencePicker,
+  audienceSummary,
+  audienceToInput,
+  isAudienceComplete,
+  useMyCircles,
+  type AudienceValue,
+} from '@/components/pin/audience-picker';
 
 /**
  * B5 — Sửa pin (mockup `view=editpin`, data-screen="B5"). 7 trạng thái:
@@ -125,6 +133,20 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
   const [tagInput, setTagInput] = useState('');
   const [categoryIds, setCategoryIds] = useState<string[]>(initialCatIds);
 
+  /**
+   * F1 · XH-8 — khán giả của pin ĐANG CÓ, không phải PUBLIC mặc định: ở màn
+   * SỬA, mọi lần lưu đều gửi `visibility` (xem `onSave`), nên điền sai chỗ này
+   * là biến một lần sửa tiêu đề thành một cú công khai im lặng — đúng cái bug
+   * mà docblock của `UpdatePinInput` ở backend dựng ra để chặn.
+   */
+  const [audience, setAudience] = useState<AudienceValue>({
+    visibility: pin.visibility,
+    circleId: pin.audienceCircleId ?? null,
+    adHocUserIds: [],
+    expiresAt: pin.expiresAt ?? null,
+  });
+  const { circles } = useMyCircles();
+
   const [phase, setPhase] = useState<'idle' | 'saving' | 'done' | 'neterr'>('idle');
 
   const catsQuery = useQuery<CategoriesQuery>(CategoriesDocument);
@@ -145,7 +167,7 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
   useEffect(() => () => { if (doneTimer.current) clearTimeout(doneTimer.current); }, []);
 
   const sourceUrlValid = sourceUrl.trim() === '' || isValidHttpUrl(sourceUrl.trim());
-  const disabled = !isOwner || phase === 'saving';
+  const disabled = !isOwner || phase === 'saving' || !isAudienceComplete(audience);
 
   const tagSuggestions = useMemo(() => {
     const existing = new Set(tags.map((tag) => tag.toLowerCase()));
@@ -191,6 +213,19 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
             sourceUrl: sourceUrl.trim() || null,
             ...(tagsChanged ? { tagNames: tags } : {}),
             ...(catsChanged ? { categoryIds } : {}),
+            // Khán giả gửi TRỌN GÓI mỗi lần lưu (không so sánh trước/sau): bộ
+            // chọn đã khởi tạo bằng giá trị đang có, nên gửi lại đúng giá trị
+            // đó là no-op, còn "chỉ gửi khi đổi" thì phải tự dựng lại đúng ba
+            // trạng thái undefined/[]/[a,b] của backend cho một field vốn
+            // không có ngữ nghĩa đó.
+            //
+            // ⚠️ `expiresAt` CỐ Ý không nằm ở đây: `updatePin` chỉ ĐẶT/ĐỔI
+            // được hạn chứ không gỡ được (gỡ hạn là `republishPin`, thuộc màn
+            // Kho của luồng F2), nên bộ chọn ở màn này tắt khối Hạn sống.
+            ...(() => {
+              const { expiresAt: _ignored, ...rest } = audienceToInput(audience);
+              return rest;
+            })(),
           },
         },
       });
@@ -432,7 +467,14 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 4, alignItems: 'center' }}>
+          {/* XH-AUD — cùng bộ chọn với màn tạo pin, KHÔNG có khối Hạn sống
+              (updatePin đặt/đổi được hạn nhưng không gỡ được — gỡ hạn là
+              `republishPin` ở màn Kho, luồng F2). Hộp xác nhận "riêng → công
+              khai" chạy ngay trong bộ chọn, nên màn sửa được che cùng một lớp
+              chống đăng nhầm với màn tạo. */}
+          <AudiencePicker value={audience} onChange={setAudience} showExpiry={false} disabled={!isOwner} />
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 4, alignItems: 'center', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={onSave}
@@ -454,6 +496,13 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
             <button type="button" onClick={() => router.push(`/pin/${pin.id}`)} style={outlineBtn}>
               {t('common.cancel')}
             </button>
+            {/* Nhãn khán giả cạnh nút lưu — cùng ràng buộc với màn tạo pin. */}
+            <div
+              data-testid="publish-audience-label"
+              style={{ fontSize: 12.5, color: 'var(--color-muted)', fontWeight: 600 }}
+            >
+              {audienceSummary(t, audience, circles)}
+            </div>
             <div style={{ flex: 1 }} />
             <button
               type="button"

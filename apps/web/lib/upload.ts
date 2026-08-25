@@ -89,12 +89,28 @@ export async function uploadImage(
   file: File,
   accessToken: string | null | undefined,
 ): Promise<UploadResult> {
+  return uploadBlob(file, file.name || 'upload', accessToken);
+}
+
+/**
+ * XH-9b — cùng một cửa `POST /uploads/local`, nhưng nhận `Blob` để đường thu
+ * nhỏ (`lib/image/resize.ts`) và đường chụp ảnh đăng được kết quả của canvas.
+ *
+ * `filename` là BẮT BUỘC chứ không tuỳ chọn: multer đọc phần mở rộng của tên
+ * file để đặt tên object, và một `Blob` không có tên thì phần mở rộng rỗng.
+ * Ba biến thể vì thế phải mang đúng đuôi của `blob.type`.
+ */
+export async function uploadBlob(
+  blob: Blob,
+  filename: string,
+  accessToken: string | null | undefined,
+): Promise<UploadResult> {
   if (!accessToken) {
     throw new UploadError('unauthorized', { serverMessage: 'Thiếu accessToken phiên' });
   }
 
   const fd = new FormData();
-  fd.append('file', file); // đúng 1 field 'file' — KHÔNG thêm field khác (fields:0)
+  fd.append('file', blob, filename); // đúng 1 field 'file' — KHÔNG thêm field khác (fields:0)
 
   let res: Response;
   try {

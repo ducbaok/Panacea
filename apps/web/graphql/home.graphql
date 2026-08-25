@@ -19,6 +19,9 @@ query HomeFeed($first: Int! = 20, $after: String, $source: FeedSource) {
         username
         avatarUrl
       }
+      visibility
+      audienceCircleId
+      expiresAt
       isSavedByViewer
       viewerReaction
     }

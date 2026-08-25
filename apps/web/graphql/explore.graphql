@@ -29,6 +29,9 @@ query ExploreFeed(
         username
         avatarUrl
       }
+      visibility
+      audienceCircleId
+      expiresAt
       isSavedByViewer
       viewerReaction
     }
