@@ -249,6 +249,48 @@
   --font-display: var(--font-varela-round);
 }
 
+/*
+ * LUỒNG A — chốt chặn vòng hồi tiếp "rung trang chủ".
+ *
+ * Vùng cuộn của window là phần tử gốc. Khi thanh cuộn dọc hiện/ẩn, bề rộng
+ * layout đổi ~15px; PinGrid quan sát bề rộng container bằng ResizeObserver nên
+ * đổi đó bắn tính lại lưới. Ở số cột cố định, chiều cao thẻ TỈ LỆ THUẬN với bề
+ * rộng cột (`cardHeight` = columnWidth * ratio + khối chữ) ⇒ chiều cao lưới đổi
+ * theo ⇒ thanh cuộn lại đổi trạng thái ⇒ lặp. Đó là dao động TỰ DUY TRÌ, không
+ * phải nhiễu ngẫu nhiên.
+ *
+ * Ngưỡng nhảy cột khuếch đại nó: với cột trái MỞ (240px) ở bề rộng cửa sổ
+ * ~1300–1330px, vùng nội dung nằm ngay bậc 3↔4 cột, nên đúng 15px thanh cuộn
+ * đủ lật số cột (bề rộng cột nhảy 320px ↔ 240px, tức ~25% chiều cao mỗi thẻ).
+ * Thu cột trái (72px) đẩy bề rộng ra giữa vùng 4 cột nên hết rung — đó là lý do
+ * hiện tượng "thu gọn thì hết".
+ *
+ * Cách chữa: giữ chỗ thanh cuộn VĨNH VIỄN ⇒ bề rộng layout không còn phụ thuộc
+ * việc trang dài hay ngắn ⇒ cắt đứt vòng lặp tại gốc.
+ *
+ * DÙNG `overflow-y: scroll`, KHÔNG chỉ `scrollbar-gutter: stable`. Đã đo trực
+ * tiếp trên trình duyệt (25/08, viewport 1312px, cột trái mở), bật/tắt nội dung
+ * để trang dài/ngắn rồi đọc `documentElement.clientWidth`:
+ *
+ *   gutter:auto  + overflow:visible   → 1297 ↔ 1312  (lệch 15px — bug gốc)
+ *   gutter:stable + overflow:visible  → 1297 ↔ 1312  (lệch 15px — KHÔNG chữa)
+ *   gutter:stable + overflow-y:auto   → 1297 ↔ 1312  (lệch 15px — KHÔNG chữa)
+ *   overflow-y:scroll                 → 1297 ↔ 1297  (lệch 0 ✓)
+ *   gutter:stable + overflow-y:scroll → 1297 ↔ 1297  (lệch 0 ✓)
+ *
+ * `scrollbar-gutter` chỉ áp cho *scroll container*; phần tử gốc ở đây có
+ * `overflow: visible` nên khai báo suông bị bỏ qua. Giữ lại dòng `stable` vì nó
+ * là thứ đúng trên engine dùng thanh cuộn phủ (overlay), còn `overflow-y:
+ * scroll` mới là dòng thực sự chặn dao động trên engine thanh cuộn cổ điển.
+ *
+ * Đánh đổi: trang ngắn sẽ thấy máng cuộn xám rỗng bên phải. Chấp nhận được —
+ * feed trang chủ luôn dài, và đổi lại là hết rung.
+ */
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-foreground);
