@@ -43,6 +43,13 @@ export const validationSchema = Joi.object({
   LOGIN_FAIL_WINDOW_SEC: Joi.number().integer().min(1).optional(),
   LOGIN_LOCK_SEC: Joi.number().integer().min(1).optional(),
 
+  // Rate-limit đường TẠO PIN (XH-4b · XH-QĐ-12) — optional, default ở
+  // `configuration()`. `.integer().min(1)` cùng lý do với `LOGIN_*`:
+  // `PIN_CREATE_PER_MIN=abc` phải chết lúc BOOT chứ không được thành NaN rồi
+  // lặng lẽ chặn MỌI pin (`n > NaN` là false ⇒ thực ra là lặng lẽ TẮT trần —
+  // giới hạn chống lạm dụng DUY NHẤT của đường tạo pin biến mất không tiếng động).
+  PIN_CREATE_PER_MIN: Joi.number().integer().min(1).optional(),
+
   // Mail (Gmail SMTP)
   MAIL_HOST: Joi.string().optional(),
   MAIL_PORT: Joi.number().optional(),
@@ -122,6 +129,23 @@ export const configuration = () => ({
 
   app: {
     baseUrl: process.env.APP_BASE_URL || 'http://localhost:4000',
+  },
+
+  pins: {
+    /**
+     * Trần tạo pin theo PHÚT của một người (XH-4b — XH-QĐ-12, duyệt 21/08/2026).
+     *
+     * Đây là giới hạn chống lạm dụng DUY NHẤT còn lại trên đường tạo pin sau
+     * khi trần 20 pin/NGÀY bị bỏ (XH-QĐ-8): dự án đã chốt không có
+     * moderation/report, nên không còn lớp nào khác chặn một script đăng ảnh
+     * hàng loạt. Xem `docs/xahoi-phi-chuc-nang.md` §1.5 + §4.
+     *
+     * Để được ở đây (chứ không hard-code trong service) vì đúng một lý do như
+     * `auth.login`: **kiểm chứng được**. `77-pin-rate.mjs` đọc chính biến này
+     * rồi đăng đúng `N + 1` pin — hạ `PIN_CREATE_PER_MIN=3` là bước đó chạy
+     * nhanh gấp ba mà vẫn đo đúng cái trần đang chạy thật.
+     */
+    createPerMin: parseInt(process.env.PIN_CREATE_PER_MIN || '10', 10),
   },
 });
 

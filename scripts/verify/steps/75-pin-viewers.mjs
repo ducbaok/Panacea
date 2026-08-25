@@ -40,6 +40,7 @@ import { createRequire } from 'node:module';
 import { USERS } from '../lib/seedrefs.mjs';
 import { connectRedis } from '../lib/redis-probe.mjs';
 import { readApiEnv, API, sleep } from '../lib/client.mjs';
+import { clearPinRate, pinCreatePerMin } from '../lib/pin-rate.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -127,6 +128,19 @@ export default async function (h) {
       'dọn state sống lâu Ở ĐẦU BƯỚC (PinView sạch + pin xh75* + xoá SẠCH Circle/CircleMember)',
       'OK',
       `pinView=${wipedViews.count} pin=${wipedPins.count} circle=${wipedCircles.count}`,
+    );
+    // Trạng thái sống lâu thêm từ 25/08 (XH-4b): bộ đếm `pincreate:<userId>`
+    // TTL 60s, dùng CHUNG giữa các bước vì cùng đăng pin bằng `bao`. Bước 74
+    // chạy ngay trước và cũng đăng pin — không dọn thì bước này bắt đầu với
+    // quota đã tiêu một phần, và pin thứ N nào đó đỏ vì một luật chẳng liên
+    // quan gì tới thứ nó đo.
+    const clearedRate = await clearPinRate([USERS.bao.id, USERS.alice.id, USERS.john.id]);
+    rec(
+      'dọn bộ đếm `pincreate:*` Ở ĐẦU BƯỚC (trần 10 pin/phút XH-4b sống 60s, xuyên qua ranh giới bước)',
+      'OK',
+      clearedRate === null
+        ? 'không kết nối được Redis ⇒ trần đang fail-open, không có gì để dọn'
+        : `xoá ${clearedRate} khoá · trần đang chạy = ${pinCreatePerMin()} pin/phút`,
     );
 
     // ─── Tiền đề topology (seed đổi thì mọi phép dưới mất ý nghĩa) ────────────

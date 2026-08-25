@@ -25,6 +25,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type Redis from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.module';
 import { PrismaService } from '../prisma/prisma.service';
@@ -84,16 +85,37 @@ const IMAGE_URL_WHITELIST = [
   'res.cloudinary.com',
 ];
 
+/**
+ * Cửa sổ đếm của trần tạo pin, tính bằng giây. Cố định 60 vì XH-QĐ-12 nói
+ * thẳng "10 pin/PHÚT": biến nó thành tham số env sẽ đẻ ra một cấu hình mà
+ * chẳng ai chỉnh, đổi lại việc tên hằng số không còn khớp tài liệu.
+ */
+const PIN_CREATE_WINDOW_SEC = 60;
+
+/** Bản sao của mặc định ở `configuration.ts` — dùng khi ConfigService không trả gì. */
+const PIN_CREATE_PER_MIN_DEFAULT = 10;
+
 @Injectable()
 export class PinsService {
   private readonly logger = new Logger(PinsService.name);
+
+  /**
+   * Trần tạo pin theo phút (XH-4b), đọc MỘT LẦN lúc dựng service — cùng chủ
+   * đích với `AuthService.loginMaxAttempts`: đây là tham số chống lạm dụng,
+   * không phải cờ bật/tắt lúc chạy, nên đổi `.env` thì phải restart API.
+   */
+  private readonly pinCreatePerMin: number;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     // `RedisModule` là @Global nên inject được mà không cần import module.
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
-  ) {}
+    // `ConfigModule.forRoot({ isGlobal: true })` ⇒ `pins.module.ts` KHÔNG cần sửa.
+    private readonly configService: ConfigService,
+  ) {
+    this.pinCreatePerMin = this.configService.get<number>('pins.createPerMin') ?? PIN_CREATE_PER_MIN_DEFAULT;
+  }
 
   // ─── Taxonomy (Đợt 6) ────────────────────────────────────────────────────────
 
@@ -361,6 +383,92 @@ export class PinsService {
     }
   }
 
+  // ─── Rate-limit đường tạo pin (Redis · XH-4b) ───────────────────────────────
+
+  /**
+   * ╔═════════════════════════════════════════════════════════════════════════╗
+   * ║  VÌ SAO ĐƯỜNG TẠO PIN CÓ TRẦN THEO PHÚT (XH-4b · XH-QĐ-12, 21/08/2026)  ║
+   * ║                                                                         ║
+   * ║  Trần 20 pin/NGÀY từng là giới hạn chống lạm dụng DUY NHẤT ở đây, và    ║
+   * ║  nó đã bị bỏ có chủ đích (XH-QĐ-8) vì chặn nhầm người dùng thật. Dự án  ║
+   * ║  đã chốt KHÔNG có moderation/report, nên sau khi bỏ trần ngày thì giữa  ║
+   * ║  một script đăng ảnh hàng loạt và bảng `Pin` không còn lớp nào cả.      ║
+   * ║  Trần theo PHÚT thay chỗ nó: người thật không bao giờ chạm tới 10 pin   ║
+   * ║  trong 60 giây, còn script thì chạm ngay ở pin thứ 11.                  ║
+   * ║                                                                         ║
+   * ║  ⚠️ ĐÂY LÀ MỘT QUYẾT ĐỊNH BỊ ĐẢO RỒI THAY THẾ, KHÔNG PHẢI CODE TRÙNG:  ║
+   * ║  ai đọc tài liệu cũ rồi "khôi phục trần 20/ngày cho đúng" là đang đảo   ║
+   * ║  ngược XH-QĐ-8; ai xoá chốt này vì "trần đã bỏ rồi mà" là đang gỡ lớp   ║
+   * ║  thay thế đã duyệt. Hai thứ là MỘT cặp: `74-pin-audience-story.mjs`     ║
+   * ║  chứng minh trần NGÀY đã chết, `77-pin-rate.mjs` chứng minh trần PHÚT   ║
+   * ║  còn sống.                                                              ║
+   * ║                                                                         ║
+   * ║  ⚠️ FAIL-**OPEN**, cùng đánh đổi đã cân nhắc ở brute-force limiter      ║
+   * ║  (`auth.service.ts`): Redis chết ⇒ trần im lặng ngừng hoạt động và pin  ║
+   * ║  VẪN được tạo (chỉ log `warn`). Fail-closed sẽ biến một sự cố Redis     ║
+   * ║  thành "không ai đăng được pin nữa" — sự cố hạ tầng leo thang thành sự  ║
+   * ║  cố toàn sản phẩm. Cửa sổ hỏng ngắn, và `ThrottlerModule` vẫn chặn      ║
+   * ║  100 req/phút theo IP ở tầng trên (`app.module.ts`).                    ║
+   * ║                                                                         ║
+   * ║  KHÁC brute-force ở hai điểm, cả hai đều có lý do:                      ║
+   * ║   • KHÔNG băm khoá. Khoá của login bám theo EMAIL (PII do client gửi,   ║
+   * ║     dài tuỳ ý); khoá ở đây bám theo `userId` — cuid nội bộ, dài cố      ║
+   * ║     định, đã nằm khắp Redis (`track:*`). Băm nó chỉ làm khoá khó truy   ║
+   * ║     vết lúc sự cố mà không giấu thêm được gì.                           ║
+   * ║   • KHÔNG có khoá riêng ngoài bộ đếm. Login cần cặp `fail`+`lock` vì    ║
+   * ║     hình phạt (15 phút) DÀI HƠN cửa sổ đếm. Ở đây hình phạt CHÍNH LÀ    ║
+   * ║     phần còn lại của cửa sổ, nên một khoá đếm có TTL là đủ — thêm khoá  ║
+   * ║     thứ hai là thêm một thứ có thể lệch nhau.                           ║
+   * ╚═════════════════════════════════════════════════════════════════════════╝
+   */
+  private _pinRateKey(userId: string): string {
+    return `pincreate:${userId}`;
+  }
+
+  /**
+   * Ghi nhận một lần gọi `createPin` và cho biết có phải TỪ CHỐI hay không.
+   *
+   * @returns `0` = cho đi tiếp · `> 0` = bị chặn, và đó là số giây còn lại của
+   *   cửa sổ hiện tại.
+   *
+   * ⚠️ Hàm này KHÔNG ném — bên gọi ném. Cùng cái bẫy mà `_recordLoginFailure`
+   * đã ghi: ném `ForbiddenException` từ trong `try` thì chính `catch` fail-open
+   * bên dưới nuốt nó, và pin thứ 11 lại được tạo bình thường trong khi Redis
+   * vẫn ghi nhận là đã chặn. Tách "quyết định" khỏi "ném" làm bẫy đó không tồn
+   * tại được.
+   */
+  private async _hitPinCreateLimit(userId: string): Promise<number> {
+    const key = this._pinRateKey(userId);
+    try {
+      const n = await this.redis.incr(key);
+      // Chỉ đặt hạn ở lần ĐẦU. Gọi `expire` mỗi lần sẽ đẩy cửa sổ trượt về
+      // trước vô hạn: người đăng đều đặn 59 giây một pin sẽ không bao giờ được
+      // đặt lại bộ đếm, và tới pin thứ 11 — dù cách nhau cả chục phút — vẫn bị
+      // chặn. Đó là lỗi (a) của brute-force limiter ở một hình dạng khác.
+      if (n === 1) {
+        await this.redis.expire(key, PIN_CREATE_WINDOW_SEC);
+        return 0;
+      }
+      if (n <= this.pinCreatePerMin) return 0;
+
+      const ttl = await this.redis.ttl(key);
+      if (ttl < 0) {
+        // `-1` = bộ đếm KHÔNG có hạn: `INCR` thành công nhưng `EXPIRE` ở lần
+        // đầu đã trượt. Bỏ mặc thì người này bị chặn VĨNH VIỄN. Vá lại hạn rồi
+        // cho request này đi tiếp — thà bỏ sót một lần chặn còn hơn khoá cứng
+        // một tài khoản, đúng logic fail-open đã chọn.
+        await this.redis.expire(key, PIN_CREATE_WINDOW_SEC);
+        return 0;
+      }
+      return ttl;
+    } catch (e) {
+      this.logger.warn(
+        `[pin-rate] Redis lỗi khi đếm pin, KHÔNG chặn (fail-open): ${(e as Error).message}`,
+      );
+      return 0;
+    }
+  }
+
   // ─── Create ──────────────────────────────────────────────────────────────────
 
   /**
@@ -379,10 +487,26 @@ export class PinsService {
    * chứng minh trần này đã chết (pin thứ 21 trong ngày phải tạo được).
    *
    * ⚠️ Bỏ trần này lấy đi giới hạn chống lạm dụng DUY NHẤT trên đường tạo pin.
-   * Thay thế đã duyệt: rate-limit ~10 pin/phút bằng Redis — XH-4b (XH-QĐ-12),
-   * thi công ở đợt riêng. Tới lúc đó chốt mới sẽ nằm ngay đầu hàm này.
+   * Thay thế đã duyệt: rate-limit ~10 pin/phút bằng Redis — XH-4b (XH-QĐ-12).
+   * ✅ ĐÃ THI CÔNG 25/08/2026, chốt nằm ngay đầu hàm này (bước 0 bên dưới);
+   * xem docblock của `_hitPinCreateLimit`.
    */
   async createPin(userId: string, input: CreatePinInput) {
+    // 0. Trần theo phút (XH-4b). ĐỨNG TRƯỚC MỌI VALIDATE là có chủ đích: thứ
+    //    cần giới hạn là REQUEST, không phải pin thành công. Đặt sau validate
+    //    thì một script gửi 10.000 request ảnh sai domain vẫn quét sạch DB
+    //    connection lẫn CPU mà bộ đếm không nhúc nhích — và đó đúng là hình
+    //    dạng rẻ nhất của một cuộc lạm dụng.
+    const blockedFor = await this._hitPinCreateLimit(userId);
+    if (blockedFor > 0) {
+      // Thông điệp cố ý KHÔNG nói Redis/khoá/hạ tầng, chỉ nói việc người dùng
+      // làm được: chờ bao lâu. Con số giây là thứ phân biệt nhánh này với mọi
+      // ForbiddenException khác của `createPin` trong phép kiểm 77.
+      throw new ForbiddenException(
+        `Too many pins created. Try again in ${blockedFor}s.`,
+      );
+    }
+
     // 1. Whitelist domain cho CẢ BỐN url ảnh (XH-9a — PLAN_XAHOI.md §8 bẫy 2).
     //    Ba biến thể là tuỳ chọn: không gửi thì bỏ qua, gửi thì bị soi y hệt
     //    `imageUrl` — một URL biến thể trỏ ra ngoài whitelist chính là đường

@@ -29,6 +29,7 @@
 import { createRequire } from 'node:module';
 import { USERS } from '../lib/seedrefs.mjs';
 import { readApiEnv, sleep } from '../lib/client.mjs';
+import { openPinRateCleaner, pinCreatePerMin } from '../lib/pin-rate.mjs';
 
 const require = createRequire(import.meta.url);
 
@@ -52,8 +53,42 @@ const show = (s) => `{${[...s].sort().join(', ')}}`;
 const errOf = (r) => r?.errors?.[0]?.extensions?.originalError?.message ?? r?.errors?.[0]?.message ?? null;
 
 export default async function (h) {
-  const { gql, silent, rec, assert, state } = h;
+  const { gql: rawGql, silent: rawSilent, rec, assert, state } = h;
   h.setGroup('GQL/pin-audience');
+
+  // ╔═══════════════════════════════════════════════════════════════════════╗
+  // ║  VÌ SAO `gql`/`silent` CỦA BƯỚC NÀY BỊ BỌC LẠI (25/08 — XH-4b)        ║
+  // ║                                                                       ║
+  // ║  Bước này đăng hơn 30 pin bằng CÙNG tài khoản `bao` trong vài giây,    ║
+  // ║  còn trần XH-4b chỉ cho 10 pin/phút. Và nó tiêu quota NHIỀU hơn số     ║
+  // ║  pin tạo được: chốt trần đứng TRƯỚC validate (có chủ đích — xem        ║
+  // ║  `pins.service.ts`), nên mỗi phép ÂM ("ảnh domain lạ ⇒ chặn") cũng     ║
+  // ║  tốn một suất. Lần chạy đầu sau khi XH-4b vào: 14 phép đỏ, tất cả với  ║
+  // ║  thông điệp "Too many pins created" — tức là đỏ vì một luật KHÔNG      ║
+  // ║  phải luật chúng đo.                                                  ║
+  // ║                                                                       ║
+  // ║  Cách gỡ: xoá bộ đếm phút NGAY TRƯỚC mỗi lời gọi `createPin`. Không   ║
+  // ║  nới trần (API vẫn chạy đúng cấu hình sản xuất), chỉ tua nhanh 60      ║
+  // ║  giây mà một người thật sẽ phải chờ giữa hai loạt.                    ║
+  // ║                                                                       ║
+  // ║  Bọc ở ĐÂY chứ không rắc `await clear()` vào 11 chỗ gọi vì bước này    ║
+  // ║  còn được thêm phép: một phép mới quên gỡ trần sẽ đỏ ngẫu nhiên tuỳ    ║
+  // ║  vị trí nó đứng — loại lỗi tốn nửa ngày để lần ra.                    ║
+  // ║                                                                       ║
+  // ║  Bước 75/76 KHÔNG cần bọc: mỗi bước đăng dưới 10 pin và đã dọn bộ     ║
+  // ║  đếm ở đầu bước, nên không bao giờ chạm trần trong cửa sổ của mình.   ║
+  // ╚═══════════════════════════════════════════════════════════════════════╝
+  const rate = await openPinRateCleaner();
+  const freshQuota = () => rate.clear([USERS.bao.id, USERS.alice.id, USERS.john.id]);
+  const isCreate = (q) => typeof q === 'string' && q.includes('createPin');
+  const gql = async (name, query, variables, opts) => {
+    if (isCreate(query)) await freshQuota();
+    return rawGql(name, query, variables, opts);
+  };
+  const silent = async (query, variables, token) => {
+    if (isCreate(query)) await freshQuota();
+    return rawSilent(query, variables, token);
+  };
 
   // ─── Prisma CHỈ để dọn + đếm nền (không phải bằng chứng) ───────────────────
   let prisma;
@@ -62,11 +97,13 @@ export default async function (h) {
     const url = readApiEnv('DATABASE_URL');
     if (!url) {
       rec('setup: DATABASE_URL', 'FAIL', 'không đọc được từ env lẫn apps/api/.env');
+      rate.close();
       return false;
     }
     prisma = new PrismaClient({ datasources: { db: { url } } });
   } catch (e) {
     rec('setup: PrismaClient', 'FAIL', String(e.message).slice(0, 150));
+    rate.close();
     return false;
   }
 
@@ -91,6 +128,20 @@ export default async function (h) {
       'dọn state sống lâu Ở ĐẦU BƯỚC (pin xh74* + xoá SẠCH Circle/CircleMember)',
       'OK',
       `pin=${wipedPins.count} circle=${wipedCircles.count}`,
+    );
+
+    // Trạng thái sống lâu THỨ HAI của bước này, thêm từ 25/08 (XH-4b): bộ đếm
+    // `pincreate:<userId>` có TTL 60s nên nó sống XUYÊN QUA ranh giới bước.
+    // Bước 73 ngay trước không đăng pin, nhưng một lần chạy lại ngay sau khi
+    // bước này vừa chạy xong thì `bao` bắt đầu với quota đã cạn — và phép "21
+    // pin trong cùng một ngày" dưới đây sẽ đỏ vì một luật KHÁC hẳn luật nó đo.
+    const clearedRate = await freshQuota();
+    rec(
+      'dọn bộ đếm `pincreate:*` Ở ĐẦU BƯỚC (trần 10 pin/phút XH-4b sống 60s, xuyên qua ranh giới bước)',
+      'OK',
+      clearedRate === null
+        ? 'không kết nối được Redis ⇒ trần đang fail-open, không có gì để dọn'
+        : `xoá ${clearedRate} khoá · trần đang chạy = ${pinCreatePerMin()} pin/phút`,
     );
 
     // ─── Tiền đề topology (seed đổi thì phép dưới mất ý nghĩa) ───────────────
@@ -430,6 +481,12 @@ export default async function (h) {
     {
       const ids = [];
       let firstErr = null;
+      // ⚠️ HAI TRẦN KHÁC NHAU, ĐỪNG GỘP: phép này đo trần theo NGÀY (đã chết —
+      // XH-QĐ-8). Trần theo PHÚT (10 pin — XH-4b, XH-QĐ-12) thì CÒN SỐNG, và
+      // 21 pin liên tiếp chạm nó ở pin thứ 11 sau vài giây. `silent` đã bọc để
+      // gỡ trần phút trước mỗi lời gọi (xem khối đầu hàm), nên vòng lặp này đo
+      // đúng thứ nó nói là đo.
+      const PER_MIN = pinCreatePerMin();
       for (let i = 1; i <= 21 && !firstErr; i++) {
         const r = await silent(M_CREATE, { i: { imageUrl: IMG, imageWidth: 10, imageHeight: 10, title: T(`bulk ${i}`) } }, state.T1);
         const e = errOf(r);
@@ -439,7 +496,7 @@ export default async function (h) {
       assert(
         'đăng 21 pin trong CÙNG MỘT NGÀY đều được (trần 20/ngày đã bỏ — XH-QĐ-8)',
         !firstErr && ids.length === 21,
-        firstErr ?? `tạo được ${ids.length}/21`,
+        firstErr ?? `tạo được ${ids.length}/21 · trần PHÚT (${PER_MIN}/phút — XH-4b) được gỡ trước mỗi lời gọi, xem khối đầu hàm`,
       );
       const gone = await prisma.pin.deleteMany({ where: { title: { startsWith: 'xh74 bulk' } } });
       assert('dọn 21 pin vừa tạo (giữ exploreFeed đúng kích thước cho bước sau)', gone.count === ids.length, `xoá ${gone.count}/${ids.length}`);
@@ -508,6 +565,7 @@ export default async function (h) {
 
     return true;
   } finally {
+    rate.close();
     await prisma.$disconnect().catch(() => {});
   }
 }
