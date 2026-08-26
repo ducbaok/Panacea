@@ -9,6 +9,8 @@ query HomeFeed($first: Int! = 20, $after: String, $source: FeedSource, $circleId
       title
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       mediumUrl
       imageWidth
       imageHeight

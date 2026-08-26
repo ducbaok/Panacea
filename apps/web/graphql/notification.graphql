@@ -15,6 +15,8 @@ query Notifications($first: Int! = 20, $after: String) {
         id
         imageUrl
         thumbnailUrl
+        videoUrl
+        videoDurationMs
         title
       }
       comment {

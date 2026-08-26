@@ -20,6 +20,7 @@ import {
   UploadedFile,
   BadRequestException,
   ForbiddenException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -32,7 +33,9 @@ import {
   UploadsService,
   CONTENT_TYPE_EXT,
   MIN_UPLOAD_BYTES,
-  MAX_UPLOAD_BYTES,
+  MAX_VIDEO_UPLOAD_BYTES,
+  maxUploadBytesFor,
+  normalizeContentType,
 } from './uploads.service';
 import { PresignedUrlDto } from './dto/presigned-url.dto';
 import { CurrentUserRest } from '../auth/decorators/current-user.decorator';
@@ -130,12 +133,19 @@ export class UploadsController {
   @UseInterceptors(
     FileInterceptor('file', {
       limits: {
-        fileSize: MAX_UPLOAD_BYTES, // 10MB — vượt ⇒ Nest trả 413 Payload Too Large
+        // XH-VIDEO — multer chỉ nhận MỘT con số, nên phải để trần CAO NHẤT
+        // (30MB của video) ở đây rồi siết lại theo loại trong handler. Đổi lại,
+        // một tấm ảnh 25MB được ghi xuống đĩa trước khi bị từ chối — chấp nhận
+        // được vì handler xoá ngay, và đây là endpoint chỉ chạy ở local dev
+        // (production đã chặn cứng bên dưới).
+        fileSize: MAX_VIDEO_UPLOAD_BYTES,
         files: 1,                   // chỉ 1 file/request
         fields: 0,                  // không nhận field phụ nào khác
       },
       fileFilter: (req, file, cb) => {
-        if (!CONTENT_TYPE_EXT[file.mimetype]) {
+        // `normalizeContentType` cắt tham số codec: MediaRecorder gửi
+        // `video/webm;codecs="vp9,opus"`, tra thẳng vào whitelist là trượt.
+        if (!CONTENT_TYPE_EXT[normalizeContentType(file.mimetype)]) {
           const allowed = Object.keys(CONTENT_TYPE_EXT).join(', ');
           return cb(
             new BadRequestException(`Unsupported file type "${file.mimetype}". Allowed: ${allowed}`),
@@ -154,7 +164,7 @@ export class UploadsController {
         filename: (req, file, cb) => {
           // Phần mở rộng suy ra từ MIME đã qua fileFilter — KHÔNG dùng
           // extname(file.originalname).
-          cb(null, `${randomUUID()}.${CONTENT_TYPE_EXT[file.mimetype]}`);
+          cb(null, `${randomUUID()}.${CONTENT_TYPE_EXT[normalizeContentType(file.mimetype)]}`);
         },
       }),
     }),
@@ -175,7 +185,7 @@ export class UploadsController {
   @ApiResponse({ status: 200, description: 'Upload thành công, trả về local URL và key.' })
   @ApiResponse({ status: 400, description: 'Không có file, file rỗng, hoặc định dạng không được hỗ trợ.' })
   @ApiResponse({ status: 401, description: 'Chưa xác thực.' })
-  @ApiResponse({ status: 413, description: 'File vượt quá 10MB.' })
+  @ApiResponse({ status: 413, description: 'File vượt trần: ảnh 10MB, video 30MB.' })
   async uploadLocal(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUserRest() user: AuthUser,
@@ -210,6 +220,19 @@ export class UploadsController {
     if (file.size < MIN_UPLOAD_BYTES) {
       await fs.promises.unlink(file.path).catch(() => undefined);
       throw new BadRequestException(`File too small (min ${MIN_UPLOAD_BYTES} bytes)`);
+    }
+
+    // XH-VIDEO — trần THEO LOẠI, siết lại sau khi multer đã cho qua ở mức 30MB.
+    // Cùng hình dạng với nhánh "file quá nhỏ" ngay trên: multer đã ghi file
+    // xuống đĩa rồi, nên phải dọn — không dọn thì mỗi ảnh 25MB bị từ chối lại
+    // để lại 25MB rác. Trả 413 (không phải 400) để khớp đúng nhánh `too-large`
+    // mà `apps/web/lib/upload.ts` nhận diện bằng STATUS.
+    const maxBytes = maxUploadBytesFor(file.mimetype);
+    if (file.size > maxBytes) {
+      await fs.promises.unlink(file.path).catch(() => undefined);
+      throw new PayloadTooLargeException(
+        `File too large (max ${maxBytes} bytes for "${normalizeContentType(file.mimetype)}")`,
+      );
     }
 
     // Trước đây hardcode 'http://localhost:4000' (vấn đề S6 trong báo cáo) —

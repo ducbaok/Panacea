@@ -70,6 +70,8 @@ query Messages($conversationId: String!, $first: Int! = 20, $after: String) {
         id
         imageUrl
         thumbnailUrl
+        videoUrl
+        videoDurationMs
         title
         imageWidth
         imageHeight
@@ -129,6 +131,8 @@ mutation SendMessage($input: SendMessageInput!) {
       id
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       title
       imageWidth
       imageHeight

@@ -19,6 +19,8 @@ query ArchivedPins($first: Int! = 20, $after: String) {
       description
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       mediumUrl
       imageWidth
       imageHeight

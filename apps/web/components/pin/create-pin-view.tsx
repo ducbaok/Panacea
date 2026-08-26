@@ -18,6 +18,7 @@ import {
 } from '@/lib/gql/graphql';
 import { UploadError, type UploadErrorKind } from '@/lib/upload';
 import { prepareAndUploadImage, type PreparedImage } from '@/lib/image/prepare';
+import { prepareAndUploadVideo, type PreparedVideo } from '@/lib/video/prepare';
 import { UPLOAD_ERROR_KEY } from '@/lib/errors/upload-error';
 import { useLocale, useT } from '@/lib/i18n/provider';
 import type { Locale } from '@/lib/i18n/config';
@@ -131,7 +132,16 @@ export function CreatePinView() {
    * F1 · XH-9b — thay cặp `dims` + `uploadedUrl` cũ bằng KẾT QUẢ TRỌN GÓI của
    * một tiến trình: ảnh gốc + 3 URL biến thể + số đo ảnh GỐC (đã áp EXIF).
    */
-  const [prepared, setPrepared] = useState<PreparedImage | null>(null);
+  const [prepared, setPrepared] = useState<PreparedImage | PreparedVideo | null>(null);
+  /**
+   * XH-VIDEO — URL blob của đoạn vừa quay, CHỈ để xem trước ở cột trái.
+   *
+   * Tách khỏi `previewUrl` (dùng cho ảnh) chứ không nhồi chung một biến rồi
+   * đoán loại bằng `prepared`: hai thẻ khác nhau (`<img>` vs `<video>`), và
+   * lúc `uploadPhase === 'working'` thì `prepared` còn null nên không đoán
+   * được. Không null ⇔ pin đang dựng là pin video.
+   */
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [uploadPhase, setUploadPhase] = useState<'idle' | 'working' | 'done' | 'error'>('idle');
   const [uploadErr, setUploadErr] = useState<UploadErrorKind | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -287,6 +297,7 @@ export function CreatePinView() {
     setSubmitErr(null);
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
+    setVideoPreviewUrl(null); // chọn ảnh ⇒ bỏ đoạn video đang dựng dở
     setUploadPhase('working');
 
     try {
@@ -294,6 +305,34 @@ export function CreatePinView() {
       setUploadPhase('done');
     } catch (err) {
       // Lỗi server (413/400) cụ thể hơn lỗi giải mã ⇒ ưu tiên `kind` của nó (T2.2).
+      setUploadPhase('error');
+      setUploadErr(err instanceof UploadError ? err.kind : 'unknown');
+    }
+  }
+
+  /**
+   * XH-VIDEO — đoạn quay từ màn XH-CAM. CÙNG một `uploadPhase`, cùng một chỗ
+   * hiện lỗi, cùng một nút Đăng: spec §3 cấm luồng đăng thứ hai, và "luồng thứ
+   * hai" bắt đầu chính từ việc đẻ ra một biến trạng thái tiến trình riêng.
+   *
+   * `file` giữ file VIDEO (để dòng gợi ý dung lượng nói đúng thứ người dùng vừa
+   * quay), còn `previewUrl` giữ poster — cột trái vẽ `<video poster=…>`.
+   */
+  async function onVideoChosen(video: File, poster: File, durationMs: number) {
+    setUploadErr(null);
+    setPrepared(null);
+    setSubmitErr(null);
+    setFile(video);
+    setPreviewUrl(URL.createObjectURL(poster));
+    setVideoPreviewUrl(URL.createObjectURL(video));
+    setUploadPhase('working');
+
+    try {
+      setPrepared(
+        await prepareAndUploadVideo(video, poster, durationMs, session?.accessToken),
+      );
+      setUploadPhase('done');
+    } catch (err) {
       setUploadPhase('error');
       setUploadErr(err instanceof UploadError ? err.kind : 'unknown');
     }
@@ -337,6 +376,15 @@ export function CreatePinView() {
             thumbnailUrl: prepared.thumbnailUrl,
             mediumUrl: prepared.mediumUrl,
             largeUrl: prepared.largeUrl,
+            // XH-VIDEO — hai field đi CÙNG NHAU hoặc cùng vắng; BE trả 400 nếu
+            // lệch. Trải cả cụm thay vì gửi `undefined` rời để không có đường
+            // nào sinh ra nửa cặp.
+            ...('videoUrl' in prepared
+              ? {
+                  videoUrl: prepared.videoUrl,
+                  videoDurationMs: prepared.videoDurationMs,
+                }
+              : {}),
             ...audienceToInput(audience),
             title: title.trim() || undefined,
             description: description.trim() || undefined,
@@ -407,6 +455,10 @@ export function CreatePinView() {
             setMode('form');
             void onFileChosen(f);
           }}
+          onCaptureVideo={(video, poster, durationMs) => {
+            setMode('form');
+            void onVideoChosen(video, poster, durationMs);
+          }}
           onFallback={() => {
             setMode('form');
             fileInputRef.current?.click();
@@ -449,12 +501,28 @@ export function CreatePinView() {
 
           {uploadPhase === 'done' && previewUrl ? (
             <>
-              <img
-                src={previewUrl}
-                alt={t('pin.previewAlt')}
-                style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 12, objectFit: 'contain' }}
-              />
-              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-foreground)' }}>{t('pin.uploaded')}</div>
+              {/* XH-VIDEO — `poster` là đúng khung hình người dùng đã chọn, nên
+                  ô xem trước ở đây khớp với thứ sẽ hiện trên lưới. */}
+              {videoPreviewUrl ? (
+                <video
+                  src={videoPreviewUrl}
+                  poster={previewUrl}
+                  controls
+                  playsInline
+                  data-testid="create-video-preview"
+                  aria-label={t('pin.videoPreviewAria')}
+                  style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 12 }}
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt={t('pin.previewAlt')}
+                  style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 12, objectFit: 'contain' }}
+                />
+              )}
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--color-foreground)' }}>
+                {videoPreviewUrl ? t('pin.uploadedVideo') : t('pin.uploaded')}
+              </div>
               {prepared && file && (
                 <div style={{ fontSize: 12.5, color: 'var(--color-muted)' }}>
                   {imageHint(prepared.width, prepared.height, file.size, locale)}
@@ -525,9 +593,9 @@ export function CreatePinView() {
                 </>
               )}
               {/* QĐ-27 — lối vào màn chụp nằm NGAY CẠNH ô chọn file, không phải
-                  một lối vào riêng. Nhãn là "Chụp ảnh" chứ không phải "Chụp /
-                  Quay" của bản vẽ: phần quay video chưa thi công ở F1 (video
-                  làm sau xahoi), và hứa một thứ chưa có là tệ hơn thiếu chữ. */}
+                  một lối vào riêng. Nhãn trở lại đúng chữ của bản vẽ ("Chụp /
+                  Quay") từ 26/08/2026, khi khâu quay video lên sóng thật; trước
+                  đó cố ý rút gọn thành "Chụp ảnh" để không hứa suông. */}
               <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button type="button" onClick={() => fileInputRef.current?.click()} style={primaryBtn}>
                   {uploadPhase === 'error' ? t('pin.pickAnotherImage') : t('pin.pickImage')}

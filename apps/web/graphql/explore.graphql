@@ -16,6 +16,8 @@ query ExploreFeed(
       description
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       mediumUrl
       imageWidth
       imageHeight

@@ -114,13 +114,13 @@ export const circles: Mirror<Vi> = {
   'circles.confirmDeleteYes': 'Delete circle',
 
   // ── Capture screen (XH-CAM) ──
-  'capture.open': 'Take a photo',
+  'capture.open': 'Photo / Video',
   'capture.back': 'Back to creating the pin',
-  'capture.title': 'Take a photo',
+  'capture.title': 'Take a photo or record a video',
   'capture.subtitle':
     'When you are done you continue into the audience picker — there is no second posting flow.',
   'capture.promptTitle': 'Panacea needs your camera',
-  'capture.promptBody': 'The photo only leaves your machine when you press Publish.',
+  'capture.promptBody': 'Photos and video only leave your machine when you press Publish.',
   'capture.allow': 'Allow camera',
   'capture.pickFromDisk': 'Pick a photo from this device',
   'capture.deniedTitle': 'Your browser is blocking the camera',
@@ -137,5 +137,28 @@ export const circles: Mirror<Vi> = {
     'EXIF orientation is preserved — a portrait photo must not come out landscape. imageWidth/Height sent to the API are the original measurements so the grid reserves the right slot.',
   'capture.startFailed': 'Could not open the camera. Try picking a photo from this device.',
   'capture.previewAlt': 'The photo you just took',
+
+  // ── Short video recording (26/08/2026) ──
+  'capture.modeAria': 'Choose photo or video',
+  'capture.modePhoto': 'Photo',
+  'capture.modeVideo': 'Video',
+  'capture.durationAria': 'Choose how long to record',
+  'capture.durationSec': '{seconds}s',
+  'capture.record': 'Record',
+  'capture.stop': 'Stop',
+  'capture.useVideo': 'Use this video',
+  'capture.retakeVideo': 'Record again',
+  'capture.videoPreviewAria': 'The clip you just recorded',
+  'capture.posterTitle': 'Cover frame for the video',
+  'capture.posterFrameAlt': 'Frame {index}',
+  'capture.videoReviewNote':
+    'The clip runs {seconds}s. The frame you pick above is what shows in the grid — a video pin is still an image pin that carries a video file.',
+  'capture.posterMissingNote':
+    'No frame could be grabbed for the cover, so this cannot be published yet. Record it once more.',
+  'capture.noRecorderNote':
+    'This browser cannot record video (no MediaRecorder) — the Video button stays dimmed instead of hidden so you know the feature exists. Taking photos still works.',
+  'capture.noMicNote':
+    'The microphone was not available, so the clip will have no sound. The picture records normally.',
+  'capture.recordFailed': 'Could not start recording. Try again, or switch to photo.',
   'capture.streamAria': 'Camera viewfinder',
 };

@@ -143,7 +143,16 @@ export type Notification = $Result.DefaultSelection<Prisma.$NotificationPayload>
  * Enums
  */
 export namespace $Enums {
-  export const Visibility: {
+  export const ProcessingStatus: {
+  READY: 'READY',
+  PROCESSING: 'PROCESSING',
+  FAILED: 'FAILED'
+};
+
+export type ProcessingStatus = (typeof ProcessingStatus)[keyof typeof ProcessingStatus]
+
+
+export const Visibility: {
   PUBLIC: 'PUBLIC',
   FOLLOWERS: 'FOLLOWERS',
   CIRCLE: 'CIRCLE',
@@ -184,6 +193,10 @@ export const NotificationType: {
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
 
 }
+
+export type ProcessingStatus = $Enums.ProcessingStatus
+
+export const ProcessingStatus: typeof $Enums.ProcessingStatus
 
 export type Visibility = $Enums.Visibility
 
@@ -16631,6 +16644,7 @@ export namespace Prisma {
   export type PinAvgAggregateOutputType = {
     imageWidth: number | null
     imageHeight: number | null
+    videoDurationMs: number | null
     viewCount: number | null
     clickCount: number | null
   }
@@ -16638,6 +16652,7 @@ export namespace Prisma {
   export type PinSumAggregateOutputType = {
     imageWidth: number | null
     imageHeight: number | null
+    videoDurationMs: number | null
     viewCount: number | null
     clickCount: number | null
   }
@@ -16653,6 +16668,9 @@ export namespace Prisma {
     imageWidth: number | null
     imageHeight: number | null
     sourceUrl: string | null
+    videoUrl: string | null
+    videoDurationMs: number | null
+    processingStatus: $Enums.ProcessingStatus | null
     viewCount: number | null
     clickCount: number | null
     creatorId: string | null
@@ -16675,6 +16693,9 @@ export namespace Prisma {
     imageWidth: number | null
     imageHeight: number | null
     sourceUrl: string | null
+    videoUrl: string | null
+    videoDurationMs: number | null
+    processingStatus: $Enums.ProcessingStatus | null
     viewCount: number | null
     clickCount: number | null
     creatorId: string | null
@@ -16697,6 +16718,9 @@ export namespace Prisma {
     imageWidth: number
     imageHeight: number
     sourceUrl: number
+    videoUrl: number
+    videoDurationMs: number
+    processingStatus: number
     viewCount: number
     clickCount: number
     creatorId: number
@@ -16713,6 +16737,7 @@ export namespace Prisma {
   export type PinAvgAggregateInputType = {
     imageWidth?: true
     imageHeight?: true
+    videoDurationMs?: true
     viewCount?: true
     clickCount?: true
   }
@@ -16720,6 +16745,7 @@ export namespace Prisma {
   export type PinSumAggregateInputType = {
     imageWidth?: true
     imageHeight?: true
+    videoDurationMs?: true
     viewCount?: true
     clickCount?: true
   }
@@ -16735,6 +16761,9 @@ export namespace Prisma {
     imageWidth?: true
     imageHeight?: true
     sourceUrl?: true
+    videoUrl?: true
+    videoDurationMs?: true
+    processingStatus?: true
     viewCount?: true
     clickCount?: true
     creatorId?: true
@@ -16757,6 +16786,9 @@ export namespace Prisma {
     imageWidth?: true
     imageHeight?: true
     sourceUrl?: true
+    videoUrl?: true
+    videoDurationMs?: true
+    processingStatus?: true
     viewCount?: true
     clickCount?: true
     creatorId?: true
@@ -16779,6 +16811,9 @@ export namespace Prisma {
     imageWidth?: true
     imageHeight?: true
     sourceUrl?: true
+    videoUrl?: true
+    videoDurationMs?: true
+    processingStatus?: true
     viewCount?: true
     clickCount?: true
     creatorId?: true
@@ -16888,6 +16923,9 @@ export namespace Prisma {
     imageWidth: number
     imageHeight: number
     sourceUrl: string | null
+    videoUrl: string | null
+    videoDurationMs: number | null
+    processingStatus: $Enums.ProcessingStatus
     viewCount: number
     clickCount: number
     creatorId: string
@@ -16929,6 +16967,9 @@ export namespace Prisma {
     imageWidth?: boolean
     imageHeight?: boolean
     sourceUrl?: boolean
+    videoUrl?: boolean
+    videoDurationMs?: boolean
+    processingStatus?: boolean
     viewCount?: boolean
     clickCount?: boolean
     creatorId?: boolean
@@ -16963,6 +17004,9 @@ export namespace Prisma {
     imageWidth?: boolean
     imageHeight?: boolean
     sourceUrl?: boolean
+    videoUrl?: boolean
+    videoDurationMs?: boolean
+    processingStatus?: boolean
     viewCount?: boolean
     clickCount?: boolean
     creatorId?: boolean
@@ -16987,6 +17031,9 @@ export namespace Prisma {
     imageWidth?: boolean
     imageHeight?: boolean
     sourceUrl?: boolean
+    videoUrl?: boolean
+    videoDurationMs?: boolean
+    processingStatus?: boolean
     viewCount?: boolean
     clickCount?: boolean
     creatorId?: boolean
@@ -17043,6 +17090,9 @@ export namespace Prisma {
       imageWidth: number
       imageHeight: number
       sourceUrl: string | null
+      videoUrl: string | null
+      videoDurationMs: number | null
+      processingStatus: $Enums.ProcessingStatus
       viewCount: number
       clickCount: number
       creatorId: string
@@ -17466,6 +17516,9 @@ export namespace Prisma {
     readonly imageWidth: FieldRef<"Pin", 'Int'>
     readonly imageHeight: FieldRef<"Pin", 'Int'>
     readonly sourceUrl: FieldRef<"Pin", 'String'>
+    readonly videoUrl: FieldRef<"Pin", 'String'>
+    readonly videoDurationMs: FieldRef<"Pin", 'Int'>
+    readonly processingStatus: FieldRef<"Pin", 'ProcessingStatus'>
     readonly viewCount: FieldRef<"Pin", 'Int'>
     readonly clickCount: FieldRef<"Pin", 'Int'>
     readonly creatorId: FieldRef<"Pin", 'String'>
@@ -29087,6 +29140,9 @@ export namespace Prisma {
     imageWidth: 'imageWidth',
     imageHeight: 'imageHeight',
     sourceUrl: 'sourceUrl',
+    videoUrl: 'videoUrl',
+    videoDurationMs: 'videoDurationMs',
+    processingStatus: 'processingStatus',
     viewCount: 'viewCount',
     clickCount: 'clickCount',
     creatorId: 'creatorId',
@@ -29311,6 +29367,20 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProcessingStatus'
+   */
+  export type EnumProcessingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProcessingStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProcessingStatus[]'
+   */
+  export type ListEnumProcessingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProcessingStatus[]'>
     
 
 
@@ -30267,6 +30337,9 @@ export namespace Prisma {
     imageWidth?: IntFilter<"Pin"> | number
     imageHeight?: IntFilter<"Pin"> | number
     sourceUrl?: StringNullableFilter<"Pin"> | string | null
+    videoUrl?: StringNullableFilter<"Pin"> | string | null
+    videoDurationMs?: IntNullableFilter<"Pin"> | number | null
+    processingStatus?: EnumProcessingStatusFilter<"Pin"> | $Enums.ProcessingStatus
     viewCount?: IntFilter<"Pin"> | number
     clickCount?: IntFilter<"Pin"> | number
     creatorId?: StringFilter<"Pin"> | string
@@ -30300,6 +30373,9 @@ export namespace Prisma {
     imageWidth?: SortOrder
     imageHeight?: SortOrder
     sourceUrl?: SortOrderInput | SortOrder
+    videoUrl?: SortOrderInput | SortOrder
+    videoDurationMs?: SortOrderInput | SortOrder
+    processingStatus?: SortOrder
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
@@ -30336,6 +30412,9 @@ export namespace Prisma {
     imageWidth?: IntFilter<"Pin"> | number
     imageHeight?: IntFilter<"Pin"> | number
     sourceUrl?: StringNullableFilter<"Pin"> | string | null
+    videoUrl?: StringNullableFilter<"Pin"> | string | null
+    videoDurationMs?: IntNullableFilter<"Pin"> | number | null
+    processingStatus?: EnumProcessingStatusFilter<"Pin"> | $Enums.ProcessingStatus
     viewCount?: IntFilter<"Pin"> | number
     clickCount?: IntFilter<"Pin"> | number
     creatorId?: StringFilter<"Pin"> | string
@@ -30369,6 +30448,9 @@ export namespace Prisma {
     imageWidth?: SortOrder
     imageHeight?: SortOrder
     sourceUrl?: SortOrderInput | SortOrder
+    videoUrl?: SortOrderInput | SortOrder
+    videoDurationMs?: SortOrderInput | SortOrder
+    processingStatus?: SortOrder
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
@@ -30399,6 +30481,9 @@ export namespace Prisma {
     imageWidth?: IntWithAggregatesFilter<"Pin"> | number
     imageHeight?: IntWithAggregatesFilter<"Pin"> | number
     sourceUrl?: StringNullableWithAggregatesFilter<"Pin"> | string | null
+    videoUrl?: StringNullableWithAggregatesFilter<"Pin"> | string | null
+    videoDurationMs?: IntNullableWithAggregatesFilter<"Pin"> | number | null
+    processingStatus?: EnumProcessingStatusWithAggregatesFilter<"Pin"> | $Enums.ProcessingStatus
     viewCount?: IntWithAggregatesFilter<"Pin"> | number
     clickCount?: IntWithAggregatesFilter<"Pin"> | number
     creatorId?: StringWithAggregatesFilter<"Pin"> | string
@@ -32074,6 +32159,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -32105,6 +32193,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -32136,6 +32227,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -32167,6 +32261,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -32198,6 +32295,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -32220,6 +32320,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -32240,6 +32343,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -33781,6 +33887,13 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type EnumProcessingStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProcessingStatus | EnumProcessingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProcessingStatusFilter<$PrismaModel> | $Enums.ProcessingStatus
+  }
+
   export type EnumVisibilityFilter<$PrismaModel = never> = {
     equals?: $Enums.Visibility | EnumVisibilityFieldRefInput<$PrismaModel>
     in?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
@@ -33814,6 +33927,9 @@ export namespace Prisma {
     imageWidth?: SortOrder
     imageHeight?: SortOrder
     sourceUrl?: SortOrder
+    videoUrl?: SortOrder
+    videoDurationMs?: SortOrder
+    processingStatus?: SortOrder
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
@@ -33828,6 +33944,7 @@ export namespace Prisma {
   export type PinAvgOrderByAggregateInput = {
     imageWidth?: SortOrder
     imageHeight?: SortOrder
+    videoDurationMs?: SortOrder
     viewCount?: SortOrder
     clickCount?: SortOrder
   }
@@ -33843,6 +33960,9 @@ export namespace Prisma {
     imageWidth?: SortOrder
     imageHeight?: SortOrder
     sourceUrl?: SortOrder
+    videoUrl?: SortOrder
+    videoDurationMs?: SortOrder
+    processingStatus?: SortOrder
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
@@ -33865,6 +33985,9 @@ export namespace Prisma {
     imageWidth?: SortOrder
     imageHeight?: SortOrder
     sourceUrl?: SortOrder
+    videoUrl?: SortOrder
+    videoDurationMs?: SortOrder
+    processingStatus?: SortOrder
     viewCount?: SortOrder
     clickCount?: SortOrder
     creatorId?: SortOrder
@@ -33879,6 +34002,7 @@ export namespace Prisma {
   export type PinSumOrderByAggregateInput = {
     imageWidth?: SortOrder
     imageHeight?: SortOrder
+    videoDurationMs?: SortOrder
     viewCount?: SortOrder
     clickCount?: SortOrder
   }
@@ -33897,6 +34021,16 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type EnumProcessingStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProcessingStatus | EnumProcessingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProcessingStatusWithAggregatesFilter<$PrismaModel> | $Enums.ProcessingStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProcessingStatusFilter<$PrismaModel>
+    _max?: NestedEnumProcessingStatusFilter<$PrismaModel>
   }
 
   export type EnumVisibilityWithAggregatesFilter<$PrismaModel = never> = {
@@ -35923,6 +36057,10 @@ export namespace Prisma {
     divide?: number
   }
 
+  export type EnumProcessingStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ProcessingStatus
+  }
+
   export type EnumVisibilityFieldUpdateOperationsInput = {
     set?: $Enums.Visibility
   }
@@ -37121,6 +37259,13 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedEnumProcessingStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProcessingStatus | EnumProcessingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProcessingStatusFilter<$PrismaModel> | $Enums.ProcessingStatus
+  }
+
   export type NestedEnumVisibilityFilter<$PrismaModel = never> = {
     equals?: $Enums.Visibility | EnumVisibilityFieldRefInput<$PrismaModel>
     in?: $Enums.Visibility[] | ListEnumVisibilityFieldRefInput<$PrismaModel>
@@ -37153,6 +37298,16 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedEnumProcessingStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProcessingStatus | EnumProcessingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProcessingStatus[] | ListEnumProcessingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProcessingStatusWithAggregatesFilter<$PrismaModel> | $Enums.ProcessingStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProcessingStatusFilter<$PrismaModel>
+    _max?: NestedEnumProcessingStatusFilter<$PrismaModel>
   }
 
   export type NestedEnumVisibilityWithAggregatesFilter<$PrismaModel = never> = {
@@ -37361,6 +37516,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -37391,6 +37549,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -38061,6 +38222,9 @@ export namespace Prisma {
     imageWidth?: IntFilter<"Pin"> | number
     imageHeight?: IntFilter<"Pin"> | number
     sourceUrl?: StringNullableFilter<"Pin"> | string | null
+    videoUrl?: StringNullableFilter<"Pin"> | string | null
+    videoDurationMs?: IntNullableFilter<"Pin"> | number | null
+    processingStatus?: EnumProcessingStatusFilter<"Pin"> | $Enums.ProcessingStatus
     viewCount?: IntFilter<"Pin"> | number
     clickCount?: IntFilter<"Pin"> | number
     creatorId?: StringFilter<"Pin"> | string
@@ -40312,6 +40476,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -40342,6 +40509,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -40757,6 +40927,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -40787,6 +40960,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -40922,6 +41098,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -40952,6 +41131,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -41077,6 +41259,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -41107,6 +41292,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -41285,6 +41473,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -41315,6 +41506,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -42101,6 +42295,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -42131,6 +42328,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -42352,6 +42552,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -42382,6 +42585,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -42934,6 +43140,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -42964,6 +43173,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -43159,6 +43371,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -43189,6 +43404,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -43374,6 +43592,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -43404,6 +43625,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -43545,6 +43769,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -43575,6 +43802,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -43605,6 +43835,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -43635,6 +43868,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -43891,6 +44127,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -43921,6 +44160,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -44805,6 +45047,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -44835,6 +45080,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -45001,6 +45249,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -45031,6 +45282,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -45239,6 +45493,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -45269,6 +45526,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -45536,6 +45796,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -45566,6 +45829,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -45675,6 +45941,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     visibility?: $Enums.Visibility
@@ -45953,6 +46222,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -45983,6 +46255,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -46013,6 +46288,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -46471,6 +46749,9 @@ export namespace Prisma {
     imageWidth?: number
     imageHeight?: number
     sourceUrl?: string | null
+    videoUrl?: string | null
+    videoDurationMs?: number | null
+    processingStatus?: $Enums.ProcessingStatus
     viewCount?: number
     clickCount?: number
     creatorId: string
@@ -46507,6 +46788,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -46537,6 +46821,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -46567,6 +46854,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -46588,6 +46878,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -46618,6 +46911,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -46648,6 +46944,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -46773,6 +47072,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     visibility?: EnumVisibilityFieldUpdateOperationsInput | $Enums.Visibility
@@ -46803,6 +47105,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string
@@ -46833,6 +47138,9 @@ export namespace Prisma {
     imageWidth?: IntFieldUpdateOperationsInput | number
     imageHeight?: IntFieldUpdateOperationsInput | number
     sourceUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    videoDurationMs?: NullableIntFieldUpdateOperationsInput | number | null
+    processingStatus?: EnumProcessingStatusFieldUpdateOperationsInput | $Enums.ProcessingStatus
     viewCount?: IntFieldUpdateOperationsInput | number
     clickCount?: IntFieldUpdateOperationsInput | number
     creatorId?: StringFieldUpdateOperationsInput | string

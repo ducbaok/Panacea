@@ -6,6 +6,8 @@ query SearchPins($query: String!, $first: Int! = 20, $after: String) {
         title
         imageUrl
         thumbnailUrl
+        videoUrl
+        videoDurationMs
         mediumUrl
         imageWidth
         imageHeight
@@ -65,6 +67,8 @@ query SearchBoards($query: String!, $first: Int! = 20, $after: String) {
           id
           imageUrl
           thumbnailUrl
+          videoUrl
+          videoDurationMs
           imageWidth
           imageHeight
         }

@@ -20,6 +20,8 @@ subscription NotificationReceived {
       id
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       title
     }
     comment {
@@ -59,6 +61,8 @@ subscription MessageReceived($conversationId: String!) {
       id
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       title
       imageWidth
       imageHeight

@@ -247,6 +247,9 @@ exports.Prisma.PinScalarFieldEnum = {
   imageWidth: 'imageWidth',
   imageHeight: 'imageHeight',
   sourceUrl: 'sourceUrl',
+  videoUrl: 'videoUrl',
+  videoDurationMs: 'videoDurationMs',
+  processingStatus: 'processingStatus',
   viewCount: 'viewCount',
   clickCount: 'clickCount',
   creatorId: 'creatorId',
@@ -374,6 +377,12 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.ProcessingStatus = exports.$Enums.ProcessingStatus = {
+  READY: 'READY',
+  PROCESSING: 'PROCESSING',
+  FAILED: 'FAILED'
+};
+
 exports.Visibility = exports.$Enums.Visibility = {
   PUBLIC: 'PUBLIC',
   FOLLOWERS: 'FOLLOWERS',

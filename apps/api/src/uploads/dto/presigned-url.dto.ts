@@ -17,6 +17,12 @@ const ALLOWED_CONTENT_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
+  // XH-VIDEO (26/08/2026) — phải khớp `CONTENT_TYPE_EXT` ở `uploads.service.ts`.
+  // Danh sách này là bản SAO có chủ đích (class-validator cần literal tuple để
+  // suy kiểu), nên thêm MIME mới là phải sửa CẢ HAI chỗ. Trần dung lượng thì
+  // KHÔNG sao chép: `maxUploadBytesFor` là nguồn duy nhất.
+  'video/webm',
+  'video/mp4',
 ] as const;
 
 export class PresignedUrlDto {

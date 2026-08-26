@@ -56,6 +56,30 @@ export class Pin {
   @Field(() => Int)
   imageHeight: number;
 
+  // ─── XH-VIDEO (26/08/2026) ─────────────────────────────────────────────────
+  //
+  // `videoUrl != null` là dấu hiệu DUY NHẤT phân biệt pin video với pin ảnh.
+  // Mọi field ảnh ở trên VẪN có giá trị với pin video (poster đi qua đúng
+  // pipeline resize), nên bề mặt nào không quan tâm tới video thì không phải
+  // sửa gì — xem docblock của `Pin.videoUrl` trong `schema.prisma`.
+  //
+  // `processingStatus` CHƯA phơi ra: hôm nay luôn READY (phương án A không
+  // transcode), một field hằng số chỉ dạy FE viết nhánh chết.
+
+  /** URL tuyệt đối của file video gốc do MediaRecorder sinh ra. */
+  @Field({ nullable: true })
+  videoUrl?: string;
+
+  /**
+   * Thời lượng đoạn quay, tính bằng mili-giây.
+   *
+   * Mili-giây chứ không phải giây: mốc là 10/15/30s nhưng người dùng được dừng
+   * SỚM, nên con số thật hiếm khi tròn. Làm tròn xuống giây ở BE là mất thông
+   * tin ngay tại cửa vào; FE muốn hiện "0:07" thì tự làm tròn khi vẽ.
+   */
+  @Field(() => Int, { nullable: true })
+  videoDurationMs?: number;
+
   @Field({ nullable: true })
   sourceUrl?: string;
 

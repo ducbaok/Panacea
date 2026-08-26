@@ -79,6 +79,46 @@ export function precheckFile(file: File): UploadErrorKind | null {
   return null;
 }
 
+// ─── XH-VIDEO (26/08/2026) ───────────────────────────────────────────────────
+
+/** Trần video — bản sao client của `MAX_VIDEO_UPLOAD_BYTES` ở API. */
+export const MAX_VIDEO_UPLOAD_BYTES = 30 * 1024 * 1024; // 30MB
+
+/**
+ * Container video được nhận. KHÔNG phải lựa chọn của mình: `MediaRecorder` ghi
+ * ra `video/webm` trên Chrome/Firefox và `video/mp4` trên Safari, và phương án
+ * A không transcode, nên whitelist phải phủ đúng thứ trình duyệt sinh ra.
+ */
+export const ALLOWED_VIDEO_MIME: readonly string[] = ['video/webm', 'video/mp4'];
+
+/**
+ * Cắt tham số codec: `video/webm;codecs="vp9,opus"` → `video/webm`.
+ *
+ * `MediaRecorder` đặt `Blob.type` kèm codec, nên so sánh thẳng với whitelist là
+ * trượt 100% — cùng cái bẫy mà `normalizeContentType` ở API xử lý cho nhánh
+ * server. Hai bản sao vì hai tầng không dùng chung code được; giữ cùng tên
+ * hàm để grep một phát ra cả hai.
+ */
+export function normalizeMime(raw: string): string {
+  return (raw ?? '').split(';')[0].trim().toLowerCase();
+}
+
+/**
+ * Tiền-kiểm cho VIDEO — hàm riêng, cố ý không nhét vào `precheckFile`.
+ *
+ * `precheckFile` đang phục vụ đường chọn ảnh từ đĩa và đường đổi avatar; nới nó
+ * ra để nhận thêm video nghĩa là một file .mp4 kéo-thả vào ô chọn ảnh sẽ lọt
+ * qua cửa kiểm rồi hỏng ở tận `createPin`. Đường video CHỈ đến từ màn quay, và
+ * đó là chỗ duy nhất gọi hàm này.
+ */
+export function precheckVideoFile(file: File): UploadErrorKind | null {
+  const mime = normalizeMime(file.type);
+  if (mime && !ALLOWED_VIDEO_MIME.includes(mime)) return 'unsupported-type';
+  if (file.size > MAX_VIDEO_UPLOAD_BYTES) return 'too-large';
+  if (file.size < MIN_UPLOAD_BYTES) return 'too-small';
+  return null;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 /**

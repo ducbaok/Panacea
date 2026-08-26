@@ -116,6 +116,10 @@ export const pin = {
   // B4 — cột ảnh
   'pin.previewAlt': 'Xem trước ảnh sắp đăng',
   'pin.uploaded': 'Đã tải lên',
+  'pin.uploadedVideo': 'Đã tải video lên',
+  'pin.videoBadgeAria': 'Pin video',
+  'pin.videoPlayerAria': 'Trình phát video của pin',
+  'pin.videoPreviewAria': 'Xem trước video sắp đăng',
   'pin.changeImage': 'Đổi ảnh khác',
   'pin.uploading': 'Đang tải lên',
   'pin.dropImage': 'Kéo thả ảnh vào đây',

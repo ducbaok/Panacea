@@ -10,6 +10,8 @@ mutation CreateBoard($input: CreateBoardInput!) {
       id
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       imageWidth
       imageHeight
     }
@@ -27,6 +29,8 @@ mutation UpdateBoard($input: UpdateBoardInput!) {
       id
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       imageWidth
       imageHeight
     }
@@ -57,6 +61,8 @@ query Board($id: ID!) {
       id
       imageUrl
       thumbnailUrl
+      videoUrl
+      videoDurationMs
       imageWidth
       imageHeight
     }
@@ -90,6 +96,8 @@ query UserBoards($userId: ID!, $first: Int! = 20, $after: String) {
         id
         imageUrl
         thumbnailUrl
+        videoUrl
+        videoDurationMs
         imageWidth
         imageHeight
       }
@@ -205,6 +213,8 @@ query SavedPins($userId: ID!, $first: Int! = 20, $after: String) {
         title
         imageUrl
         thumbnailUrl
+        videoUrl
+        videoDurationMs
         mediumUrl
         imageWidth
         imageHeight
@@ -242,6 +252,8 @@ query BoardPins($boardId: ID!, $sectionId: ID, $first: Int! = 20, $after: String
         title
         imageUrl
         thumbnailUrl
+        videoUrl
+        videoDurationMs
         mediumUrl
         imageWidth
         imageHeight

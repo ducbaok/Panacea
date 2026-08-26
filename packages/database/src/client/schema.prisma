@@ -45,6 +45,22 @@ enum Visibility {
   ONLY_ME
 }
 
+// XH-VIDEO (26/08/2026) — trạng thái xử lý file media của pin.
+//
+// Phương án A (không transcode ở server) nên MỌI pin tạo ra hôm nay đều READY
+// ngay: client quay bằng MediaRecorder rồi upload nguyên bản. Cột này CỐ Ý được
+// chừa sẵn cho worker transcode về sau — thêm cột vào bảng Pin đang có dữ liệu
+// là việc rẻ lúc bảng còn nhỏ và đắt lúc bảng đã lớn.
+//
+// ⚠️ CHƯA phơi ra GraphQL, có chủ đích: hôm nay giá trị luôn là READY, nên một
+// field lúc nào cũng trả cùng một hằng số chỉ dạy FE viết nhánh chết. Khi có
+// worker thật thì thêm `registerEnumType` + field vào `pin.entity.ts`.
+enum ProcessingStatus {
+  READY
+  PROCESSING
+  FAILED
+}
+
 // ==================== CORE MODELS ====================
 
 model User {
@@ -274,28 +290,43 @@ model Tag {
 }
 
 model Pin {
-  id               String     @id @default(cuid())
+  id               String           @id @default(cuid())
   title            String?
   description      String?
   imageUrl         String
   thumbnailUrl     String?
   mediumUrl        String?
   largeUrl         String?
-  imageWidth       Int        @default(0)
-  imageHeight      Int        @default(0)
+  imageWidth       Int              @default(0)
+  imageHeight      Int              @default(0)
   sourceUrl        String?
-  viewCount        Int        @default(0)
-  clickCount       Int        @default(0)
+  // ─── XH-VIDEO (26/08/2026) — pin video ngắn 10/15/30s ───────────────────────
+  //
+  // 🔴 `imageUrl` VẪN BẮT BUỘC với pin video, và đó là điểm mấu chốt của cả
+  // thiết kế: poster (một frame lấy từ đoạn quay) chạy qua ĐÚNG pipeline resize
+  // 3 biến thể của ảnh, rồi ghi vào `imageUrl`/`thumbnailUrl`/`mediumUrl`/
+  // `largeUrl` như một pin ảnh bình thường. Nhờ vậy 13 bề mặt visibility, lưới
+  // masonry, DM, search, ảnh bìa board… KHÔNG cần biết pin này là video.
+  // `videoUrl != null` là dấu hiệu DUY NHẤT phân biệt, và chỉ hai chỗ đọc nó:
+  // badge ▶ trên thẻ lưới và trình phát ở màn chi tiết.
+  //
+  // `imageWidth`/`imageHeight` là số đo của POSTER (= số đo khung hình video),
+  // nên masonry vẫn chừa đúng chỗ trước khi media về — không có nhánh riêng.
+  videoUrl         String?
+  videoDurationMs  Int?
+  processingStatus ProcessingStatus @default(READY)
+  viewCount        Int              @default(0)
+  clickCount       Int              @default(0)
   creatorId        String
   // XH-1 (21/08/2026) — PLAN_XAHOI.md §2. audienceCircleId CHỈ có nghĩa khi
   // visibility = CIRCLE. Xoá Circle ⇒ SetNull ⇒ fail-closed: chỉ chủ pin còn thấy
   // (điều kiện đọc là audienceCircleId IN myCircleIds — null không IN gì cả).
-  visibility       Visibility @default(PUBLIC)
+  visibility       Visibility       @default(PUBLIC)
   audienceCircleId String?
   expiresAt        DateTime? // null = pin thường; hết hạn ĐÁNH GIÁ LÚC ĐỌC (XH-QĐ-7), không cron
   deletedAt        DateTime?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   creator        User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   audienceCircle Circle?        @relation("PinAudience", fields: [audienceCircleId], references: [id], onDelete: SetNull)

@@ -124,14 +124,17 @@ export const circles = {
     'Mọi người trong vòng mất quyền xem các pin đã chia sẻ cho vòng này. Pin không bị xoá.',
   'circles.confirmDeleteYes': 'Xoá vòng',
 
-  // ── Màn chụp ảnh (XH-CAM) ──
-  'capture.open': 'Chụp ảnh',
+  // ── Màn chụp ảnh + quay video (XH-CAM) ──
+  // Nhãn đổi từ "Chụp ảnh" sang "Chụp / Quay" ngày 26/08/2026, khi khâu quay
+  // lên sóng thật — trước đó cố ý KHÔNG hứa quay video (xem docblock của
+  // `capture-view.tsx`). Nhãn của bản vẽ giờ mới đúng với thứ bấm vào được.
+  'capture.open': 'Chụp / Quay',
   'capture.back': 'Quay lại tạo pin',
-  'capture.title': 'Chụp ảnh',
+  'capture.title': 'Chụp ảnh hoặc quay video',
   'capture.subtitle':
-    'Chụp xong đi tiếp vào bộ chọn khán giả — không có luồng đăng thứ hai.',
+    'Xong xuôi đi tiếp vào bộ chọn khán giả — không có luồng đăng thứ hai.',
   'capture.promptTitle': 'Panacea cần dùng camera',
-  'capture.promptBody': 'Ảnh chỉ rời máy khi bạn bấm Đăng.',
+  'capture.promptBody': 'Ảnh và video chỉ rời máy khi bạn bấm Đăng.',
   'capture.allow': 'Cho phép camera',
   'capture.pickFromDisk': 'Chọn ảnh từ máy',
   'capture.deniedTitle': 'Trình duyệt đang chặn camera',
@@ -148,5 +151,28 @@ export const circles = {
     'Giữ nguyên hướng EXIF — ảnh dọc không được thành ngang. imageWidth/Height gửi lên là số đo ảnh gốc để lưới chừa đúng chỗ.',
   'capture.startFailed': 'Không mở được camera. Thử chọn ảnh từ máy.',
   'capture.previewAlt': 'Ảnh vừa chụp',
+
+  // ── Quay video ngắn (26/08/2026) ──
+  'capture.modeAria': 'Chọn chụp ảnh hay quay video',
+  'capture.modePhoto': 'Ảnh',
+  'capture.modeVideo': 'Video',
+  'capture.durationAria': 'Chọn độ dài đoạn quay',
+  'capture.durationSec': '{seconds}s',
+  'capture.record': 'Quay',
+  'capture.stop': 'Dừng',
+  'capture.useVideo': 'Dùng video này',
+  'capture.retakeVideo': 'Quay lại',
+  'capture.videoPreviewAria': 'Đoạn vừa quay',
+  'capture.posterTitle': 'Ảnh đại diện cho video',
+  'capture.posterFrameAlt': 'Khung hình {index}',
+  'capture.videoReviewNote':
+    'Đoạn quay dài {seconds}s. Khung hình bạn chọn ở trên chính là ảnh hiện trên lưới — pin video vẫn là một pin ảnh có thêm file video.',
+  'capture.posterMissingNote':
+    'Không bốc được khung hình nào để làm ảnh đại diện, nên chưa đăng được. Quay lại một lần nữa.',
+  'capture.noRecorderNote':
+    'Trình duyệt này không quay được video (thiếu MediaRecorder) — nút Video để mờ thay vì ẩn, để bạn biết tính năng có tồn tại. Phần chụp ảnh vẫn dùng bình thường.',
+  'capture.noMicNote':
+    'Không lấy được micro nên đoạn quay sẽ không có tiếng. Hình vẫn quay bình thường.',
+  'capture.recordFailed': 'Không bắt đầu quay được. Thử lại hoặc chuyển sang chụp ảnh.',
   'capture.streamAria': 'Khung ngắm camera',
 } as const;

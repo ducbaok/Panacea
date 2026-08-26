@@ -53,6 +53,8 @@ type Pin {
   largeUrl: String
   imageWidth: Int!
   imageHeight: Int!
+  videoUrl: String
+  videoDurationMs: Int
   sourceUrl: String
   viewCount: Int
   clickCount: Int!
@@ -395,6 +397,8 @@ input CreatePinInput {
   thumbnailUrl: String
   mediumUrl: String
   largeUrl: String
+  videoUrl: String
+  videoDurationMs: Int
   title: String
   description: String
   sourceUrl: String

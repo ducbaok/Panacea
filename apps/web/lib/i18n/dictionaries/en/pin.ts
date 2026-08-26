@@ -120,6 +120,10 @@ export const pin: Mirror<Vi> = {
   // B4 — cột ảnh
   'pin.previewAlt': 'Preview of the image you are about to publish',
   'pin.uploaded': 'Uploaded',
+  'pin.uploadedVideo': 'Video uploaded',
+  'pin.videoBadgeAria': 'Video pin',
+  'pin.videoPlayerAria': 'Video player for this pin',
+  'pin.videoPreviewAria': 'Preview of the video you are about to publish',
   'pin.changeImage': 'Pick another image',
   'pin.uploading': 'Uploading',
   'pin.dropImage': 'Drag and drop an image here',

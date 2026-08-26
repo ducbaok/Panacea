@@ -19,6 +19,7 @@ import { UserLink } from '@/components/profile/user-link';
 import { useToast } from '@/components/ui/toast';
 import { useT } from '@/lib/i18n/provider';
 import { PinBadgeRow } from '@/components/pin/pin-badges';
+import { formatDuration } from '@/lib/video/format';
 
 /**
  * FE-3 — Thẻ pin (khung + 6 trạng thái §3.3 của brief).
@@ -62,6 +63,15 @@ export type PinCardItem = {
   mediumUrl?: string | null;
   imageWidth: number;
   imageHeight: number;
+  /**
+   * XH-VIDEO — không null ⇒ pin này là video, và thẻ mọc thêm badge ▶.
+   *
+   * OPTIONAL có chủ đích: kiểu này là kiểu CẤU TRÚC, dùng chung cho cả chục
+   * query khác nhau. Nguồn nào chưa chọn hai field này thì thẻ đơn giản không
+   * có badge — không vỡ, không phải sửa đồng loạt mọi document.
+   */
+  videoUrl?: string | null;
+  videoDurationMs?: number | null;
   isSavedByViewer?: boolean | null;
   viewerReaction?: ReactionType | null;
   /** F1 · XH-8 — nhãn quyền. Nguồn nào chưa chọn 3 field này thì thẻ không có nhãn. */
@@ -362,6 +372,37 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
             }}
           >
             {REACTION_EMOJI[item.viewerReaction]}
+          </div>
+        )}
+
+        {/* XH-VIDEO — badge ▶ + thời lượng. GÓC TRÊN TRÁI: ba góc còn lại đã có
+            chủ (nút Lưu, menu ⋯, chỉ báo cảm xúc), và đây là chỉ báo DUY NHẤT
+            nói "bấm vào sẽ phát được", nên nó không được nằm dưới lớp hover của
+            thứ khác. Không phụ thuộc hover: người dùng phải biết đây là video
+            TRƯỚC khi rê chuột. */}
+        {item.videoUrl && (
+          <div
+            data-testid="pin-video-badge"
+            aria-label={t('pin.videoBadgeAria')}
+            style={{
+              position: 'absolute',
+              top: '9px',
+              left: '9px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '4px 9px',
+              borderRadius: 'var(--radius-button)',
+              background: 'rgba(0,0,0,0.62)',
+              color: '#fff',
+              fontSize: '12px',
+              fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+              pointerEvents: 'none',
+            }}
+          >
+            <span aria-hidden>▶</span>
+            {item.videoDurationMs != null && formatDuration(item.videoDurationMs)}
           </div>
         )}
 

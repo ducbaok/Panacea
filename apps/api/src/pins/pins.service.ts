@@ -92,6 +92,17 @@ const IMAGE_URL_WHITELIST = [
  */
 const PIN_CREATE_WINDOW_SEC = 60;
 
+/**
+ * XH-VIDEO (26/08/2026) — trần thời lượng đoạn quay.
+ *
+ * Mốc dài nhất là 30s (spec capture Q4), nhưng KHÔNG chặn ở đúng 30_000: khâu
+ * dừng của `MediaRecorder` là bất đồng bộ, frame cuối luôn rơi trễ vài chục ms
+ * so với hẹn giờ, nên một đoạn "30 giây" thực tế đo được 30_040ms. Chặn khít
+ * là tự đẻ ra một lỗi 400 ngẫu nhiên ở đúng mốc dùng nhiều nhất. 2 giây dung
+ * sai đủ rộng cho máy chậm mà vẫn không cho lọt một đoạn 60s.
+ */
+const MAX_VIDEO_MS = 32_000;
+
 /** Bản sao của mặc định ở `configuration.ts` — dùng khi ConfigService không trả gì. */
 const PIN_CREATE_PER_MIN_DEFAULT = 10;
 
@@ -209,6 +220,28 @@ export class PinsService {
     );
     if (!ok) {
       throw new BadRequestException(`${label} domain is not allowed`);
+    }
+  }
+
+  /**
+   * XH-VIDEO — `videoUrl` và `videoDurationMs` phải đi CÙNG NHAU.
+   *
+   * Vì sao không để nửa cặp lọt qua: một pin có `videoUrl` mà `videoDurationMs`
+   * null thì FE không biết đoạn dài bao nhiêu để vẽ badge, còn một pin có
+   * `videoDurationMs` mà không có `videoUrl` là pin ẢNH mang thời lượng — cả
+   * hai đều là dữ liệu bẩn không ai phát hiện ra cho tới lúc vẽ sai. Bỏ qua im
+   * lặng nửa còn thiếu cũng tệ y như thế, nên 400 chứ không "tự điền".
+   */
+  private assertVideoPairing(videoUrl?: string, videoDurationMs?: number): void {
+    const hasUrl = videoUrl != null;
+    const hasMs = videoDurationMs != null;
+    if (hasUrl !== hasMs) {
+      throw new BadRequestException(
+        'videoUrl and videoDurationMs must be provided together',
+      );
+    }
+    if (hasMs && videoDurationMs! > MAX_VIDEO_MS) {
+      throw new BadRequestException(`Video too long (max ${MAX_VIDEO_MS}ms)`);
     }
   }
 
@@ -516,9 +549,14 @@ export class PinsService {
       ['thumbnailUrl', input.thumbnailUrl],
       ['mediumUrl', input.mediumUrl],
       ['largeUrl', input.largeUrl],
+      // XH-VIDEO — `videoUrl` đi qua ĐÚNG whitelist domain của ảnh, không có
+      // danh sách thứ hai. Một URL video trỏ ra domain lạ cũng là nhúng media
+      // ngoài vào trang mình, y hệt thứ whitelist ảnh sinh ra để chặn.
+      ['videoUrl', input.videoUrl],
     ] as const) {
       if (value != null) this.assertImageUrlAllowed(value, label);
     }
+    this.assertVideoPairing(input.videoUrl, input.videoDurationMs);
 
     // 2. Khán giả + hạn sống (XH-4a/XH-6). Chạy TRƯỚC `prepareTaxonomy` vì
     //    nhánh ad-hoc có thể GHI (tạo vòng): không có lý do gì tạo cả Tag mới
@@ -539,6 +577,11 @@ export class PinsService {
           thumbnailUrl: input.thumbnailUrl,
           mediumUrl: input.mediumUrl,
           largeUrl: input.largeUrl,
+          // XH-VIDEO — `?? null` chứ không để undefined trôi qua: Prisma bỏ qua
+          // undefined, và tuy `create` thì hai cách tương đương, giữ null tường
+          // minh làm hình dạng ở đây khớp với `expiresAt` ngay dưới.
+          videoUrl: input.videoUrl ?? null,
+          videoDurationMs: input.videoDurationMs ?? null,
           title: input.title,
           description: input.description,
           sourceUrl: input.sourceUrl,

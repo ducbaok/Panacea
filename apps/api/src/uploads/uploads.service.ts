@@ -34,11 +34,45 @@ export const CONTENT_TYPE_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/gif': 'gif',
   'image/webp': 'webp',
+  // XH-VIDEO (26/08/2026) — hai container vì MediaRecorder KHÔNG cho chọn:
+  // Chrome/Firefox ghi ra `video/webm`, Safari ghi ra `video/mp4`. Phương án A
+  // là không transcode, nên server phải nhận đúng thứ trình duyệt sinh ra.
+  // Client gửi `file.type` có thể kèm codec (`video/webm;codecs=vp9`) —
+  // `normalizeContentType` bên dưới cắt phần đó TRƯỚC khi tra bảng này.
+  'video/webm': 'webm',
+  'video/mp4': 'mp4',
 };
 
 /** Giới hạn kích thước dùng chung với `content-length-range` của Presigned POST. */
 export const MIN_UPLOAD_BYTES = 1024;          // 1KB
 export const MAX_UPLOAD_BYTES = 10_485_760;    // 10MB
+
+/**
+ * Trần riêng cho video (spec capture §video: bitrate ép 2,5–4 Mbps ⇒ 30s ≈
+ * 10–15MB, trần 30MB cho cả nhánh presigned lẫn local).
+ *
+ * 🔴 KHÔNG nâng `MAX_UPLOAD_BYTES` lên 30MB cho tiện. Trần của ảnh là một hợp
+ * đồng đang được phép verify và `apps/web/lib/upload.ts` bám theo; nới nó ra
+ * nghĩa là một tấm ảnh 25MB lọt qua và nằm nguyên trong lưới masonry. Hai loại
+ * media, hai trần — tra bằng `maxUploadBytesFor`.
+ */
+export const MAX_VIDEO_UPLOAD_BYTES = 31_457_280; // 30MB
+
+/**
+ * Cắt tham số codec khỏi content type: `video/webm;codecs="vp9,opus"` →
+ * `video/webm`. MediaRecorder đặt `Blob.type` kèm codec, và multer chuyển
+ * nguyên chuỗi đó vào `file.mimetype` — tra thẳng vào whitelist là trượt 100%.
+ */
+export function normalizeContentType(raw: string): string {
+  return (raw ?? '').split(';')[0].trim().toLowerCase();
+}
+
+/** Trần theo LOẠI media — video 30MB, còn lại 10MB. */
+export function maxUploadBytesFor(contentType: string): number {
+  return normalizeContentType(contentType).startsWith('video/')
+    ? MAX_VIDEO_UPLOAD_BYTES
+    : MAX_UPLOAD_BYTES;
+}
 
 export interface PresignedUrlResult {
   /** URL POST endpoint (S3) */
@@ -86,16 +120,20 @@ export class UploadsService {
   ): Promise<PresignedUrlResult> {
     const ext = CONTENT_TYPE_EXT[contentType] || 'jpg';
     const key = `raw/${folder}/${userId}/${randomUUID()}.${ext}`;
+    // XH-VIDEO — trần theo LOẠI. `contentType` đã qua whitelist của DTO nên
+    // chuỗi ở đây không còn tham số codec; vẫn gọi hàm chung để một chỗ duy
+    // nhất quyết định trần cho cả hai nhánh upload.
+    const maxBytes = maxUploadBytesFor(contentType);
 
     // createPresignedPost sinh ra URL + fields để client POST trực tiếp lên S3
     // Conditions:
-    //   - content-length-range: 1KB → 10MB (bảo vệ khỏi upload file quá lớn)
+    //   - content-length-range: 1KB → 10MB ảnh / 30MB video (chống file quá lớn)
     //   - Content-Type phải khớp chính xác (chống upload file giả mạo extension)
     const presigned: PresignedPost = await createPresignedPost(this.s3Client, {
       Bucket: this.bucketName,
       Key: key,
       Conditions: [
-        ['content-length-range', MIN_UPLOAD_BYTES, MAX_UPLOAD_BYTES],  // 1KB – 10MB
+        ['content-length-range', MIN_UPLOAD_BYTES, maxBytes],
         ['eq', '$Content-Type', contentType],                          // exact match
       ],
       Fields: {

@@ -1167,6 +1167,25 @@ function PinDetailContent({
     </div>
   );
 
+  /**
+   * XH-VIDEO (26/08/2026) — pin video phát bằng trình phát MẶC ĐỊNH của trình
+   * duyệt (`controls`), không dựng bộ điều khiển riêng.
+   *
+   * Đây là quyết định có ý thức chứ không phải làm tắt: màn XEM pin video CHƯA
+   * có bản vẽ (spec capture nói thẳng "vai người XEM không thuộc spec này"), và
+   * bịa ra một hàng nút play/seek/volume của riêng mình là đúng thứ
+   * `ask-before-designing-unmocked-screens` cấm. Trình phát mặc định đã có sẵn
+   * bàn phím, phụ đề, tốc độ phát, toàn màn hình và Picture-in-Picture — tự
+   * viết lại là mất hết chừng đó để đổi lấy vài pixel bo góc.
+   *
+   * `poster={imgUrl}` — cùng tấm ảnh mà lưới đang vẽ, nên lúc modal mở ra người
+   * dùng thấy ĐÚNG khung hình vừa bấm vào, không phải một ô đen.
+   *
+   * KHÔNG `autoPlay`: pin mở trong modal đè lên lưới, tự phát kèm tiếng khi
+   * người ta chỉ định xem mô tả là hành vi mà ai cũng ghét. `preload="metadata"`
+   * để không kéo cả file video về khi người dùng chưa bấm phát — đúng tinh
+   * thần của việc đang chữa ảnh chậm.
+   */
   const imageColumn = (
     <div
       style={{
@@ -1177,17 +1196,36 @@ function PinDetailContent({
         minHeight: 200,
       }}
     >
-      <img
-        src={imgUrl}
-        alt={title}
-        style={{
-          width: '100%',
-          height: '100%',
-          maxHeight: isModal ? '82vh' : 'none',
-          objectFit: 'cover',
-          display: 'block',
-        }}
-      />
+      {pin.videoUrl ? (
+        <video
+          src={pin.videoUrl}
+          poster={imgUrl}
+          controls
+          playsInline
+          preload="metadata"
+          data-testid="pin-video-player"
+          aria-label={t('pin.videoPlayerAria')}
+          style={{
+            width: '100%',
+            height: '100%',
+            maxHeight: isModal ? '82vh' : 'none',
+            display: 'block',
+            background: '#000',
+          }}
+        />
+      ) : (
+        <img
+          src={imgUrl}
+          alt={title}
+          style={{
+            width: '100%',
+            height: '100%',
+            maxHeight: isModal ? '82vh' : 'none',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
+      )}
     </div>
   );
 

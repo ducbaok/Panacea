@@ -82,6 +82,31 @@ export class CreatePinInput {
   @IsString()
   largeUrl?: string;
 
+  // ─── XH-VIDEO (26/08/2026) — pin video ngắn ────────────────────────────────
+  //
+  // Hai field này là MỘT cặp, không phải hai tuỳ chọn rời: gửi `videoUrl` mà
+  // thiếu `videoDurationMs` (hoặc ngược lại) ⇒ 400 ở `PinsService.createPin`.
+  // Luật kết hợp nằm ở service chứ không ở decorator, cùng lý do với khối khán
+  // giả bên dưới: class-validator không diễn đạt được ràng buộc GIỮA hai field
+  // mà không bịa thêm decorator tự chế.
+  //
+  // 🔴 `imageUrl` + `imageWidth/Height` ở trên VẪN BẮT BUỘC với pin video —
+  // chúng là POSTER. Không có nhánh "video thì miễn ảnh": bỏ poster đi là mọi
+  // bề mặt đang vẽ ảnh (lưới, DM, search, bìa board) phải mọc thêm nhánh riêng.
+
+  /** URL tuyệt đối của file video — cùng whitelist domain với các URL ảnh. */
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  videoUrl?: string;
+
+  /** Thời lượng đoạn quay (ms). Trần 30s + dung sai — xem `MAX_VIDEO_MS`. */
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  videoDurationMs?: number;
+
   @Field({ nullable: true })
   @IsOptional()
   @IsString()
