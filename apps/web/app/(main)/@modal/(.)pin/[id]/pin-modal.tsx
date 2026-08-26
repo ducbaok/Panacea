@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { PinDetail } from '@/components/pin/pin-detail';
 import { useT } from '@/lib/i18n/provider';
 
@@ -32,7 +32,35 @@ import { useT } from '@/lib/i18n/provider';
 
 const MOBILE_BREAKPOINT = 768;
 
+/**
+ * 🔴 Cửa chặn URL — slot `@modal` KHÔNG tự tắt khi rời route pin (sửa 26/08/2026).
+ *
+ * Next.js chỉ dùng `@modal/default.tsx` cho điều hướng CỨNG. Với soft-nav,
+ * slot nào không khớp route mới thì giữ nguyên nội dung đang render — nên bấm
+ * tên tác giả trong modal đi tới `/@username`: trang hồ sơ nạp đúng ở dưới,
+ * còn modal pin vẫn nằm đè lên trên. Tệ hơn, ESC lúc đó gọi `router.back()`,
+ * mà bước lùi bây giờ là rời hồ sơ về `/pin/<id>` ⇒ người dùng thấy "bấm ESC
+ * lại nhảy về trang chủ" thay vì "đóng bài đăng". Đo được trên trình duyệt sau
+ * khi `UserLink` lên sóng (26/08/2026).
+ *
+ * Luật đúng chỉ có một câu: modal chỉ được hiện khi URL ĐANG là `/pin/<id>`.
+ * `usePathname()` là nguồn sự thật duy nhất cho việc đó — không cần bắt tay
+ * với `UserLink` hay bất kỳ liên kết nào khác, nên mọi lối rời trang mai sau
+ * (nút, `router.push`, liên kết mới) đều tự động đúng.
+ *
+ * ⚠️ Phải là hai component: bọc bằng `if` NGOÀI phần thân, không phải một
+ * `return null` bên trong. Effect khoá cuộn nền (`overflow: hidden`) chỉ trả
+ * lại giá trị cũ ở hàm dọn dẹp — `return null` giữ component sống, tức là nền
+ * KHÔNG cuộn được nữa trong khi chẳng còn modal nào. Tách ra thì rời route =
+ * unmount = cleanup chạy thật.
+ */
 export function PinModal({ id }: { id: string }) {
+  const pathname = usePathname();
+  if (pathname !== `/pin/${id}`) return null;
+  return <PinModalOverlay id={id} />;
+}
+
+function PinModalOverlay({ id }: { id: string }) {
   const t = useT();
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
