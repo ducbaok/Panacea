@@ -63,6 +63,13 @@ const IDEAL_COLUMN_WIDTH = 240;
 const DEFAULT_COLUMN_WIDTH = 236; // dùng ở khung xương SSR (columns:<width>)
 const GUTTER = 16;
 const MIN_COLS = 2;
+/**
+ * Đề kháng nhiễu dưới-pixel: bỏ qua thay đổi bề rộng < 1px. Bề rộng thật là
+ * số thực (1056.8px…) nên làm tròn của trình duyệt có thể bắn RO với chênh
+ * lệch cỡ 0.01px; mỗi lần như vậy là một lượt `computeLayout` O(n) vô ích.
+ * Ngưỡng nhỏ hơn 1px ⇒ không bao giờ nuốt mất một lần đổi layout thật.
+ */
+const MIN_WIDTH_DELTA = 1;
 
 /**
  * Mảng mẫu tỉ lệ khung xương — CỐ ĐỊNH, lặp theo chỉ số. KHÔNG dùng random.
@@ -129,6 +136,31 @@ export function computeLayout(items: PinCardItem[], containerWidth: number): Lay
   };
 }
 
+/**
+ * Bề rộng **content-box** của container lưới — nguồn sự thật DUY NHẤT.
+ *
+ * Vì sao không dùng thẳng `getBoundingClientRect().width`: container mang
+ * `px-4 md:px-6` ⇒ rect là *border-box*, dư 32–48px so với vùng thật đặt được
+ * thẻ. Trước đây lần đo đầu dùng rect (border-box) còn ResizeObserver dùng
+ * `entry.contentRect` (content-box) ⇒ frame đầu tính dư 48px, đủ để nhảy thêm
+ * MỘT cột và tràn ngang ~55px (nháy thanh cuộn ngang ở MỌI lần mount lưới).
+ *
+ * Vì sao không dùng `entry.contentRect` làm nguồn: nó chỉ có trong callback
+ * của RO, nên lần đo đầu buộc phải đi đường khác — tức là lại hai hệ đo. Đọc
+ * ở đây thì cả hai đường dùng chung một phép tính. RO bắn *sau* layout nên
+ * lần đọc này không gây reflow thừa.
+ */
+function measureContentWidth(el: HTMLElement): number {
+  const cs = getComputedStyle(el);
+  const w =
+    el.getBoundingClientRect().width -
+    parseFloat(cs.paddingLeft) -
+    parseFloat(cs.paddingRight) -
+    parseFloat(cs.borderLeftWidth) -
+    parseFloat(cs.borderRightWidth);
+  return w > 0 ? w : 0;
+}
+
 type Props = {
   items: PinCardItem[];
   loading: boolean;
@@ -162,11 +194,17 @@ export function PinGrid({
   useIsomorphicLayoutEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    setContainerWidth(el.getBoundingClientRect().width);
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (typeof w === 'number' && w > 0) setContainerWidth(w);
-    });
+    // MỘT hệ đo duy nhất: `measureContentWidth` là nguồn sự thật cho CẢ lần đo
+    // đầu LẪN mọi lần ResizeObserver bắn. RO chỉ dùng làm *kích hoạt*, không
+    // đọc `entry.contentRect` — trộn hai hệ đo chính là gốc của bug rung.
+    const read = () => {
+      const w = measureContentWidth(el);
+      // Lưới ẩn (`display:none` — tab Khám phá) đo ra 0: giữ nguyên trạng thái
+      // cũ thay vì tính lưới 0 cột. Khi tab hiện lại, RO bắn với bề rộng thật.
+      if (w > 0) setContainerWidth((prev) => (prev !== null && Math.abs(prev - w) < MIN_WIDTH_DELTA ? prev : w));
+    };
+    read();
+    const ro = new ResizeObserver(read);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
