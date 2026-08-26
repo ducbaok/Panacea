@@ -16,8 +16,6 @@ import {
   DeletePinDocument,
   type DeletePinMutation,
   type DeletePinMutationVariables,
-  CategoriesDocument,
-  type CategoriesQuery,
   TagsDocument,
   type TagsQuery,
   type TagsQueryVariables,
@@ -40,11 +38,16 @@ import {
  * B5 — Sửa pin (mockup `view=editpin`, data-screen="B5"). 7 trạng thái:
  *   idle · invalid · saving · done · denied · notfound · neterr.
  *
- * 🔴🔴 §4.2 — CẠM BẪY CHÍNH: `updatePin` coi `tagNames`/`categoryIds` là BA
- * trạng thái: undefined = không đụng · [] = XOÁ SẠCH · [a,b] = thay toàn bộ.
- * ⇒ CHỈ gửi hai field này khi người dùng THẬT SỰ đổi chip (so với giá trị pin
- * đọc lúc vào). Serialize "hồn nhiên" (gửi mọi field) sẽ âm thầm xoá tag. Phép
- * T2.3 canh đúng chỗ này.
+ * 🔴🔴 §4.2 — CẠM BẪY CHÍNH: `updatePin` coi `tagNames` là BA trạng thái:
+ * undefined = không đụng · [] = XOÁ SẠCH · [a,b] = thay toàn bộ. ⇒ CHỈ gửi
+ * field này khi người dùng THẬT SỰ đổi chip (so với giá trị pin đọc lúc vào).
+ * Serialize "hồn nhiên" (gửi mọi field) sẽ âm thầm xoá tag. Phép T2.3 canh
+ * đúng chỗ này.
+ *
+ * 🔴 GỠ 25/08/2026 (luồng B) — ô "Link nguồn" và chip "Danh mục" không còn ở
+ * form này. Cùng luật ba trạng thái ở trên: KHÔNG gửi `sourceUrl`/`categoryIds`
+ * nữa nghĩa là giá trị cũ của pin GIỮ NGUYÊN, không bị xoá. (`sourceUrl` trước
+ * đây gửi `|| null` mỗi lần lưu — bỏ hẳn field là đúng ý "không đụng".)
  *
  * Ảnh KHÔNG đổi được sau khi tạo (mockup subtitle) — cột trái chỉ hiển thị.
  * Guard quyền: pin không phải của mình ⇒ trạng thái `denied` (client đọc
@@ -54,16 +57,6 @@ import {
 const TITLE_MAX = 200;
 const DESC_MAX = 2000;
 const TAGS_MAX = 10;
-const CATS_MAX = 3;
-
-function isValidHttpUrl(s: string): boolean {
-  try {
-    const u = new URL(s);
-    return u.protocol === 'http:' || u.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
 
 /** So sánh 2 tập chuỗi không kể thứ tự. */
 function sameSet(a: string[], b: string[]): boolean {
@@ -124,14 +117,11 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
 
   // Giá trị khởi đầu đọc từ pin — mốc để phát hiện đổi chip (§4.2).
   const initialTags = useMemo(() => pin.tags.map((pt) => pt.name), [pin.tags]);
-  const initialCatIds = useMemo(() => pin.categories.map((c) => c.id), [pin.categories]);
 
   const [title, setTitle] = useState(pin.title ?? '');
   const [description, setDescription] = useState(pin.description ?? '');
-  const [sourceUrl, setSourceUrl] = useState(pin.sourceUrl ?? '');
   const [tags, setTags] = useState<string[]>(initialTags);
   const [tagInput, setTagInput] = useState('');
-  const [categoryIds, setCategoryIds] = useState<string[]>(initialCatIds);
 
   /**
    * F1 · XH-8 — khán giả của pin ĐANG CÓ, không phải PUBLIC mặc định: ở màn
@@ -149,7 +139,6 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
 
   const [phase, setPhase] = useState<'idle' | 'saving' | 'done' | 'neterr'>('idle');
 
-  const catsQuery = useQuery<CategoriesQuery>(CategoriesDocument);
   const [tagQuery, setTagQuery] = useState('');
   useEffect(() => {
     const id = setTimeout(() => setTagQuery(tagInput.trim()), 200);
@@ -166,7 +155,6 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
   const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (doneTimer.current) clearTimeout(doneTimer.current); }, []);
 
-  const sourceUrlValid = sourceUrl.trim() === '' || isValidHttpUrl(sourceUrl.trim());
   const disabled = !isOwner || phase === 'saving' || !isAudienceComplete(audience);
 
   const tagSuggestions = useMemo(() => {
@@ -187,21 +175,15 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
     setTagInput('');
   }
 
-  function toggleCategory(id: string) {
-    if (categoryIds.includes(id)) setCategoryIds(categoryIds.filter((c) => c !== id));
-    else if (categoryIds.length < CATS_MAX) setCategoryIds([...categoryIds, id]);
-  }
-
   async function onSave() {
-    if (disabled || !sourceUrlValid) return;
+    if (disabled) return;
     setPhase('saving');
 
-    // §4.2 — chỉ gửi tagNames/categoryIds khi THẬT SỰ đổi (so tập, không kể thứ tự).
+    // §4.2 — chỉ gửi tagNames khi THẬT SỰ đổi (so tập, không kể thứ tự).
     const tagsChanged = !sameSet(
       tags.map((tag) => tag.toLowerCase()),
       initialTags.map((tag) => tag.toLowerCase()),
     );
-    const catsChanged = !sameSet(categoryIds, initialCatIds);
 
     try {
       await updatePin({
@@ -210,9 +192,7 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
             id: pin.id,
             title: title.trim() || null,
             description: description.trim() || null,
-            sourceUrl: sourceUrl.trim() || null,
             ...(tagsChanged ? { tagNames: tags } : {}),
-            ...(catsChanged ? { categoryIds } : {}),
             // Khán giả gửi TRỌN GÓI mỗi lần lưu (không so sánh trước/sau): bộ
             // chọn đã khởi tạo bằng giá trị đang có, nên gửi lại đúng giá trị
             // đó là no-op, còn "chỉ gửi khi đổi" thì phải tự dựng lại đúng ba
@@ -359,23 +339,6 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
           </div>
 
           <div>
-            <label style={labelStyle} htmlFor="edit-source">{t('pin.fieldSourceUrl')}</label>
-            <input
-              id="edit-source"
-              type="url"
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              placeholder="https://"
-              style={inputStyle}
-            />
-            {!sourceUrlValid && (
-              <div style={{ fontSize: 12, color: 'var(--color-danger)', marginTop: 6 }}>
-                {t('pin.errSourceUrl')}
-              </div>
-            )}
-          </div>
-
-          <div>
             <label style={labelStyle} htmlFor="edit-tags">{t('pin.fieldTags')}</label>
             {tags.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
@@ -430,43 +393,6 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
             </div>
           </div>
 
-          <div>
-            <label style={labelStyle}>{t('pin.fieldCategories')}</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {(catsQuery.data?.categories ?? []).map((c) => {
-                const active = categoryIds.includes(c.id);
-                const atCap = !active && categoryIds.length >= CATS_MAX;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    aria-pressed={active}
-                    disabled={atCap}
-                    onClick={() => toggleCategory(c.id)}
-                    style={{
-                      ...chipStyle,
-                      cursor: atCap ? 'not-allowed' : 'pointer',
-                      opacity: atCap ? 0.5 : 1,
-                      border: active ? '1px solid var(--color-primary-strong)' : '1px solid var(--color-border)',
-                      background: active ? 'var(--color-primary-soft)' : 'var(--color-surface)',
-                    }}
-                  >
-                    {c.icon ? `${c.icon} ` : ''}
-                    {c.name}
-                  </button>
-                );
-              })}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>
-              {categoryIds.length >= CATS_MAX
-                ? t('pin.categoriesCapped')
-                : t('pin.categoriesLeft', {
-                    count: CATS_MAX - categoryIds.length,
-                    n: CATS_MAX - categoryIds.length,
-                  })}
-            </div>
-          </div>
-
           {/* XH-AUD — cùng bộ chọn với màn tạo pin, KHÔNG có khối Hạn sống
               (updatePin đặt/đổi được hạn nhưng không gỡ được — gỡ hạn là
               `republishPin` ở màn Kho, luồng F2). Hộp xác nhận "riêng → công
@@ -478,13 +404,13 @@ function EditPinForm({ pin, isOwner }: { pin: NonNullable<PinQuery['pin']>; isOw
             <button
               type="button"
               onClick={onSave}
-              disabled={disabled || !sourceUrlValid}
+              disabled={disabled}
               style={{
                 ...primaryBtn,
                 background: phase === 'saving' ? 'var(--color-primary-soft)' : 'var(--color-primary)',
                 color: phase === 'saving' ? 'var(--color-muted)' : 'var(--color-primary-foreground)',
-                opacity: disabled || !sourceUrlValid ? 0.6 : 1,
-                cursor: disabled || !sourceUrlValid ? 'not-allowed' : 'pointer',
+                opacity: disabled ? 0.6 : 1,
+                cursor: disabled ? 'not-allowed' : 'pointer',
               }}
             >
               {phase === 'saving'

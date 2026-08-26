@@ -40,13 +40,14 @@ export const circles: Mirror<Vi> = {
   'circles.expiry24h': '24 hours',
   'circles.expiry7d': '7 days',
   'circles.expiryCustom': 'Pick a time…',
-  'circles.expiryDate': 'Date',
-  'circles.expiryTime': 'Time',
+  'circles.expiryWhen': 'Expires at',
   'circles.expiryEcho': 'Expires {time} on {date} — {left}.',
-  'circles.expiryPast': 'Pick a moment in the future.',
+  'circles.expiryPickHint': 'Pick the date and time this pin expires.',
+  'circles.expiryPast': 'That moment has passed — pick one in the future.',
   'circles.expiryNoteNone': 'The pin stays until you delete it.',
   'circles.expiryNoteSet':
     'Once it expires the pin disappears from every surface — your own profile included — and lands in the Archive. Comments and reactions stay.',
+  'circles.leftUnderHour': 'less than an hour left',
   'circles.leftHours': '{count} hour left|{count} hours left',
   'circles.leftDays': '{count} day left|{count} days left',
 

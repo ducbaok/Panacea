@@ -63,15 +63,23 @@ export function circleDisplayName(
  * "còn 6 ngày" / "còn 20 giờ" — cùng công thức với bản vẽ: dưới 48 giờ thì đếm
  * theo giờ, trên thì theo ngày. Trả chuỗi rỗng khi mốc đã qua (pin hết hạn
  * không còn nằm trên lưới của người xem nữa; chủ pin xem ở Kho — luồng F2).
+ *
+ * 🔴 CÒN HẠN thì LUÔN có chữ (sửa 25/08/2026). Bản cũ làm tròn ra giờ rồi mới
+ * chặn `hours <= 0`, nên khoảng dưới ~30 phút — đúng lúc nhãn có ích nhất —
+ * trả chuỗi RỖNG, không phân biệt được với pin đã hết hạn: nhãn ở thẻ pin biến
+ * mất và echo của bộ chọn hạn sống in ra "Hết hạn 20:00 ngày 25/8 — ." Nay chỉ
+ * mốc đã qua mới rỗng; dưới một giờ có nhãn riêng.
  */
 export function expiryLeftLabel(t: TFunction, expiresAt: string | null | undefined): string {
   if (!expiresAt) return '';
   const at = new Date(expiresAt).getTime();
   if (!Number.isFinite(at)) return '';
-  const hours = Math.round((at - Date.now()) / 3_600_000);
-  if (hours <= 0) return '';
+  const ms = at - Date.now();
+  if (ms <= 0) return '';
+  const hours = Math.round(ms / 3_600_000);
+  if (hours < 1) return t('circles.leftUnderHour');
   return hours < 48
-    ? t('circles.leftHours', { count: Math.max(1, hours) })
+    ? t('circles.leftHours', { count: hours })
     : t('circles.leftDays', { count: Math.round(hours / 24) });
 }
 
