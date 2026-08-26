@@ -29,6 +29,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "web", "exec", "next", "dev", "-p", "3100"],
       "port": 3100
+    },
+    {
+      "name": "web-3101",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "web", "exec", "next", "dev", "-p", "3101"],
+      "port": 3101
     }
   ]
 }

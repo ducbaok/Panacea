@@ -59,17 +59,23 @@ export async function generateMetadata(): Promise<Metadata> {
  * lên trước khi CSS dark áp dụng. Đặt trong <head> bằng dangerouslySetInnerHTML
  * là cách duy nhất cho phép chạy TRƯỚC React hydration.
  *
- * Logic 3 nhánh khớp `ThemeToggle` (components/theme-toggle.tsx):
- *   • localStorage['theme'] === 'light'  → data-theme="light"
+ * Logic 3 nhánh PHẢI khớp từng nhánh với `ThemeToggle`
+ * (components/theme-toggle.tsx — `readStoredChoice` + `applyChoice`).
+ * Bảng ánh xạ sau khi đổi mặc định sang SÁNG (25/08/2026):
  *   • localStorage['theme'] === 'dark'   → data-theme="dark"
- *   • bất kỳ giá trị nào khác / chưa set → KHÔNG đặt attribute (chế độ "hệ thống"),
- *     CSS bám @media (prefers-color-scheme: dark) tự chọn nền.
+ *   • localStorage['theme'] === 'system' → KHÔNG đặt attribute (chế độ "hệ
+ *     thống"), CSS bám @media (prefers-color-scheme: dark) tự chọn nền.
+ *   • 'light' / CHƯA SET / giá trị lạ    → data-theme="light"  ← mặc định mới
+ *
+ * ⚠️ Trước 25/08/2026 "chưa set" mang nghĩa Auto. Nay Auto được GHI TƯỜNG MINH
+ * là 'system', nên "chưa set" mới rảnh ra để làm mặc định Sáng. Sửa một trong
+ * hai nơi mà quên nơi kia = nháy màu đúng một khung hình lúc tải trang.
  *
  * suppressHydrationWarning trên <html> là bắt buộc: script này thay đổi
  * attribute trước khi React so sánh DOM ⇒ nếu không suppress, React sẽ báo
  * hydration mismatch mỗi lần user chọn "tối" hoặc "sáng" chủ động.
  */
-const antiFlashScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`;
+const antiFlashScript = `(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t!=='system'){d.setAttribute('data-theme',t==='dark'?'dark':'light');}}catch(e){d.setAttribute('data-theme','light');}})();`;
 
 export default async function RootLayout({
   children,

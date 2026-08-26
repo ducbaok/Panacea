@@ -17,8 +17,18 @@ export const LOCALES = ['vi', 'en'] as const;
 
 export type Locale = (typeof LOCALES)[number];
 
-/** Tiếng Việt là mặc định — Antigravity chạy vi trước (xem app/layout.tsx). */
-export const DEFAULT_LOCALE: Locale = 'vi';
+/**
+ * Ngôn ngữ mặc định = English (đổi từ 'vi' ngày 25/08/2026).
+ *
+ * Áp cho KHÁCH MỚI: máy chưa có cookie/localStorage `locale`. Máy đã từng đổi
+ * ngôn ngữ vẫn giữ lựa chọn cũ — cookie `locale=vi` thắng mặc định, đó là đúng
+ * thiết kế, không phải "chưa đổi được". Muốn thấy mặc định mới thì xoá cookie
+ * + localStorage `locale` (hoặc mở cửa sổ ẩn danh).
+ *
+ * KHÔNG dò Accept-Language: server chỉ đọc cookie (lib/i18n/server.ts), nên
+ * hằng số này là thứ duy nhất quyết định ngôn ngữ của lượt truy cập đầu tiên.
+ */
+export const DEFAULT_LOCALE: Locale = 'en';
 
 /** Tên cookie + key localStorage. Giữ TRÙNG tên để script chống nháy đọc 1 chỗ. */
 export const LOCALE_STORAGE_KEY = 'locale';

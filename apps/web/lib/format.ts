@@ -1,4 +1,4 @@
-import type { Locale } from '@/lib/i18n/config';
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/config';
 import type { TFunction } from '@/lib/i18n/translate';
 
 /**
@@ -54,7 +54,7 @@ export function formatCount(n: number | null | undefined): string {
  *
  * Tính bằng số nguyên (`b*10 / base`) để tránh sai số float — xem cảnh báo ở formatCount.
  */
-export function formatBytes(bytes: number | null | undefined, locale: Locale = 'vi'): string {
+export function formatBytes(bytes: number | null | undefined, locale: Locale = DEFAULT_LOCALE): string {
   if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return '0';
   const b = Math.floor(bytes);
   if (b < 1024) return `${b}B`;
@@ -90,7 +90,7 @@ export function formatBytes(bytes: number | null | undefined, locale: Locale = '
 export function formatRelativeTime(
   iso: string | null | undefined,
   t: TFunction,
-  locale: Locale = 'vi',
+  locale: Locale = DEFAULT_LOCALE,
   now: number = Date.now(),
 ): string {
   if (!iso) return '';

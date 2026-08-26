@@ -26,12 +26,32 @@ import { useT } from '@/lib/i18n/provider';
  * ⚠️ `categorySlug` phải là **slug của Category** (backend so khớp CHÍNH XÁC —
  * B-5). Lấy từ query `categories`, ĐỪNG nhét chữ người dùng gõ.
  */
+
+/**
+ * Cờ ẩn dải chip chủ đề (25/08/2026).
+ *
+ * Vì sao ẩn chứ KHÔNG xoá: 12 Category trong seed mới là bộ khung thô, chưa ai
+ * gán nhãn cho pin thật ⇒ bấm chip ra lưới trống, người dùng tưởng app hỏng.
+ * Toàn bộ cơ chế phía sau (state `categorySlug`, query `Categories`,
+ * `CategoryChip`, biến `categorySlug` của `exploreFeed`, EXISTS trên
+ * `_PinToCategory` ở backend) GIỮ NGUYÊN để đợt labeling sau bật lại bằng
+ * đúng một dòng này. Đừng "dọn dẹp" code chết bên dưới.
+ *
+ * Kiểu `boolean` (không để TS thu hẹp về literal `false`) là cố ý: giữ nhánh
+ * bật vẫn được kiểm kiểu, và so sánh `=== true` sau này không thành lỗi biên dịch.
+ */
+const SHOW_CATEGORY_CHIPS: boolean = false;
+
 export function ExploreSection({ skip = false }: { skip?: boolean }) {
   const t = useT();
   const router = useRouter();
   const [categorySlug, setCategorySlug] = useState<string | null>(null);
 
-  const catsQuery = useQuery<CategoriesQuery>(CategoriesDocument, { skip });
+  // Cờ tắt ⇒ skip luôn query: chip không hiện thì bắn `Categories` chỉ tốn một
+  // vòng mạng ở MỌI lần mở trang chủ. `skip` gốc của caller vẫn được tôn trọng.
+  const catsQuery = useQuery<CategoriesQuery>(CategoriesDocument, {
+    skip: skip || !SHOW_CATEGORY_CHIPS,
+  });
   const categories = catsQuery.data?.categories ?? [];
 
   const exploreVars = useMemo(
@@ -44,34 +64,36 @@ export function ExploreSection({ skip = false }: { skip?: boolean }) {
     <>
       {/* Dải chip tự mang padding ngang: PinGrid bên dưới PHẢI chạm mép để
           masonry tính đúng số cột (nó đo bề rộng container). */}
-      <div style={{ padding: '0 16px' }}>
-        <div
-          role="tablist"
-          aria-label={t('home.categoryTablist')}
-          data-testid="category-chips"
-          style={{
-            display: 'flex',
-            gap: 8,
-            overflowX: 'auto',
-            paddingBottom: 16,
-            marginBottom: 4,
-          }}
-        >
-          <CategoryChip
-            label={t('home.categoryAll')}
-            active={categorySlug === null}
-            onClick={() => setCategorySlug(null)}
-          />
-          {categories.map((c) => (
+      {SHOW_CATEGORY_CHIPS && (
+        <div style={{ padding: '0 16px' }}>
+          <div
+            role="tablist"
+            aria-label={t('home.categoryTablist')}
+            data-testid="category-chips"
+            style={{
+              display: 'flex',
+              gap: 8,
+              overflowX: 'auto',
+              paddingBottom: 16,
+              marginBottom: 4,
+            }}
+          >
             <CategoryChip
-              key={c.id}
-              label={c.icon ? `${c.icon} ${c.name}` : c.name}
-              active={categorySlug === c.slug}
-              onClick={() => setCategorySlug(c.slug)}
+              label={t('home.categoryAll')}
+              active={categorySlug === null}
+              onClick={() => setCategorySlug(null)}
             />
-          ))}
+            {categories.map((c) => (
+              <CategoryChip
+                key={c.id}
+                label={c.icon ? `${c.icon} ${c.name}` : c.name}
+                active={categorySlug === c.slug}
+                onClick={() => setCategorySlug(c.slug)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <PinGrid
         items={feed.items}

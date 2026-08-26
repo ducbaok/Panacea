@@ -6,6 +6,7 @@ import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE_MAX_AGE,
   LOCALE_STORAGE_KEY,
+  isLocale,
   normalizeLocale,
   type Locale,
 } from './config';
@@ -46,8 +47,10 @@ function writeCookie(locale: Locale) {
 
 function readStoredLocale(): Locale | null {
   try {
+    // Dùng `isLocale` chứ KHÔNG liệt kê tay 'vi'/'en': thêm ngôn ngữ thứ ba mà
+    // quên chỗ này thì lựa chọn của người dùng bị đọc thành null rồi ghi đè.
     const raw = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-    return raw === 'vi' || raw === 'en' ? raw : null;
+    return isLocale(raw) ? raw : null;
   } catch {
     return null;
   }
@@ -123,7 +126,7 @@ function useLocaleContext(): LocaleContextValue {
   const ctx = useContext(LocaleContext);
   if (ctx) return ctx;
   // Không throw: một vài component (toast, confirm) có thể được dựng trong
-  // test hoặc storybook ngoài cây provider. Rơi về tiếng Việt còn hơn crash.
+  // test hoặc storybook ngoài cây provider. Rơi về DEFAULT_LOCALE còn hơn crash.
   return {
     locale: DEFAULT_LOCALE,
     setLocale: () => {},
