@@ -15,6 +15,7 @@ import {
 } from '@/lib/gql/graphql';
 import { REACTION_EMOJI } from '@/lib/reactions';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
+import { UserLink } from '@/components/profile/user-link';
 import { useToast } from '@/components/ui/toast';
 import { useT } from '@/lib/i18n/provider';
 import { PinBadgeRow } from '@/components/pin/pin-badges';
@@ -392,6 +393,9 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
         >
           {title}
         </h3>
+        {/* Tên người đăng là lối vào hồ sơ. `UserLink` tự chặn nổi bọt nên cú
+            bấm KHÔNG kích hoạt `onClick` mở pin của <article> bao ngoài. Vẫn là
+            phần tử inline trong <p> ⇒ khối chữ giữ đúng 67px (§4.4.1). */}
         <p
           style={{
             fontSize: '12px',
@@ -404,7 +408,9 @@ export function PinCard({ item, columnWidth, onOpen, overlay }: Props) {
             textOverflow: 'ellipsis',
           }}
         >
-          {subtitle}
+          <UserLink username={item.creator.username} testId="card-author-name">
+            {subtitle}
+          </UserLink>
         </p>
       </div>
     </article>

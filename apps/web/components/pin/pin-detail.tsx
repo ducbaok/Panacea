@@ -38,6 +38,7 @@ import { REACTION_ORDER, REACTION_EMOJI, REACTION_LABEL_KEY } from '@/lib/reacti
 import { circleDisplayName, republishAudienceName } from '@/lib/visibility';
 import { useT } from '@/lib/i18n/provider';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
+import { UserLink } from '@/components/profile/user-link';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useBoardPicker } from '@/components/board/board-picker';
@@ -983,45 +984,54 @@ function PinDetailContent({
         borderBottom: '1px solid var(--color-border)',
       }}
     >
-      {pin.creator.avatarUrl ? (
-        <img
-          src={pin.creator.avatarUrl}
-          alt=""
-          style={{
-            width: isModal ? 38 : 40,
-            height: isModal ? 38 : 40,
-            borderRadius: '50%',
-            objectFit: 'cover',
-          }}
-        />
-      ) : (
-        <div
-          aria-hidden
-          style={{
-            width: isModal ? 38 : 40,
-            height: isModal ? 38 : 40,
-            borderRadius: '50%',
-            background: 'var(--color-primary)',
-            color: 'var(--color-primary-foreground)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-          }}
-        >
-          {initialOf(pin.creator.name, pin.creator.username)}
-        </div>
-      )}
+      <UserLink
+        username={pin.creator.username}
+        title={authorName}
+        testId="pin-author-avatar"
+        style={{ display: 'flex', flex: 'none' }}
+      >
+        {pin.creator.avatarUrl ? (
+          <img
+            src={pin.creator.avatarUrl}
+            alt=""
+            style={{
+              width: isModal ? 38 : 40,
+              height: isModal ? 38 : 40,
+              borderRadius: '50%',
+              objectFit: 'cover',
+            }}
+          />
+        ) : (
+          <div
+            aria-hidden
+            style={{
+              width: isModal ? 38 : 40,
+              height: isModal ? 38 : 40,
+              borderRadius: '50%',
+              background: 'var(--color-primary)',
+              color: 'var(--color-primary-foreground)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+            }}
+          >
+            {initialOf(pin.creator.name, pin.creator.username)}
+          </div>
+        )}
+      </UserLink>
       <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontWeight: 700,
-            fontSize: isModal ? 13.5 : 14,
-            color: 'var(--color-foreground)',
-          }}
-        >
-          {authorName}
-        </div>
+        <UserLink username={pin.creator.username} testId="pin-author-name">
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: isModal ? 13.5 : 14,
+              color: 'var(--color-foreground)',
+            }}
+          >
+            {authorName}
+          </div>
+        </UserLink>
         {!isModal && followerLabel && (
           <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>
             {t('pin.followerCount', {

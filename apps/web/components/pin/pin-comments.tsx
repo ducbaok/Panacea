@@ -16,6 +16,7 @@ import {
   type CommentRepliesQuery,
 } from '@/lib/gql/graphql';
 import { useAuthPrompt } from '@/components/auth/auth-prompt';
+import { UserLink } from '@/components/profile/user-link';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useToast } from '@/components/ui/toast';
 import { useT } from '@/lib/i18n/provider';
@@ -105,9 +106,17 @@ const REPLY_TO_REPLY = /Cannot reply to a reply/i;
 const MENTION_RE = /@([a-z0-9_]{3,20})/gi;
 
 /**
- * Tô đậm các token `@username` trong nội dung bình luận (REVIEW-1 #9).
+ * Tô đậm các token `@username` trong nội dung bình luận (REVIEW-1 #9) và biến
+ * chúng thành lối vào hồ sơ (26/08/2026).
  * Trả về mảng ReactNode để React tự escape — KHÔNG dùng dangerouslySetInnerHTML,
  * nội dung này do người dùng nhập.
+ *
+ * ⚠️ Token khớp regex KHÔNG bảo đảm là tài khoản có thật: người viết gõ tay
+ * `@aikhongco` thì vẫn được tô đậm và vẫn thành liên kết, bấm vào ra 404 của
+ * `[handle]`. Đây là đánh đổi CÓ CHỦ Ý, giống Twitter/Facebook: kiểm tra sự tồn
+ * tại đòi một truy vấn cho mỗi token trên mỗi bình luận, mà cái giá của việc
+ * đoán sai chỉ là một trang 404. Chỗ nhắc ĐÚNG người — đường đi thật của tính
+ * năng — luôn ra hồ sơ đúng.
  */
 function renderWithMentions(text: string): ReactNode[] {
   const out: ReactNode[] = [];
@@ -119,9 +128,10 @@ function renderWithMentions(text: string): ReactNode[] {
     const at = m.index ?? 0;
     if (at > lastIndex) out.push(text.slice(lastIndex, at));
     out.push(
-      <b key={`${at}-${m[1]}`} style={{ color: 'var(--color-primary-strong)' }}>
-        {m[0]}
-      </b>,
+      // `m[1]` là username đã bỏ `@`; `m[0]` giữ nguyên chữ người dùng gõ.
+      <UserLink key={`${at}-${m[1]}`} username={m[1]} testId="mention-link">
+        <b style={{ color: 'var(--color-primary-strong)' }}>{m[0]}</b>
+      </UserLink>,
     );
     lastIndex = at + m[0].length;
   }
@@ -403,9 +413,6 @@ export function PinComments({ pinId, variant }: Props) {
             {t('pin.commentTooLong', { max: MAX_COMMENT_LENGTH })}
           </div>
         )}
-        <div style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 4 }}>
-          {t('pin.commentTwoLevels')}
-        </div>
       </>
     );
 
@@ -861,13 +868,15 @@ function CommentRow({
   return (
     <div>
       <div style={{ display: 'flex', gap: 10 }}>
-        <Avatar
-          url={user?.avatarUrl}
-          name={user?.name}
-          username={user?.username}
-          size={avatarSize}
-          fontSize={isModal ? 11.5 : 12}
-        />
+        <UserLink username={user?.username} title={authorName} testId="comment-author-avatar">
+          <Avatar
+            url={user?.avatarUrl}
+            name={user?.name}
+            username={user?.username}
+            size={avatarSize}
+            fontSize={isModal ? 11.5 : 12}
+          />
+        </UserLink>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
@@ -876,7 +885,10 @@ function CommentRow({
               color: 'var(--color-foreground)',
             }}
           >
-            <b>{authorName}</b> {renderWithMentions(comment.content)}
+            <UserLink username={user?.username} testId="comment-author-name">
+              <b>{authorName}</b>
+            </UserLink>{' '}
+            {renderWithMentions(comment.content)}
           </div>
           <div
             style={{
@@ -1061,13 +1073,15 @@ function CommentRepliesList({
           actions.openEditor?.id === r.id && actions.openEditor.mode === 'edit';
         return (
           <div key={r.id} style={{ display: 'flex', gap: 8, paddingLeft: 10 }}>
-            <Avatar
-              url={ru?.avatarUrl}
-              name={ru?.name}
-              username={ru?.username}
-              size={avatarSize}
-              fontSize={11}
-            />
+            <UserLink username={ru?.username} title={author} testId="reply-author-avatar">
+              <Avatar
+                url={ru?.avatarUrl}
+                name={ru?.name}
+                username={ru?.username}
+                size={avatarSize}
+                fontSize={11}
+              />
+            </UserLink>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div
                 style={{
@@ -1076,7 +1090,10 @@ function CommentRepliesList({
                   color: 'var(--color-foreground)',
                 }}
               >
-                <b>{author}</b> {renderWithMentions(r.content)}
+                <UserLink username={ru?.username} testId="reply-author-name">
+                  <b>{author}</b>
+                </UserLink>{' '}
+                {renderWithMentions(r.content)}
               </div>
               <div
                 style={{

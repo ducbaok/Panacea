@@ -61,7 +61,6 @@ export const pin = {
   'pin.send': 'Gửi',
   'pin.sending': 'Đang gửi…',
   'pin.commentTooLong': 'Bình luận tối đa {max} ký tự.',
-  'pin.commentTwoLevels': 'Bình luận chỉ 2 tầng — không trả lời vào một trả lời.',
   'pin.loadingComments': 'Đang tải bình luận…',
   'pin.noComments': 'Chưa có bình luận nào.',
   'pin.loadMoreComments': 'Xem thêm bình luận',

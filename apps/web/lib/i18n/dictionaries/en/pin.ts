@@ -65,7 +65,6 @@ export const pin: Mirror<Vi> = {
   'pin.send': 'Send',
   'pin.sending': 'Sending…',
   'pin.commentTooLong': 'Comments can be at most {max} characters.',
-  'pin.commentTwoLevels': 'Comments go two levels deep — you cannot reply to a reply.',
   'pin.loadingComments': 'Loading comments…',
   'pin.noComments': 'No comments yet.',
   'pin.loadMoreComments': 'Load more comments',
