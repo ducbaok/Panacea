@@ -15,6 +15,20 @@
 // ║  Chúng cố ý nằm CẠNH NHAU trong một file để không thể lệch mà không ai    ║
 // ║  thấy. Bước verify `72-visibility.mjs` đối chiếu cả ba qua 10 bề mặt.     ║
 // ║                                                                           ║
+// ║  BA LUẬT CỘNG DỒN (AND) trong cả ba hình thái:                            ║
+// ║    1. còn hạn sống   — `expiresAt` NULL hoặc chưa tới                     ║
+// ║    2. đúng khán giả  — PUBLIC / chính chủ / FOLLOWERS / CIRCLE            ║
+// ║    3. CHỦ PIN CÒN SỐNG (26/08/2026) — `User.deletedAt IS NULL`            ║
+// ║                                                                           ║
+// ║  Luật 3 thêm sau, từ một sự cố THẬT: một tài khoản bị xoá (soft delete)   ║
+// ║  để lại 5 pin trong feed công khai. Middleware soft-delete lọc user đã    ║
+// ║  xoá khỏi mọi query ⇒ loader trả `null` cho `Pin.creator`, mà field đó    ║
+// ║  khai NON-NULLABLE ⇒ GraphQL huỷ TOÀN BỘ response `exploreFeed`, không    ║
+// ║  phải chỉ một thẻ. Triệu chứng: trang chủ TRẮNG với tất cả mọi người,     ║
+// ║  khách lẫn người đã đăng nhập, không một thông báo lỗi nào. Job purge có  ║
+// ║  ân hạn 30 ngày nên trạng thái hỏng đó kéo dài 30 ngày chứ không tự khỏi. ║
+// ║  ⇒ Đây KHÔNG phải luật thẩm mỹ. Gỡ nó ra là trang chủ trắng trở lại.      ║
+// ║                                                                           ║
 // ║  FAIL-CLOSED: thiếu định danh người xem ⇒ khách ⇒ CHỈ thấy PUBLIC.        ║
 // ║  (xahoi-phi-chuc-nang.md §1.2 — dự án đã dính lớp bug "im lặng trả false" ║
 // ║  với các field viewer-aware; với quyền riêng tư thì chiều sai là RÒ RỈ.)  ║
@@ -125,6 +139,8 @@ export function visiblePinWhere(ctx: PinAudienceCtx): any {
   return {
     AND: [
       { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      // Luật 3 (26/08/2026) — CHỦ PIN PHẢI CÒN SỐNG. Xem docblock đầu hàm.
+      { creator: { deletedAt: null } },
       { OR: audienceOr },
     ],
   };
@@ -173,7 +189,21 @@ export function visiblePinSql(
     );
   }
 
+  // Luật 3 — chủ pin phải còn sống (xem docblock đầu hàm).
+  //
+  // `EXISTS` chứ không `JOIN`: quan hệ 1-1 nên JOIN không nhân dòng, nhưng 5 câu
+  // gọi hàm này có alias khác nhau (`''`, `'p.'`, `'sp.'`) và một câu đã JOIN
+  // sẵn — thêm JOIN nữa là phải sửa cả 5 chỗ. `EXISTS` cắm được vào WHERE của
+  // bất kỳ câu nào mà không đụng tới mệnh đề FROM.
+  //
+  // Alias `cu` (creator user) chứ không phải `u`: `relatedPins` đã có alias
+  // `sp`/`p` cho hai bảng Pin, và một ngày nào đó có câu JOIN thêm `"User" u`
+  // thì trùng alias sẽ làm Postgres hiểu sang bảng khác — vẫn chạy, vẫn trả sai.
+  const creatorAlive =
+    `EXISTS (SELECT 1 FROM "User" cu WHERE cu."id" = ${col('creatorId')}` +
+    ` AND cu."deletedAt" IS NULL)`;
   return `((${col('expiresAt')} IS NULL OR ${col('expiresAt')} > now())
+           AND ${creatorAlive}
            AND (${audience.join('\n             OR ')}))`;
 }
 
@@ -185,6 +215,19 @@ export interface PinVisibilityFields {
   visibility: string;
   audienceCircleId: string | null;
   expiresAt: Date | string | null;
+  /**
+   * Luật 3 — chủ pin còn sống. TUỲ CHỌN vì hình thái này nhận pin đã fetch sẵn
+   * vì lý do khác, và phần lớn call-site không `include` quan hệ `creator`.
+   *
+   * `undefined` = bên gọi KHÔNG hỏi ⇒ bỏ qua luật 3 (giữ nguyên hành vi cũ,
+   * không âm thầm chặn thêm). `null` hoặc có `deletedAt` = chủ đã xoá ⇒ ẩn.
+   *
+   * ⚠️ Middleware soft-delete CHỈ vá `where` ở TẦNG TRÊN CÙNG của query, không
+   * đụng vào `include` lồng bên trong — nên `include: { creator: … }` trên Pin
+   * VẪN trả về bản ghi của user đã xoá, kèm `deletedAt` khác null. Đó là lý do
+   * phải so `deletedAt` chứ không chỉ kiểm tra `creator == null`.
+   */
+  creator?: { deletedAt: Date | string | null } | null;
 }
 
 /**
@@ -201,6 +244,12 @@ export function isPinVisibleInCtx(
 ): boolean {
   if (pin.expiresAt != null && new Date(pin.expiresAt) <= new Date()) {
     return false;
+  }
+
+  // Luật 3 — chủ pin còn sống. Đứng TRƯỚC nhánh `visibility === 'PUBLIC'`: pin
+  // của tài khoản đã xoá thì PUBLIC hay không cũng không còn ai để hiển thị tên.
+  if (pin.creator !== undefined) {
+    if (pin.creator === null || pin.creator.deletedAt != null) return false;
   }
 
   if (pin.visibility === 'PUBLIC') return true;

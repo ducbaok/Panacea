@@ -1,5 +1,8 @@
-query Categories {
-  categories {
+# `withPinsOnly` (26/08/2026): true ⇒ chỉ danh mục có ít nhất một pin mà NGƯỜI
+# ĐANG XEM thật sự mở ra được. Dải chip chủ đề ở trang chủ dùng true; onboarding
+# giữ mặc định false vì màn đó hỏi sở thích, không hỏi "xem gì được bây giờ".
+query Categories($withPinsOnly: Boolean = false) {
+  categories(withPinsOnly: $withPinsOnly) {
     id
     name
     slug

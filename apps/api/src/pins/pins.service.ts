@@ -746,9 +746,24 @@ export class PinsService {
   async findById(pinId: string, blockedIds: string[], audienceCtx: PinAudienceCtx) {
     const pin = await this.prisma.pin.findFirst({
       where: { id: pinId },
+      // Luật 3 (`visible-pins.util.ts`) — chủ pin còn sống. `include` để
+      // `isPinVisibleInCtx` bên dưới có dữ liệu mà xét; middleware soft-delete
+      // KHÔNG lọc quan hệ lồng nên user đã xoá vẫn về, kèm `deletedAt`.
+      //
+      // Bề mặt này là "URL thẳng" — nơi phép kiểm feed không bao giờ với tới.
+      // Thiếu nó thì một link cũ tới pin của tài khoản đã xoá trả 500 (loader
+      // trả null cho `Pin.creator` non-nullable) thay vì 404.
+      include: { creator: { select: { deletedAt: true } } },
     });
 
     if (!pin || pin.deletedAt || blockedIds.includes(pin.creatorId)) {
+      throw new NotFoundException('Pin not found');
+    }
+
+    // Ngoại lệ chính-chủ ở dưới KHÔNG áp cho luật 3: chủ đã xoá tài khoản thì
+    // không còn phiên nào để mà là "chính chủ", và pin phải biến mất kể cả khi
+    // ai đó còn giữ token cũ.
+    if (pin.creator == null || pin.creator.deletedAt != null) {
       throw new NotFoundException('Pin not found');
     }
 
@@ -1147,6 +1162,54 @@ export class PinsService {
     );
 
     return this._buildPaginatedResult(rows, first);
+  }
+
+  /**
+   * Danh mục CÓ ÍT NHẤT MỘT PIN mà `viewer` thật sự xem được.
+   *
+   * Vì sao cần hàm này chứ không đếm ở client: `Category` trong SDL không mang
+   * số đếm nào, nên frontend không có cách nào biết chip nào sẽ ra lưới rỗng.
+   * Trước 26/08/2026 chỗ đó được xử lý bằng một cờ tắt cứng cả dải chip
+   * (`explore-section.tsx`) — đúng triệu chứng, sai tầng.
+   *
+   * ⚠️ BỘ LỌC PHẢI TRÙNG KHỚP `exploreFeed`, KHÔNG ĐƯỢC ĐẾM THÔ. Đếm mọi pin
+   * của danh mục là quay lại đúng cái bẫy vừa gỡ, chỉ tinh vi hơn: một danh
+   * mục toàn pin ONLYME/CIRCLE/đã hết hạn/của người bị chặn vẫn hiện chip, bấm
+   * vào ra lưới trắng — và lần này lỗi chỉ lộ với ĐÚNG người dùng đó, không
+   * lộ khi ta tự thử. Ba mệnh đề dưới đây là bản sao y của `exploreFeed`:
+   * `deletedAt IS NULL` + `visiblePinSql(ctx)` + loại người bị chặn.
+   *
+   * `EXISTS` chứ không `COUNT`: câu hỏi là "có hay không", Postgres dừng ngay
+   * ở dòng đầu khớp. Index `_PinToCategory_AB_unique(A,B)` dẫn đầu bằng
+   * `A`=Category nên tra theo danh mục không cần index mới.
+   *
+   * ⚠️ `_PinToCategory`: A = Category.id, B = Pin.id (Prisma đặt theo thứ tự
+   * chữ cái TÊN MODEL). Đoán ngược không có lỗi cú pháp — câu SQL vẫn chạy và
+   * trả sai. Xem chú thích dài ở nhánh `categorySlug` của `exploreFeed`.
+   */
+  async categoriesWithVisiblePins(
+    blockedIds: string[],
+    audienceCtx: PinAudienceCtx,
+  ): Promise<any[]> {
+    const q = this._sqlParams();
+
+    const conds = ['p."deletedAt" IS NULL', visiblePinSql(audienceCtx, q, 'p.')];
+    const notInBlocked = this._notInBlocked(q, blockedIds, 'p.');
+    if (notInBlocked) conds.push(notInBlocked);
+
+    return this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT c."id", c."name", c."slug", c."icon"
+         FROM "Category" c
+        WHERE EXISTS (
+                SELECT 1
+                  FROM "_PinToCategory" pc
+                  JOIN "Pin" p ON p."id" = pc."B"
+                 WHERE pc."A" = c."id"
+                   AND ${conds.join(' AND ')}
+              )
+        ORDER BY c."name" ASC`,
+      ...q.values,
+    );
   }
 
   // ─── B-11: Related pins by tag ───────────────────────────────────────────────

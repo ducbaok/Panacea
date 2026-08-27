@@ -301,7 +301,7 @@ type Query {
   homeFeed(first: Int! = 20, after: String, source: FeedSource, circleId: ID): HomeFeed!
   pinViewers(pinId: ID!): [User!]!
   mentionSuggestions(pinId: ID!, q: String, first: Int = 10): [User!]!
-  categories: [Category!]!
+  categories(withPinsOnly: Boolean = false): [Category!]!
   tags(query: String, first: Int = 20): [Tag!]!
   notifications(first: Int! = 20, after: String): PaginatedNotifications!
   unreadNotificationCount: Float!

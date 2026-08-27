@@ -3,7 +3,11 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@apollo/client/react';
-import { CategoriesDocument, type CategoriesQuery } from '@/lib/gql/graphql';
+import {
+  CategoriesDocument,
+  type CategoriesQuery,
+  type CategoriesQueryVariables,
+} from '@/lib/gql/graphql';
 import { useExploreFeed } from '@/lib/hooks/usePaginatedQuery';
 import { PinGrid } from '@/components/pin/pin-grid';
 import { useT } from '@/lib/i18n/provider';
@@ -28,31 +32,37 @@ import { useT } from '@/lib/i18n/provider';
  */
 
 /**
- * Cờ ẩn dải chip chủ đề (25/08/2026).
+ * Dải chip chủ đề: từ 26/08/2026 KHÔNG còn cờ bật/tắt.
  *
- * Vì sao ẩn chứ KHÔNG xoá: 12 Category trong seed mới là bộ khung thô, chưa ai
- * gán nhãn cho pin thật ⇒ bấm chip ra lưới trống, người dùng tưởng app hỏng.
- * Toàn bộ cơ chế phía sau (state `categorySlug`, query `Categories`,
- * `CategoryChip`, biến `categorySlug` của `exploreFeed`, EXISTS trên
- * `_PinToCategory` ở backend) GIỮ NGUYÊN để đợt labeling sau bật lại bằng
- * đúng một dòng này. Đừng "dọn dẹp" code chết bên dưới.
+ * Lịch sử để không ai bật lại nhánh cũ: ngày 25/08 cả dải chip bị tắt cứng
+ * bằng `SHOW_CATEGORY_CHIPS = false`, lý do là 12 Category seed chưa gán nhãn
+ * cho pin nào ⇒ bấm chip ra lưới trống, người dùng tưởng app hỏng. Triệu chứng
+ * đúng, nhưng tầng sai: nó tắt luôn phần "Khám phá" của KHÁCH VÃNG LAI, vốn
+ * không có thanh tab nguồn nào khác để biết mình đang xem gì (26/08 người dùng
+ * báo lại: "chưa đăng nhập không có khám phá à, trống trơn thế").
  *
- * Kiểu `boolean` (không để TS thu hẹp về literal `false`) là cố ý: giữ nhánh
- * bật vẫn được kiểm kiểu, và so sánh `=== true` sau này không thành lỗi biên dịch.
+ * Cách chữa nay nằm ở BACKEND: `categories(withPinsOnly: true)` chỉ trả về
+ * danh mục có ít nhất một pin mà CHÍNH người đang xem mở ra được (cùng bộ lọc
+ * với `exploreFeed` — xem `PinsService.categoriesWithVisiblePins`). Chip nào
+ * hiện ra là chip đó chắc chắn có nội dung, nên không còn gì để tắt; gán nhãn
+ * thêm về sau thì chip tự mọc, không phải sửa code lần nữa.
  */
-const SHOW_CATEGORY_CHIPS: boolean = false;
 
 export function ExploreSection({ skip = false }: { skip?: boolean }) {
   const t = useT();
   const router = useRouter();
   const [categorySlug, setCategorySlug] = useState<string | null>(null);
 
-  // Cờ tắt ⇒ skip luôn query: chip không hiện thì bắn `Categories` chỉ tốn một
-  // vòng mạng ở MỌI lần mở trang chủ. `skip` gốc của caller vẫn được tôn trọng.
-  const catsQuery = useQuery<CategoriesQuery>(CategoriesDocument, {
-    skip: skip || !SHOW_CATEGORY_CHIPS,
+  const catsQuery = useQuery<CategoriesQuery, CategoriesQueryVariables>(CategoriesDocument, {
+    variables: { withPinsOnly: true },
+    skip,
   });
   const categories = catsQuery.data?.categories ?? [];
+
+  // Không danh mục nào có pin ⇒ ẩn CẢ dải, kể cả chip "Tất cả": một dải chỉ có
+  // đúng một chip không lọc được gì, nó chỉ chiếm chỗ và làm người dùng tưởng
+  // phần lọc đang hỏng. Cũng là đường đi của DB rỗng hoàn toàn.
+  const showChips = categories.length > 0;
 
   const exploreVars = useMemo(
     () => (categorySlug ? { categorySlug } : {}),
@@ -64,7 +74,7 @@ export function ExploreSection({ skip = false }: { skip?: boolean }) {
     <>
       {/* Dải chip tự mang padding ngang: PinGrid bên dưới PHẢI chạm mép để
           masonry tính đúng số cột (nó đo bề rộng container). */}
-      {SHOW_CATEGORY_CHIPS && (
+      {showChips && (
         <div style={{ padding: '0 16px' }}>
           <div
             role="tablist"

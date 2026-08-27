@@ -17,7 +17,13 @@
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
 import { Resolver, Query, Args, Int } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PinsService } from './pins.service';
+import { DataloaderService } from '../common/dataloader';
+import { GqlOptionalAuthGuard } from '../auth/guards/gql-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { Tag } from './entities/tag.entity';
 import { Category } from './entities/category.entity';
 
@@ -26,7 +32,11 @@ const TAGS_MAX_FIRST = 50;
 
 @Resolver()
 export class TaxonomyResolver {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pinsService: PinsService,
+    private readonly dataloaderService: DataloaderService,
+  ) {}
 
   /**
    * Toàn bộ 12 danh mục biên tập. Public — dùng cho màn hình onboarding, nơi
@@ -38,13 +48,35 @@ export class TaxonomyResolver {
    * đưa vào codebase style pagination thứ ba mà #14 đang cố gỡ. Với tập 12 bản
    * ghi do biên tập viên kiểm soát, trả hết một lần vừa đúng vừa rẻ hơn.
    *
+   * `withPinsOnly: true` (26/08/2026) đổi câu hỏi: KHÔNG phải "có những danh
+   * mục nào" mà "danh mục nào bấm vào ra được pin". Dải chip chủ đề ở trang
+   * chủ dùng nhánh này; onboarding vẫn dùng nhánh mặc định. Xem
+   * `PinsService.categoriesWithVisiblePins`.
+   *
    * Sắp theo `name` để thứ tự ổn định giữa các lần gọi — không có `orderBy`,
    * Postgres được phép trả về thứ tự bất kỳ và UI sẽ nhảy lung tung giữa hai
    * lần tải mà không ai đổi gì.
    */
   @Query(() => [Category], { name: 'categories' })
-  async categories() {
-    return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
+  @UseGuards(GqlOptionalAuthGuard)
+  async categories(
+    @Args('withPinsOnly', { type: () => Boolean, nullable: true, defaultValue: false })
+    withPinsOnly = false,
+    @CurrentUser() user?: AuthUser | null,
+  ) {
+    // Mặc định `false` để KHÔNG đổi hành vi của onboarding: màn đó phải cho
+    // chọn cả 12 chủ đề, kể cả chủ đề chưa có pin nào — nó hỏi sở thích, không
+    // hỏi "xem gì được bây giờ".
+    if (!withPinsOnly) {
+      return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
+    }
+
+    // Guard OPTIONAL: query này public (onboarding chạy khi chưa có tài khoản),
+    // token chỉ để BIẾT viewer. Khách vãng lai ⇒ user = null ⇒ ctx rỗng ⇒ chỉ
+    // đếm pin PUBLIC còn hạn — đúng thứ khách sẽ thấy khi bấm chip.
+    const blockedIds = await this.dataloaderService.blockedUserIds(user?.userId);
+    const audienceCtx = await this.dataloaderService.pinAudienceCtx(user?.userId);
+    return this.pinsService.categoriesWithVisiblePins(blockedIds, audienceCtx);
   }
 
   /**
