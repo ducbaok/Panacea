@@ -20,8 +20,24 @@ export const validationSchema = Joi.object({
   AUTH_SECRET: Joi.string().min(32).required(),
 
   // AWS
-  AWS_ACCESS_KEY_ID: Joi.string().required(),
-  AWS_SECRET_ACCESS_KEY: Joi.string().required(),
+  //
+  // 🔴 27/08/2026 — HAI BIẾN NÀY LÀ `optional()`, KHÔNG PHẢI `required()`.
+  //
+  // Trên ECS Fargate, credential AWS đến từ **task role** qua endpoint metadata
+  // của container, không phải từ key tĩnh trong env — `infra/iam.tf` cấp quyền
+  // S3 theo đúng đường đó và CỐ Ý không phát key nào. Để `required()` thì API
+  // chết ngay lúc boot với
+  //     Config validation error: "AWS_ACCESS_KEY_ID" is required
+  // và vì `essential = true`, cả task bị thay, lặp vô hạn. Đo được trên task
+  // thật 27/08: container `api` exit 1, service quay vòng PROVISIONING liên tục.
+  //
+  // ⚠️ Đây là ràng buộc của MÁY DEV bị viết thành luật của mọi môi trường —
+  // cùng họ với `s3.amazonaws.com` hardcode trong whitelist ảnh. `.env` của dev
+  // vẫn có hai biến này nên hành vi ở đó không đổi; thiếu chúng thì SDK tự đi
+  // chuỗi provider mặc định (xem `uploads.service.ts`, chỗ chỉ truyền
+  // `credentials` khi có ĐỦ CẢ HAI).
+  AWS_ACCESS_KEY_ID: Joi.string().optional(),
+  AWS_SECRET_ACCESS_KEY: Joi.string().optional(),
   AWS_REGION: Joi.string().default('ap-southeast-1'),
   S3_BUCKET_NAME: Joi.string().required(),
   S3_PROCESSED_BUCKET: Joi.string().required(),

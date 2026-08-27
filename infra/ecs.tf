@@ -291,13 +291,26 @@ resource "aws_ecs_task_definition" "migrate" {
     image     = "${aws_ecr_repository.this["api"].repository_url}:latest"
     essential = true
 
+    # 🔴 WORKDIR của image là `/app/apps/api`, KHÔNG phải `/app` — đo được
+    # 27/08/2026 bằng `docker run --entrypoint sh`. Thiếu dòng này thì mọi
+    # đường dẫn tương đối tới workspace đều trượt.
+    workingDirectory = "/app"
+
     # CHỈ `migrate deploy`. Không `migrate dev`, không `db push` — vĩnh viễn
     # (PLAN_HATANG §HT-6). Cũng KHÔNG chạy `db:seed`: seed tạo 5 tài khoản
     # mật khẩu `password123` và xoá sạch dữ liệu cũ trước khi ghi.
-    command = [
-      "npx", "--yes", "prisma", "migrate", "deploy",
-      "--schema", "packages/database/prisma/schema.prisma"
-    ]
+    #
+    # ⚠️ Bản cũ dùng `npx --yes prisma migrate deploy --schema packages/…` và
+    # CHẾT với `exit 127` + `sh: 1: prisma: not found` (đo 27/08 trên task thật).
+    # Hai lỗi chồng nhau: (a) sai thư mục làm việc như trên, (b) `npx --yes`
+    # không kéo được `prisma` trong container này nên nó rơi về tìm `prisma`
+    # trên PATH và không thấy.
+    #
+    # Bản này gọi ĐÚNG lệnh mà máy dev và CI đang dùng, nên không đẻ ra nguồn
+    # sự thật thứ hai. Image đã mang sẵn engine Linux của Prisma 5.22 trong
+    # `node_modules/.pnpm` (kiểm bằng `pnpm … exec prisma --version` trong
+    # chính image) ⇒ không cần tải gì lúc chạy, không phụ thuộc mạng.
+    command = ["pnpm", "--filter", "@antigravity/database", "exec", "prisma", "migrate", "deploy"]
 
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_ssm_parameter.app["DATABASE_URL"].arn }
