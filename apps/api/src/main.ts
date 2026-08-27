@@ -118,17 +118,55 @@ async function bootstrap() {
   );
 
   // ── CORS — HT-3 #5 ───────────────────────────────────────────────────────────
+  //
+  // 🔴 27/08/2026 — THÊM LUẬT "CÙNG HOST, KHÁC CỔNG", bật bằng
+  // `ALLOW_SAME_HOST_ORIGINS=true`. Đây là hệ quả trực tiếp của việc chọn hạ
+  // tầng KHÔNG có ALB, và nó giải một vòng lặp không hội tụ:
+  //
+  //   `WEB_URL` phải chứa `http://<IP công khai>:3000`, nhưng IP đó chỉ biết
+  //   SAU khi task chạy — và mỗi lần cập nhật rồi triển khai lại thì task mới
+  //   mang IP mới, làm giá trị vừa điền hết đúng. Sửa cho đúng lại tự làm sai.
+  //
+  // Web và API từ 27/08 nằm CHUNG MỘT TASK ⇒ chung một host, chỉ khác cổng
+  // (3000 và 4000). Nên "origin có hostname trùng với host của chính request
+  // này" là mệnh đề đúng, và nó không cần biết IP là gì.
+  //
+  // ⚠️ ĐÁNH ĐỔI, ghi rõ chứ không giấu: `Host` là header do CLIENT gửi, nên kẻ
+  // tấn công có thể gửi `Host: evil.com` + `Origin: http://evil.com` và qua
+  // được luật này. Chấp nhận được ở đây vì API xác thực bằng **Bearer token
+  // trong header**, không bằng cookie: trang của kẻ tấn công không có token
+  // của nạn nhân để mà gắn vào, nên cái CORS bảo vệ (trình duyệt tự đính kèm
+  // thông tin xác thực) không tồn tại ở luồng này. Cờ mặc định TẮT, và phải
+  // TẮT LẠI ngay khi có ALB/domain — lúc đó `WEB_URL` là một chuỗi cố định.
   const origins = allowedOrigins();
-  app.enableCors({
-    // Hàm chứ không mảng: cần cho phép cả request **không có** header `Origin`
-    // (curl, health check của ALB, app di động). Truyền mảng thì các request đó
-    // bị coi là origin không khớp và bị chặn — và ALB sẽ thấy task unhealthy.
-    origin: (origin, callback) => {
-      if (!origin || origins.includes(origin.replace(/\/+$/, ''))) return callback(null, true);
-      callback(new Error(`Origin ${origin} không nằm trong WEB_URL`), false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  const allowSameHost = process.env.ALLOW_SAME_HOST_ORIGINS === 'true';
+
+  app.enableCors((req: any, cb: any) => {
+    // Delegate (req, cb) thay vì object tĩnh: chỉ dạng này mới thấy được
+    // `req.headers.host`. Dạng object không nhận request bao giờ.
+    const selfHost = String(req?.headers?.host ?? '').split(':')[0];
+
+    cb(null, {
+      // Hàm chứ không mảng: cần cho phép cả request **không có** header `Origin`
+      // (curl, health check, app di động). Truyền mảng thì các request đó bị coi
+      // là origin không khớp và bị chặn — và health check sẽ thấy task unhealthy.
+      origin: (origin: string | undefined, callback: (e: Error | null, ok?: boolean) => void) => {
+        if (!origin) return callback(null, true);
+        const clean = origin.replace(/\/+$/, '');
+        if (origins.includes(clean)) return callback(null, true);
+
+        if (allowSameHost && selfHost) {
+          try {
+            if (new URL(clean).hostname === selfHost) return callback(null, true);
+          } catch {
+            // Origin không parse được ⇒ rơi xuống nhánh từ chối bên dưới.
+          }
+        }
+        callback(new Error(`Origin ${origin} không nằm trong WEB_URL`), false);
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    });
   });
 
   // ── Swagger — HT-3 #4: KHÔNG mở trên production ─────────────────────────────
@@ -208,7 +246,13 @@ async function bootstrap() {
       ? '🔒 production: Swagger TẮT · static /uploads TẮT · trust proxy = 1'
       : ` Swagger UI: http://localhost:${port}/api-docs`,
   );
-  logger.log(`🌐 CORS origin cho phép: ${origins.join(', ')}`);
+  // Dòng này là cách DUY NHẤT nhìn thấy CORS đang thực sự cho phép cái gì —
+  // giữ nó liệt kê đủ, kể cả luật cùng-host, nếu không thì lúc đi truy sự cố
+  // "bị CORS chặn" người ta sẽ đọc thiếu một nửa quy tắc.
+  logger.log(
+    `🌐 CORS origin cho phép: ${origins.join(', ')}` +
+      (allowSameHost ? ' · + mọi origin CÙNG HOST với request (ALLOW_SAME_HOST_ORIGINS=true)' : ''),
+  );
 }
 
 bootstrap();

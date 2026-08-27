@@ -1,3 +1,5 @@
+import { apiOrigin } from '@/lib/api-origin';
+
 /**
  * FE-7 §6.4 — Helper upload ảnh + đo kích thước cho luồng Tạo pin (B4).
  *
@@ -119,7 +121,9 @@ export function precheckVideoFile(file: File): UploadErrorKind | null {
   return null;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+// 27/08/2026 — gốc API suy LÚC GỌI, không đóng băng ở tầng module: trên
+// production không có ALB nên địa chỉ đến từ `window.location`. Xem
+// `lib/api-origin.ts` để biết vì sao nướng nó vào bundle là không hội tụ.
 
 /**
  * 🔴 27/08/2026 — HAI CỬA UPLOAD, chọn bằng biến BUILD-TIME.
@@ -199,7 +203,7 @@ export async function uploadBlob(
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/uploads/local`, {
+    res = await fetch(`${apiOrigin()}/uploads/local`, {
       method: 'POST',
       // KHÔNG set Content-Type — trình duyệt tự gắn multipart boundary.
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -262,7 +266,7 @@ async function uploadViaPresigned(
   // Bước 1 — xin chữ ký.
   let signRes: Response;
   try {
-    signRes = await fetch(`${API_BASE}/uploads/presigned-url`, {
+    signRes = await fetch(`${apiOrigin()}/uploads/presigned-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

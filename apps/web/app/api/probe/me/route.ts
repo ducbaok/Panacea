@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { loginWithPassword } from '@/lib/auth-backend';
+import { graphqlUrl } from '@/lib/api-origin';
 
 /**
  * FE-0 §8 phép 4 — bằng chứng chuỗi: web env → /auth/login → GraphQL /me.
@@ -26,8 +27,7 @@ export async function GET() {
   try {
     const { accessToken } = await loginWithPassword(SEED_EMAIL, SEED_PASSWORD);
 
-    const graphqlUrl = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://localhost:4000/graphql';
-    const gqlRes = await fetch(graphqlUrl, {
+    const gqlRes = await fetch(graphqlUrl(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

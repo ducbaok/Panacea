@@ -108,12 +108,28 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "raw" {
   }
 }
 
-# CORS: trình duyệt PUT thẳng lên S3 bằng presigned POST (uploads.service.ts).
+# CORS: trình duyệt POST thẳng lên S3 bằng presigned POST (uploads.service.ts).
+#
+# 🔴 `allowed_origins = ["*"]` chứ không phải `[var.web_url]` — 27/08/2026.
+#
+# Vì sao đổi: origin của web là `http://<IP task>:3000`, mà IP chỉ biết SAU khi
+# task chạy và ĐỔI mỗi lần task được thay. Điền giá trị tĩnh vào đây thì nó
+# đúng được đúng một lần deploy rồi sai, và triệu chứng là upload ảnh hỏng với
+# một lỗi CORS ở phía trình duyệt — không có log nào ở API hay S3 nói gì.
+#
+# Vì sao chấp nhận được, chứ không phải "mở cho tiện": CORS ở S3 chỉ quyết định
+# trình duyệt có ĐỌC ĐƯỢC PHẢN HỒI hay không; nó KHÔNG phải lớp xác thực. Muốn
+# ghi vào bucket này vẫn phải có chữ ký presigned POST còn hạn (5 phút), mà chữ
+# ký đó chỉ do `POST /uploads/presigned-url` cấp sau khi qua AuthGuard. Còn
+# ĐỌC thì bucket đang chặn công khai đủ 4 cờ — mọi lượt đọc đi qua CloudFront.
+# Nên một origin lạ gọi tới đây cũng không làm được gì mà nó chưa được cấp phép.
+#
+# ⚠️ SIẾT LẠI thành origin cố định ngay khi có ALB/domain.
 resource "aws_s3_bucket_cors_configuration" "raw" {
   bucket = aws_s3_bucket.raw.id
   cors_rule {
     allowed_methods = ["PUT", "POST", "GET"]
-    allowed_origins = [var.web_url]
+    allowed_origins = ["*"]
     allowed_headers = ["*"]
     max_age_seconds = 3000
   }

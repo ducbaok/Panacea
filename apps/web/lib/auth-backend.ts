@@ -19,8 +19,14 @@
  * Access token TTL = 15m (apps/api/src/config/configuration.ts:73).
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-const EXCHANGE_URL = process.env.EXCHANGE_ENDPOINT ?? `${API_URL}/auth/exchange`;
+import { apiOrigin } from '@/lib/api-origin';
+
+// 27/08/2026 — HÀM chứ không phải hằng. File này chỉ chạy phía máy chủ, nơi
+// `apiOrigin()` trả `API_INTERNAL_URL` (127.0.0.1:4000 — API là container cùng
+// task). Đóng băng ở tầng module thì giá trị bị chốt lúc bundle được nạp, còn
+// biến runtime thì có thể chưa có ở thời điểm đó.
+const API_URL = () => apiOrigin();
+const EXCHANGE_URL = () => process.env.EXCHANGE_ENDPOINT ?? `${API_URL()}/auth/exchange`;
 
 export interface TokenPair {
   accessToken: string;
@@ -79,7 +85,7 @@ export function normalizeEmail(raw: string | null | undefined): string {
 async function postJson(path: string, body: unknown, bearer?: string): Promise<Response> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (bearer) headers.Authorization = `Bearer ${bearer}`;
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL()}${path}`, {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
@@ -99,7 +105,7 @@ export async function exchangeOAuth(input: OAuthExchangeInput): Promise<TokenPai
       'AUTH_SECRET chưa được đặt trong apps/web/.env — Auth.js không thể gọi /auth/exchange.',
     );
   }
-  const res = await fetch(EXCHANGE_URL, {
+  const res = await fetch(EXCHANGE_URL(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

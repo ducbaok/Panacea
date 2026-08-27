@@ -123,6 +123,13 @@ resource "aws_ecs_task_definition" "app" {
         { name = "REDIS_URL", value = "redis://127.0.0.1:6379" },
         # 🔴 Thiếu WEB_URL ⇒ web production bị CORS chặn sạch (lỗ hổng #5 §1).
         { name = "WEB_URL", value = var.web_url },
+        # Luật "cùng host, khác cổng" — xem khối CORS trong apps/api/src/main.ts.
+        # BẮT BUỘC ở đợt không-ALB: origin của web là `http://<IP task>:3000`, mà
+        # IP chỉ biết sau khi task chạy và đổi mỗi lần task được thay ⇒ không có
+        # giá trị tĩnh nào điền vào WEB_URL mà đúng được quá một lần deploy.
+        # 🔴 ĐẶT LẠI "false" NGAY khi có ALB/domain: lúc đó WEB_URL là chuỗi cố
+        #    định và luật này chỉ còn là một chỗ nới lỏng không đổi lấy gì.
+        { name = "ALLOW_SAME_HOST_ORIGINS", value = "true" },
         { name = "APP_BASE_URL", value = var.web_url },
         { name = "AWS_REGION", value = var.region },
         { name = "S3_BUCKET_NAME", value = aws_s3_bucket.raw.bucket },
@@ -181,12 +188,18 @@ resource "aws_ecs_task_definition" "app" {
       environment = [
         { name = "NODE_ENV", value = "production" },
         { name = "PORT", value = "3000" },
-        # ⚠️ NEXT_PUBLIC_* được nhúng lúc BUILD chứ không phải lúc chạy. Đặt ở
-        #    đây chỉ tác dụng cho code chạy phía server. Muốn đổi cho phía trình
-        #    duyệt thì phải BUILD LẠI image Web — xem apps/web/Dockerfile.
-        { name = "NEXT_PUBLIC_API_URL", value = var.api_public_url },
-        # Render phía server gọi API qua localhost: không ra internet, không
-        # phụ thuộc IP công khai, và không tính tiền data transfer.
+        # 🔴 CỐ Ý KHÔNG đặt `NEXT_PUBLIC_API_URL` ở đây, và đó không phải thiếu
+        #    sót. Đặt nó ở task definition là VÔ NGHĨA cho trình duyệt (Next
+        #    inline mọi NEXT_PUBLIC_* lúc `next build`), mà lại có hại: nó khiến
+        #    người đọc tưởng địa chỉ API cấu hình được lúc chạy. Để TRỐNG thì
+        #    `lib/api-origin.ts` suy địa chỉ từ `window.location` — đúng vĩnh
+        #    viễn kể cả khi IP task đổi. Đọc docblock file đó trước khi thêm lại.
+        #
+        # Biến KHÔNG có tiền tố NEXT_PUBLIC_ ⇒ đọc được lúc chạy. Đây là đường
+        # mà render phía máy chủ dùng: API là container CÙNG task nên đi
+        # localhost — không ra internet, không phụ thuộc IP công khai, không
+        # tính tiền data transfer.
+        { name = "API_INTERNAL_URL", value = "http://127.0.0.1:4000" },
         { name = "EXCHANGE_ENDPOINT", value = "http://127.0.0.1:4000/auth/exchange" },
       ]
 

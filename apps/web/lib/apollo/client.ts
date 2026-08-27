@@ -6,6 +6,7 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient, type Client as WsClient } from 'graphql-ws';
 import { getAnonId } from '@/lib/anon-id';
+import { graphqlUrl, wsUrl } from '@/lib/api-origin';
 import type { WsStatus } from './ws-status';
 
 /**
@@ -46,12 +47,14 @@ export interface ApolloBundle {
   wsClient: WsClient | null;
 }
 
-const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://localhost:4000/graphql';
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:4000/graphql';
-
+// ⚠️ 27/08/2026 — TÍNH TRONG HÀM, KHÔNG phải hằng ở tầng module.
+// `graphqlUrl()`/`wsUrl()` đọc `window.location` khi không có biến khai tường
+// minh (xem `lib/api-origin.ts`). Ở tầng module, đoạn này chạy lúc bundle được
+// nạp — có thể là lúc prerender trên máy chủ, nơi `window` chưa tồn tại — nên
+// giá trị suy ra sẽ là nhánh máy chủ rồi ĐÓNG BĂNG cho cả phiên trình duyệt.
 export function createApolloClient(source: AccessTokenSource): ApolloBundle {
   const httpLink = new HttpLink({
-    uri: GRAPHQL_URL,
+    uri: graphqlUrl(),
     // credentials: 'omit' — backend chỉ chấp Bearer, không dựa cookie.
     credentials: 'omit',
   });
@@ -81,7 +84,7 @@ export function createApolloClient(source: AccessTokenSource): ApolloBundle {
     typeof window === 'undefined'
       ? null
       : createClient({
-          url: WS_URL,
+          url: wsUrl(),
           // `lazy` (mặc định true) ⇒ chỉ mở socket khi có subscription; đóng khi
           // hết subscription. Vì thế khách chưa đăng nhập không tốn kết nối.
           connectionParams: async () => {

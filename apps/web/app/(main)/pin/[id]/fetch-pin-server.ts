@@ -52,6 +52,8 @@ export type ServerPin = {
   };
 };
 
+import { graphqlUrl } from '@/lib/api-origin';
+
 const PIN_METADATA_QUERY = /* GraphQL */ `
   query PinForMetadata($id: ID!) {
     pin(id: $id) {
@@ -72,8 +74,13 @@ const PIN_METADATA_QUERY = /* GraphQL */ `
 
 function apiUrl(): string {
   // Trong dev: NEXT_PUBLIC_GRAPHQL_URL thường là http://localhost:4000/graphql.
-  // Ở server-side render, `fetch` cần URL tuyệt đối; process.env đã có.
-  return process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://localhost:4000/graphql';
+  // Ở server-side render, `fetch` cần URL tuyệt đối.
+  //
+  // 27/08/2026 — đi qua `graphqlUrl()` thay vì đọc env thẳng. Trên production
+  // biến NEXT_PUBLIC_* không được đặt (xem `lib/api-origin.ts`), và nhánh
+  // máy chủ của helper trả `API_INTERNAL_URL` = 127.0.0.1:4000 — API là
+  // container CÙNG task, nên lời gọi này không ra internet lần nào.
+  return graphqlUrl();
 }
 
 export async function fetchPinForServer(
