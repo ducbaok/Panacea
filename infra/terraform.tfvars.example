@@ -19,6 +19,21 @@ auth_secret = "DIEN_VAO_DAY_it_nhat_32_ky_tu"
 
 internal_api_secret = "DIEN_VAO_DAY_it_nhat_16_ky_tu"
 
+# ─── SMTP (27/08/2026) ────────────────────────────────────────────────────────
+# Bỏ trống CẢ HAI dòng user/password ⇒ hạ tầng vẫn dựng, nhưng MailService rơi
+# về nhánh console.log: token XÁC MINH EMAIL và ĐẶT LẠI MẬT KHẨU chỉ nằm trong
+# CloudWatch ⇒ người dùng không kích hoạt được tài khoản, không reset được mật
+# khẩu. Đây là mất tính năng thật, không phải thiếu sót thẩm mỹ.
+#
+# ⚠️ Điền MỘT trong hai (chỉ user, hoặc chỉ password) cũng bị coi là TẮT — xem
+#    `local.mail_enabled` ở iam.tf. Lý do: aws_ssm_parameter TỪ CHỐI chuỗi rỗng,
+#    nên một nửa cặp sẽ làm apply đỏ ở tận resource SSM.
+# mail_host     = "smtp.gmail.com"   # bỏ trống ⇒ API tự mặc định smtp.gmail.com
+# mail_port     = 587
+# mail_from     = "Antigravity <noreply@antigravity.app>"
+# mail_user     = ""
+# mail_password = ""
+
 # ─── Điền sau lần apply đầu (xem README §4) ───────────────────────────────────
 # web_url        = "http://<IP_CONG_KHAI_CUA_WEB>:3000"
 # api_public_url = "http://<IP_CONG_KHAI_CUA_API>:4000"
