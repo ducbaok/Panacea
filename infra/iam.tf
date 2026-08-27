@@ -81,7 +81,13 @@ resource "aws_iam_role_policy" "task_s3" {
 # là ~$2.4/tháng không cần tiêu (đòn bẩy giá §7.7).
 
 locals {
-  secrets = {
+  # SMTP chỉ được nạp khi điền ĐỦ CẢ HAI. Lý do không phải thẩm mỹ:
+  # `aws_ssm_parameter` TỪ CHỐI giá trị chuỗi rỗng, nên khai một secret rỗng là
+  # apply đỏ. Thiếu cấu hình mail ⇒ MailService rơi về nhánh console.log như ở
+  # CI — mất tính năng, nhưng không chặn cả hạ tầng.
+  mail_enabled = var.mail_user != "" && var.mail_password != ""
+
+  base_secrets = {
     BACKEND_JWT_SECRET   = var.backend_jwt_secret
     REFRESH_TOKEN_SECRET = var.refresh_token_secret
     AUTH_SECRET          = var.auth_secret
@@ -89,6 +95,18 @@ locals {
     DATABASE_URL         = "postgresql://${aws_db_instance.main.username}:${urlencode(var.db_password)}@${aws_db_instance.main.address}:5432/${aws_db_instance.main.db_name}"
     REDIS_URL            = "redis://${aws_elasticache_replication_group.main.primary_endpoint_address}:6379"
   }
+
+  mail_secrets = local.mail_enabled ? {
+    MAIL_USER = var.mail_user
+    MAIL_PASS = var.mail_password
+  } : {}
+
+  secrets = merge(local.base_secrets, local.mail_secrets)
+
+  # Danh sách khoá mà container API nạp qua `secrets`. Suy từ chính `local.secrets`
+  # để không đẻ ra bản sao thứ hai phải nhớ sửa song song — trừ AUTH_SECRET, thứ
+  # duy nhất cả API lẫn Web cùng dùng nên vẫn khai riêng ở task Web.
+  api_secret_keys = keys(local.secrets)
 }
 
 # ⚠️ urlencode() ở DATABASE_URL không thừa: mật khẩu chứa `@` mà không

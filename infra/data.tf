@@ -99,7 +99,9 @@ resource "aws_s3_bucket" "raw" {
 data "aws_caller_identity" "current" {}
 
 # Block public access TOÀN PHẦN — PLAN_DEPLOYMENT §1. Ảnh ra ngoài qua
-# CloudFront + OAC ở đợt sau; hiện tại app đọc/ghi bằng IAM task role.
+# CloudFront + OAC (`cdn.tf`, dựng 27/08/2026); app ghi bằng presigned POST ký
+# bằng IAM task role. Bốn cờ này GIỮ NGUYÊN kể cả sau khi có CDN — đó chính là
+# điểm của OAC: không có đường nào đọc bucket ngoài distribution đã khai.
 resource "aws_s3_bucket_public_access_block" "raw" {
   bucket                  = aws_s3_bucket.raw.id
   block_public_acls       = true

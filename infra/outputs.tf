@@ -45,3 +45,17 @@ output "api_security_group" {
   description = "SG dùng cho lệnh chạy task migration one-off."
   value       = aws_security_group.api.id
 }
+
+output "cloudfront_domain" {
+  description = "Domain CDN đọc ảnh/video. Đây là giá trị CLOUDFRONT_DOMAIN của API, và là host được thêm vào whitelist của createPin."
+  value       = aws_cloudfront_distribution.media.domain_name
+}
+
+output "mail_enabled" {
+  description = "SMTP có được nạp không. false ⇒ token verify/reset chỉ nằm trong log, người dùng không nhận được mail."
+  # `nonsensitive()` vì `mail_enabled` suy từ hai biến sensitive nên Terraform
+  # lây nhãn đó sang cả boolean. Ở đây chỉ có true/false — không rò rỉ gì, và
+  # đánh dấu sensitive sẽ in ra `(sensitive value)`, đúng thứ output này sinh ra
+  # để tránh: không thấy được thì không ai nhớ rằng mail đang tắt.
+  value = nonsensitive(local.mail_enabled)
+}

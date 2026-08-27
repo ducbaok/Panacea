@@ -62,6 +62,7 @@ import {
   decodeKeysetValues,
   keysetPage,
 } from '../common/pagination';
+import { mediaHostWhitelist } from '../common/media/media-host.util';
 import { FeedSource } from './entities/home-feed.entity';
 
 export interface PaginatedResult<T> {
@@ -78,12 +79,13 @@ export interface PaginatedResult<T> {
  * domain mới, và cái quên đó không nổ ở đâu cả — nó chỉ chặn đúng một biến thể
  * ảnh và người dùng thấy lưới vỡ ảnh.
  */
-const IMAGE_URL_WHITELIST = [
-  'localhost',
-  's3.amazonaws.com',
-  'storage.googleapis.com',
-  'res.cloudinary.com',
-];
+// 27/08/2026 — danh sách này KHÔNG còn viết tay ở đây. Host công khai của
+// media phụ thuộc môi trường (bucket + region + CloudFront), và bản hardcode cũ
+// TRƯỢT chính bucket của mình trên production. Nguồn sự thật:
+// `common/media/media-host.util.ts` — đọc docblock đầu file đó trước khi sửa.
+// Tính một lần trong constructor: `mediaHostWhitelist` đọc env qua ConfigService
+// và env không đổi giữa chừng, nhưng `assertImageUrlAllowed` chạy 4 lần cho MỖI
+// createPin (XH-9a) — dựng lại mảng ở mỗi lần gọi là rác không cần thiết.
 
 /**
  * Cửa sổ đếm của trần tạo pin, tính bằng giây. Cố định 60 vì XH-QĐ-12 nói
@@ -117,6 +119,9 @@ export class PinsService {
    */
   private readonly pinCreatePerMin: number;
 
+  /** Host được phép cho mọi URL media — xem `common/media/media-host.util.ts`. */
+  private readonly imageHostWhitelist: string[];
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
@@ -126,6 +131,11 @@ export class PinsService {
     private readonly configService: ConfigService,
   ) {
     this.pinCreatePerMin = this.configService.get<number>('pins.createPerMin') ?? PIN_CREATE_PER_MIN_DEFAULT;
+    this.imageHostWhitelist = mediaHostWhitelist({
+      cloudfrontDomain: this.configService.get<string>('aws.cloudfrontDomain'),
+      s3BucketName: this.configService.get<string>('aws.s3BucketName'),
+      region: this.configService.get<string>('aws.region'),
+    });
   }
 
   // ─── Taxonomy (Đợt 6) ────────────────────────────────────────────────────────
@@ -215,7 +225,7 @@ export class PinsService {
       // là thứ phải chặn — 3 biến thể của XH-9a bắt buộc là URL TUYỆT ĐỐI.
       throw new BadRequestException(`Invalid ${label}`);
     }
-    const ok = IMAGE_URL_WHITELIST.some(
+    const ok = this.imageHostWhitelist.some(
       (domain) => url.hostname === domain || url.hostname.endsWith('.' + domain),
     );
     if (!ok) {

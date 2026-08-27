@@ -19,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 import { S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost, PresignedPost } from '@aws-sdk/s3-presigned-post';
 import { randomUUID } from 'crypto';
+import { mediaPublicUrl } from '../common/media/media-host.util';
 
 /**
  * Mapping contentType → file extension.
@@ -81,6 +82,21 @@ export interface PresignedUrlResult {
   fields: Record<string, string>;
   /** Object key trên S3 — client cần gửi lại key này khi createPin */
   key: string;
+  /**
+   * URL công khai ổn định của object SAU KHI upload xong — chuỗi client nhét
+   * thẳng vào `createPin.imageUrl` / `videoUrl`.
+   *
+   * 🔴 Vì sao SERVER trả chứ không để client tự ghép: đích đến phụ thuộc
+   * CloudFront có được dựng hay không (`CLOUDFRONT_DOMAIN`), và client là
+   * Next.js — mọi biến `NEXT_PUBLIC_*` bị nướng vào bundle lúc BUILD. Để client
+   * ghép nghĩa là mỗi lần đổi hạ tầng đọc ảnh phải build lại image Web, và nếu
+   * quên thì URL sai được LƯU VĨNH VIỄN vào DB. Server biết đáp án lúc chạy.
+   *
+   * `null` ⇒ chưa cấu hình đường đọc nào (thiếu cả CloudFront lẫn bucket+region).
+   * Đó là lỗi cấu hình thật, nên để `null` lộ ra chứ không bịa một URL trông
+   * hợp lệ mà 404.
+   */
+  publicUrl: string | null;
 }
 
 @Injectable()
@@ -90,13 +106,29 @@ export class UploadsService {
   private readonly bucketName: string;
 
   constructor(private readonly configService: ConfigService) {
-    // Khởi tạo S3Client với credentials từ env
+    const accessKeyId = this.configService.get<string>('aws.accessKeyId');
+    const secretAccessKey = this.configService.get<string>('aws.secretAccessKey');
+
+    // 🔴 27/08/2026 — KHÔNG ép `credentials` khi env không có key.
+    //
+    // Bản cũ luôn truyền `{ accessKeyId: …!, secretAccessKey: …! }`. Dấu `!`
+    // chỉ tắt tiếng TypeScript; lúc chạy trên ECS Fargate thì HAI biến đó
+    // KHÔNG tồn tại (Terraform cấp quyền bằng *task role*, không phát key
+    // tĩnh — `iam.tf`), nên object trở thành `{undefined, undefined}`. Truyền
+    // credentials rỗng KHÁC HẲN việc không truyền gì: nó CHẶN chuỗi provider
+    // mặc định của SDK — thứ duy nhất biết cách lấy credential của task role
+    // qua endpoint container. Hậu quả: presigned URL vẫn sinh ra (ký bằng
+    // chuỗi rỗng, không cần mạng nên không lỗi ở API) và chỉ chết lúc trình
+    // duyệt POST lên S3 — lỗi hiện ra ở phía CLIENT, cách xa nguyên nhân.
+    //
+    // `undefined` ⇒ SDK tự đi chuỗi mặc định: env → SSO → task role. Máy dev
+    // vẫn dùng key trong `.env` như cũ vì nhánh dưới còn nguyên.
+    const credentials =
+      accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined;
+
     this.s3Client = new S3Client({
       region: this.configService.get<string>('aws.region')!,
-      credentials: {
-        accessKeyId: this.configService.get<string>('aws.accessKeyId')!,
-        secretAccessKey: this.configService.get<string>('aws.secretAccessKey')!,
-      },
+      credentials,
     });
     this.bucketName = this.configService.get<string>('aws.s3BucketName')!;
   }
@@ -148,6 +180,14 @@ export class UploadsService {
       url: presigned.url,
       fields: presigned.fields,
       key,
+      publicUrl: mediaPublicUrl(
+        {
+          cloudfrontDomain: this.configService.get<string>('aws.cloudfrontDomain'),
+          s3BucketName: this.bucketName,
+          region: this.configService.get<string>('aws.region'),
+        },
+        key,
+      ),
     };
   }
 }

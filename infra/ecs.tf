@@ -60,13 +60,23 @@ resource "aws_ecs_task_definition" "api" {
       { name = "AWS_REGION", value = var.region },
       { name = "S3_BUCKET_NAME", value = aws_s3_bucket.raw.bucket },
       { name = "S3_PROCESSED_BUCKET", value = aws_s3_bucket.raw.bucket },
-      { name = "CLOUDFRONT_DOMAIN", value = "not-configured" },
+      # 27/08/2026 — CDN đã dựng thật (cdn.tf). API dùng giá trị này để (a) ghép
+      # `publicUrl` trả về cho client sau presigned POST và (b) cho chính domain
+      # đó vào whitelist của createPin. Cả hai ở `common/media/media-host.util.ts`.
+      { name = "CLOUDFRONT_DOMAIN", value = aws_cloudfront_distribution.media.domain_name },
       { name = "GOOGLE_CLIENT_ID", value = var.google_client_id },
       { name = "FIREBASE_SERVICE_ACCOUNT", value = "{}" },
+      # 🔴 Thiếu MAIL_* ⇒ MailService rơi về nhánh console.log: token xác minh
+      #    email và token đặt lại mật khẩu chỉ nằm trong CloudWatch, người dùng
+      #    KHÔNG BAO GIỜ nhận được. Hai luồng đó đã implement và có phép verify,
+      #    nên đây là mất tính năng thật chứ không phải thiếu sót thẩm mỹ.
+      { name = "MAIL_HOST", value = var.mail_host },
+      { name = "MAIL_PORT", value = tostring(var.mail_port) },
+      { name = "MAIL_FROM", value = var.mail_from },
     ]
 
     secrets = [
-      for k in ["DATABASE_URL", "REDIS_URL", "BACKEND_JWT_SECRET", "REFRESH_TOKEN_SECRET", "AUTH_SECRET", "INTERNAL_API_SECRET"] :
+      for k in local.api_secret_keys :
       { name = k, valueFrom = aws_ssm_parameter.app[k].arn }
     ]
 

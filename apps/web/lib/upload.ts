@@ -122,6 +122,46 @@ export function precheckVideoFile(file: File): UploadErrorKind | null {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 /**
+ * 🔴 27/08/2026 — HAI CỬA UPLOAD, chọn bằng biến BUILD-TIME.
+ *
+ * `POST /uploads/local` ghi vào đĩa của tiến trình API. Trên ECS Fargate
+ * filesystem là **ephemeral** và không chia sẻ giữa các task, nên API đã CHẶN
+ * CỨNG cửa đó khi `NODE_ENV=production` (`uploads.controller.ts` — ném 403).
+ * Trước bản này frontend không có cửa nào khác ⇒ đẩy lên AWS là tạo pin, đổi
+ * avatar, ảnh bìa và đăng video đều chết, còn thông điệp thì nói về "local
+ * upload" nên rất dễ bị đọc thành lỗi cấu hình lặt vặt.
+ *
+ * ⚠️ `NEXT_PUBLIC_*` bị Next **nướng vào bundle lúc build**, không đọc lúc
+ * chạy — đổi biến ở task definition KHÔNG có tác dụng cho code chạy trong
+ * trình duyệt. Image Web của production phải build kèm
+ * `--build-arg NEXT_PUBLIC_UPLOAD_MODE=s3` (xem `apps/web/Dockerfile`).
+ *
+ * Mặc định `local` có chủ đích: máy dev và toàn bộ bộ verify đang chạy đường
+ * đó, và một mặc định `s3` sẽ làm chúng hỏng im lặng ở máy không có AWS.
+ */
+const UPLOAD_MODE = process.env.NEXT_PUBLIC_UPLOAD_MODE === 's3' ? 's3' : 'local';
+
+/** Thư mục phân loại object key — khớp `PresignedUrlDto` phía API. */
+export type UploadFolder = 'pins' | 'avatars';
+
+/** Suy content type khi `Blob.type` rỗng (một số Blob dựng tay không mang type). */
+function contentTypeOf(blob: Blob, filename: string): string {
+  const fromBlob = normalizeMime(blob.type);
+  if (fromBlob) return fromBlob;
+  const ext = filename.toLowerCase().split('.').pop() ?? '';
+  const byExt: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    webm: 'video/webm',
+    mp4: 'video/mp4',
+  };
+  return byExt[ext] ?? '';
+}
+
+/**
  * Tải một ảnh lên `POST /uploads/local`. Ném `UploadError` với `kind` phân loại.
  * @param accessToken lấy từ `useSession().accessToken` — thiếu ⇒ ném 'unauthorized'.
  */
@@ -144,9 +184,14 @@ export async function uploadBlob(
   blob: Blob,
   filename: string,
   accessToken: string | null | undefined,
+  folder: UploadFolder = 'pins',
 ): Promise<UploadResult> {
   if (!accessToken) {
     throw new UploadError('unauthorized', { serverMessage: 'Thiếu accessToken phiên' });
+  }
+
+  if (UPLOAD_MODE === 's3') {
+    return uploadViaPresigned(blob, filename, accessToken, folder);
   }
 
   const fd = new FormData();
@@ -181,6 +226,110 @@ export async function uploadBlob(
   }
 
   throw mapUploadStatus(res.status, await readServerMessage(res));
+}
+
+/**
+ * Nhánh production: xin phép API rồi POST THẲNG lên S3, byte ảnh không đi qua
+ * API một lần nào.
+ *
+ * Ba bẫy của Presigned POST, cả ba đều im lặng nếu làm sai:
+ *
+ *  1. **Field `file` phải là field CUỐI CÙNG.** S3 đọc form theo thứ tự và bỏ
+ *     qua mọi field đứng SAU phần nội dung file. Đặt `file` lên trước thì
+ *     policy/signature nằm sau nó bị bỏ qua ⇒ 403 "missing fields" mà không
+ *     nói field nào.
+ *  2. **Không tự set `Content-Type` của request.** Đây là multipart, boundary
+ *     do trình duyệt sinh. Field `Content-Type` bên TRONG form (do API trả về
+ *     trong `fields`) mới là thứ khớp với điều kiện `['eq','$Content-Type',…]`
+ *     — hai thứ tên giống nhau, tầng khác nhau.
+ *  3. **S3 trả 204 KHÔNG CÓ BODY khi thành công.** `res.json()` sẽ ném. Điều
+ *     kiện đạt là `res.ok`, không phải body.
+ *
+ * URL trả về lấy từ `publicUrl` của API chứ không ghép ở đây — xem docblock
+ * `PresignedUrlResult` phía API để biết vì sao phía client không được tự bịa.
+ */
+async function uploadViaPresigned(
+  blob: Blob,
+  filename: string,
+  accessToken: string,
+  folder: UploadFolder,
+): Promise<UploadResult> {
+  const contentType = contentTypeOf(blob, filename);
+  if (!contentType) {
+    throw new UploadError('unsupported-type', { serverMessage: 'Không xác định được kiểu file' });
+  }
+
+  // Bước 1 — xin chữ ký.
+  let signRes: Response;
+  try {
+    signRes = await fetch(`${API_BASE}/uploads/presigned-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ contentType, folder }),
+    });
+  } catch {
+    throw new UploadError('network');
+  }
+
+  if (!signRes.ok) {
+    throw mapUploadStatus(signRes.status, await readServerMessage(signRes));
+  }
+
+  let signed: { url?: string; fields?: Record<string, string>; key?: string; publicUrl?: string | null };
+  try {
+    signed = await signRes.json();
+  } catch {
+    throw new UploadError('unknown', {
+      status: signRes.status,
+      serverMessage: 'Phản hồi presigned không phải JSON',
+    });
+  }
+
+  if (!signed.url || !signed.fields || !signed.key) {
+    throw new UploadError('unknown', {
+      status: signRes.status,
+      serverMessage: 'Phản hồi presigned thiếu url/fields/key',
+    });
+  }
+  if (!signed.publicUrl) {
+    // Cấu hình hạ tầng thiếu đường ĐỌC (không CloudFront, không bucket+region).
+    // Dừng TRƯỚC khi upload: đẩy byte lên rồi mới phát hiện không có URL để lưu
+    // là để lại rác trong bucket và vẫn hỏng.
+    throw new UploadError('unknown', {
+      status: signRes.status,
+      serverMessage: 'Máy chủ chưa cấu hình đường đọc media (publicUrl rỗng)',
+    });
+  }
+
+  // Bước 2 — POST thẳng lên S3. Thứ tự field là bắt buộc (bẫy 1).
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(signed.fields)) fd.append(k, v);
+  fd.append('file', blob, filename);
+
+  let putRes: Response;
+  try {
+    putRes = await fetch(signed.url, { method: 'POST', body: fd });
+  } catch {
+    // CORS của bucket thiếu origin cũng rơi vào đây — `fetch` ném chứ không trả
+    // response. Nếu gặp "network" ở đúng bước này mà mạng vẫn tốt, nghi CORS
+    // của bucket trước tiên (`infra/data.tf` → aws_s3_bucket_cors_configuration).
+    throw new UploadError('network');
+  }
+
+  if (!putRes.ok) {
+    // S3 trả lỗi bằng XML, không phải JSON NestJS. `EntityTooLarge` là vi phạm
+    // `content-length-range` — ánh xạ về đúng kind mà màn hình đã có chuỗi.
+    const body = await readServerMessage(putRes);
+    if (putRes.status === 400 && (body ?? '').includes('EntityTooLarge')) {
+      throw new UploadError('too-large', { status: 413, serverMessage: body });
+    }
+    throw new UploadError('unknown', { status: putRes.status, serverMessage: body });
+  }
+
+  return { url: signed.publicUrl, key: signed.key };
 }
 
 /** Map (status, message) → UploadError. 413 nhận theo status (body có thể rỗng). */

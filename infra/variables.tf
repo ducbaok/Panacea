@@ -137,3 +137,44 @@ variable "api_public_url" {
   type        = string
   default     = "http://127.0.0.1:4000"
 }
+
+# ─── SMTP (27/08/2026) ────────────────────────────────────────────────────────
+# Bảng env §6 của PLAN_DEPLOYMENT khai MAIL_*, nhưng task definition trước đây
+# không nạp dòng nào. Hệ quả đo được: `MailService` rơi về nhánh console.log,
+# nên token XÁC MINH EMAIL và token ĐẶT LẠI MẬT KHẨU chỉ tồn tại trong log
+# CloudWatch — người dùng không bao giờ kích hoạt được tài khoản.
+#
+# Để trống CẢ HAI biến user/password nếu chưa có SMTP: hạ tầng vẫn dựng, chỉ mất
+# tính năng gửi mail (xem `local.mail_enabled` ở iam.tf).
+
+variable "mail_host" {
+  description = "SMTP host. Bỏ trống nếu chưa có."
+  type        = string
+  default     = ""
+}
+
+variable "mail_port" {
+  description = "SMTP port (587 = STARTTLS)."
+  type        = number
+  default     = 587
+}
+
+variable "mail_from" {
+  description = "Địa chỉ hiển thị ở trường From."
+  type        = string
+  default     = "Antigravity <noreply@antigravity.app>"
+}
+
+variable "mail_user" {
+  description = "Tài khoản SMTP. Rỗng ⇒ tắt gửi mail."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "mail_password" {
+  description = "Mật khẩu/app-password SMTP. Rỗng ⇒ tắt gửi mail."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
