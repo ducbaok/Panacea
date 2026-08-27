@@ -81,7 +81,16 @@ infra/**/*.tfstate.*
 # qua mot lenh `git add -A`. Secret cua account da xoa, chua tung chay that,
 # nhung van la secret nam trong lich su git.
 infra/**/terraform.tfvars*
+# 🔴 FILE PLAN CHUA SECRET DANG RO — khong phai chi la file tam.
+# `terraform plan -out=<file>` ghi GIA TRI DA GIAI cua moi bien vao do, ke ca
+# bien khai `sensitive = true`. Nhan sensitive chi giau gia tri khoi MAN HINH,
+# khong ma hoa file. Nen mot file plan lot vao git la ro ri y het tfvars.
+# Chan ca ten khong duoi (`-out=tfplan.bin`, `-out=tfplan`) lan file text
+# `plan.txt` sinh ra khi chuyen huong dau ra.
 infra/**/*.tfplan
+infra/**/tfplan*
+infra/**/plan*.txt
+infra/**/*.log
 # Tan du cua account AWS cu (state + log + tfvars sao luu) — giu tren dia lam
 # duong lui, khong bao gio vao git.
 .old-aws-*/

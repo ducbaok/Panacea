@@ -21,10 +21,8 @@ output "rds_address" {
   value       = aws_db_instance.main.address
 }
 
-output "redis_address" {
-  description = "Host Redis (chỉ nối được từ trong VPC)."
-  value       = aws_elasticache_replication_group.main.primary_endpoint_address
-}
+# `redis_address` đã gỡ 27/08/2026 — Valkey là container phụ trong task ứng
+# dụng, địa chỉ luôn là `redis://127.0.0.1:6379` nên không có gì để output.
 
 output "s3_raw_bucket" {
   description = "Bucket ảnh gốc."
@@ -41,9 +39,9 @@ output "subnet_ids" {
   value       = data.aws_subnets.default.ids
 }
 
-output "api_security_group" {
+output "app_security_group" {
   description = "SG dùng cho lệnh chạy task migration one-off."
-  value       = aws_security_group.api.id
+  value       = aws_security_group.app.id
 }
 
 output "cloudfront_domain" {

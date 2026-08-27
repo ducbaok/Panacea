@@ -1,9 +1,13 @@
 # ╔═══════════════════════════════════════════════════════════════════════════╗
-# ║  data.tf — RDS Postgres + ElastiCache Redis                               ║
+# ║  data.tf — RDS Postgres + S3 (ElastiCache đã gỡ 27/08/2026, xem §Redis)   ║
 # ║                                                                           ║
-# ║  Cả hai đều `publicly_accessible = false` — nằm trong VPC, kể cả khi       ║
-# ║  subnet là public (§8.F). Máy dev muốn nối DB prod thì port-forward qua    ║
+# ║  RDS `publicly_accessible = false` — nằm trong VPC, kể cả khi subnet là    ║
+# ║  public (§8.F). Máy dev muốn nối DB prod thì port-forward qua              ║
 # ║  `aws ssm start-session`, ĐỪNG mở 5432 ra internet.                        ║
+# ║                                                                           ║
+# ║  💰 RDS nay là dòng chi phí LỚN NHẤT: $18.25/tháng cho instance            ║
+# ║  (db.t4g.micro, $0.025/giờ) + ~$2.5 storage. Nó cũng là thứ duy nhất ở đây ║
+# ║  KHÔNG gộp vào task được — dữ liệu thật không sống trên đĩa ephemeral.     ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 # ─── Postgres ─────────────────────────────────────────────────────────────────
@@ -52,43 +56,28 @@ resource "aws_db_instance" "main" {
   # mà chưa có traffic để nhìn.
 }
 
-# ─── Redis ────────────────────────────────────────────────────────────────────
-
-resource "aws_elasticache_subnet_group" "main" {
-  name       = "${var.project}-redis-subnets"
-  subnet_ids = data.aws_subnets.default.ids
-}
-
-# 🔴 PHẢI dùng `aws_elasticache_replication_group`, KHÔNG dùng
+# ─── Redis / Valkey — ĐÃ GỠ KHỎI HẠ TẦNG 27/08/2026 ───────────────────────────
+#
+# ElastiCache `cache.t4g.micro` Valkey = **$14.02/tháng** (Pricing API,
+# ap-southeast-1, 27/08 — $0.0192/giờ × 730). Đó là 17% tổng chi phí cho một
+# thứ chỉ giữ ba bộ đếm có TTL ngắn: khoá brute-force, hạn mức tạo pin, và
+# backlog pub/sub của GraphQL Subscriptions.
+#
+# Nay Valkey chạy làm CONTAINER PHỤ trong chính task ứng dụng (`ecs.tf`), nghe
+# trên 127.0.0.1 của network namespace — $0 thêm ngoài 256MB RAM.
+#
+# 🔴 CÁI GIÁ, ghi ở đây để người dựng lại không phải đi tìm: bộ đếm không còn
+# CHIA SẺ giữa các instance. Vì vậy `desired_count` của service bị khoá ở 1.
+# Muốn chạy nhiều task thì DỰNG LẠI khối này TRƯỚC KHI nâng số đó.
+#
+# ⚠️ Khi dựng lại, PHẢI dùng `aws_elasticache_replication_group`, KHÔNG dùng
 # `aws_elasticache_cluster` — đo được 18/08/2026 bằng một lần apply hỏng:
-#   InvalidParameterValue: This API doesn't support Valkey engine.
-#   Please use CreateReplicationGroup API for Valkey cluster creation.
+#     InvalidParameterValue: This API doesn't support Valkey engine.
+#     Please use CreateReplicationGroup API for Valkey cluster creation.
 # `aws_elasticache_cluster` gọi CreateCacheCluster, mà API đó không nhận Valkey.
-# ⚠️ `terraform validate` VÀ `terraform plan` đều xanh với bản sai — ràng buộc
-#    này chỉ sống ở tầng API của AWS, không có trong schema provider.
-resource "aws_elasticache_replication_group" "main" {
-  replication_group_id = "${var.project}-redis"
-  description          = "Antigravity - pubsub, khoa brute-force, debounce tracking"
-
-  # Valkey thay Redis OSS: tương thích giao thức, rẻ hơn ~20% (đòn bẩy giá §7.4).
-  # ioredis của app nói chuyện bình thường, không đổi dòng code nào.
-  engine         = "valkey"
-  engine_version = "7.2"
-  node_type      = var.redis_node_type
-  port           = 6379
-
-  # Một node duy nhất ⇒ không bật failover (bật là đòi ≥2 node = gấp đôi tiền).
-  num_cache_clusters         = 1
-  automatic_failover_enabled = false
-
-  subnet_group_name  = aws_elasticache_subnet_group.main.name
-  security_group_ids = [aws_security_group.redis.id]
-
-  # ⚠️ KHÔNG bật transit encryption: bật là REDIS_URL phải đổi sang `rediss://`
-  # và phải sửa cả 3 chỗ app dùng Redis. Để dành một đợt riêng.
-  transit_encryption_enabled = false
-  at_rest_encryption_enabled = true
-}
+# Ràng buộc này chỉ sống ở tầng API của AWS, không có trong schema provider ⇒
+# `terraform validate` VÀ `terraform plan` đều XANH với bản sai. Bản đầy đủ đã
+# chạy được nằm trong lịch sử git, commit trước 27/08/2026.
 
 # ─── S3: ảnh gốc ──────────────────────────────────────────────────────────────
 

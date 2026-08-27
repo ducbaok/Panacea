@@ -25,28 +25,31 @@ variable "project" {
 # ─── Cỡ máy ───────────────────────────────────────────────────────────────────
 # Số lấy từ RSS đo được, không đoán — docs/phan-tich-ha-tang §3.1.
 
-variable "api_cpu" {
-  description = "CPU cho task API (đơn vị 1024 = 1 vCPU)."
+# 27/08/2026 — MỘT task duy nhất chứa cả ba container (api · web · valkey), nên
+# chỉ còn một cặp cpu/memory thay cho hai cặp api_*/web_* trước đây.
+#
+# 💰 Giá thật ap-southeast-1 (Pricing API, 27/08): vCPU $0.05056/giờ =
+# $36.91/tháng · RAM $0.00553/giờ/GB = $4.04/tháng/GB.
+#   ⇒ 512 CPU + 2048 MiB = 0.5 × 36.91 + 2 × 4.04 = **$26.54/tháng**.
+# So với bản 2 task cũ (API 0.5vCPU/1GB + Web 0.25vCPU/0.5GB = $33.74) thì rẻ
+# hơn $7.20, và tiết kiệm thêm $3.65 vì chỉ còn MỘT địa chỉ IPv4 công khai.
+#
+# ⚠️ Fargate chỉ nhận một số CẶP cpu/memory hợp lệ: với 512 CPU thì memory phải
+# là 1024–4096 MiB, bước 1024. Đặt 1536 hay 2560 là apply đỏ ở tận resource
+# task definition, kèm thông báo không nói rõ cặp nào hợp lệ.
+#
+# ⚠️ Fargate KHÔNG cho burst CPU: 512 là trần cứng chia cho cả ba container.
+# Không phải "trung bình 0.5 vCPU" mà là "không bao giờ quá 0.5 vCPU".
+variable "app_cpu" {
+  description = "CPU cho task ứng dụng, dùng chung cho api + web + valkey (1024 = 1 vCPU)."
   type        = number
   default     = 512
 }
 
-variable "api_memory" {
-  description = "RAM cho task API (MiB). Image API ~1.85GB nhưng RSS runtime nhỏ hơn nhiều."
+variable "app_memory" {
+  description = "RAM cho task ứng dụng (MiB). Chia mềm: api 900 · web 700 · valkey 256."
   type        = number
-  default     = 1024
-}
-
-variable "web_cpu" {
-  description = "CPU cho task Web."
-  type        = number
-  default     = 256
-}
-
-variable "web_memory" {
-  description = "RAM cho task Web (MiB)."
-  type        = number
-  default     = 512
+  default     = 2048
 }
 
 variable "db_instance_class" {
@@ -61,11 +64,9 @@ variable "db_allocated_storage" {
   default     = 20
 }
 
-variable "redis_node_type" {
-  description = "Cỡ ElastiCache. t4g = Graviton."
-  type        = string
-  default     = "cache.t4g.micro"
-}
+# `redis_node_type` đã gỡ 27/08/2026 cùng với ElastiCache — Valkey nay là
+# container phụ trong task ứng dụng. Xem khối §Redis ở `data.tf` để biết cái
+# giá của đổi này và điều kiện dựng lại.
 
 # ─── Bí mật ứng dụng ──────────────────────────────────────────────────────────
 # Đưa vào SSM Parameter Store (SecureString) chứ không phải Secrets Manager —

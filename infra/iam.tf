@@ -93,7 +93,10 @@ locals {
     AUTH_SECRET          = var.auth_secret
     INTERNAL_API_SECRET  = var.internal_api_secret
     DATABASE_URL         = "postgresql://${aws_db_instance.main.username}:${urlencode(var.db_password)}@${aws_db_instance.main.address}:5432/${aws_db_instance.main.db_name}"
-    REDIS_URL            = "redis://${aws_elasticache_replication_group.main.primary_endpoint_address}:6379"
+    # `REDIS_URL` KHÔNG còn ở đây từ 27/08/2026. Valkey là container phụ trong
+    # cùng task ⇒ giá trị là `redis://127.0.0.1:6379`, không phải bí mật, nên
+    # nó nằm thẳng trong `environment` của container api (`ecs.tf`). Để lại
+    # trong SSM thì vừa thừa một parameter vừa tạo hai nguồn sự thật.
   }
 
   mail_secrets = local.mail_enabled ? {
@@ -106,15 +109,29 @@ locals {
   # Danh sách khoá mà container API nạp qua `secrets`. Suy từ chính `local.secrets`
   # để không đẻ ra bản sao thứ hai phải nhớ sửa song song — trừ AUTH_SECRET, thứ
   # duy nhất cả API lẫn Web cùng dùng nên vẫn khai riêng ở task Web.
-  api_secret_keys = keys(local.secrets)
+  #
+  # 🔴 `nonsensitive()` KHÔNG THỪA — thiếu nó là `terraform plan` ĐỎ hẳn:
+  #     Sensitive values ... cannot be used as for_each arguments.
+  #
+  # Lý do tinh vi: một object literal như `base_secrets` giữ nhãn sensitive trên
+  # TỪNG THUỘC TÍNH, nhưng `merge()` là một hàm, và hàm thì gắn nhãn lên CẢ giá
+  # trị trả về. Nên `local.secrets` bị đánh dấu sensitive TOÀN BỘ, `keys()` lây
+  # nhãn theo, và `for_each` từ chối. Ở đây chỉ có TÊN khoá đi qua — `MAIL_USER`,
+  # `DATABASE_URL`… — không phải giá trị, nên gỡ nhãn là đúng và an toàn.
+  # Giá trị vẫn giữ nguyên nhãn: xem `value` của `aws_ssm_parameter.app`.
+  api_secret_keys = nonsensitive(keys(local.secrets))
 }
 
 # ⚠️ urlencode() ở DATABASE_URL không thừa: mật khẩu chứa `@` mà không
 # percent-encode thì Prisma parse sai host — đã trả giá một lần (debug_history §S7).
 resource "aws_ssm_parameter" "app" {
-  for_each = local.secrets
+  # Lặp theo TÊN khoá, không theo cả map. Xem chú thích `api_secret_keys` bên
+  # trên: lặp theo map là `plan` đỏ vì map mang nhãn sensitive.
+  for_each = toset(local.api_secret_keys)
 
-  name  = "/${var.project}/${each.key}"
-  type  = "SecureString"
-  value = each.value
+  name = "/${var.project}/${each.key}"
+  type = "SecureString"
+  # Tra ngược lại giá trị — chuỗi này VẪN mang nhãn sensitive nên Terraform
+  # không in nó ra plan. Chỉ tên khoá là công khai.
+  value = local.secrets[each.key]
 }
