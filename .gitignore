@@ -75,8 +75,16 @@ graphify-out/
 infra/**/.terraform/*
 infra/**/*.tfstate
 infra/**/*.tfstate.*
-infra/**/terraform.tfvars
+# 🔴 DAU * O CUOI KHONG THUA — da tra gia 27/08/2026.
+# Mau cu `terraform.tfvars` khop DUNG mot ten file, nen mot ban sao luu ten
+# `terraform.tfvars.bak-2026-08-18` KHONG bi chan, va no lot vao commit 1d3c8ea
+# qua mot lenh `git add -A`. Secret cua account da xoa, chua tung chay that,
+# nhung van la secret nam trong lich su git.
+infra/**/terraform.tfvars*
 infra/**/*.tfplan
+# Tan du cua account AWS cu (state + log + tfvars sao luu) — giu tren dia lam
+# duong lui, khong bao gio vao git.
+.old-aws-*/
 # .terraform.lock.hcl thi NGUOC LAI — PHAI commit: no ghim hash provider de
 # lan init sau tren may khac ra dung phien ban. Dung them vao danh sach nay.
 
