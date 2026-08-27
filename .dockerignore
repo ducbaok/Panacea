@@ -30,6 +30,24 @@ scripts/verify/results.json
 # ── Ảnh upload test (HT-1 bẫy #4): 134 file, KHÔNG vào image ─────────────────
 apps/api/uploads
 
+# ── 🔴 infra/ — BÍ MẬT PRODUCTION + 1.4GB binary provider (27/08/2026) ───────
+#
+# Hai lý do, lý do đầu là bảo mật:
+#
+#  1. `COPY . .` ở Dockerfile nhét NGUYÊN context vào image. `infra/` chứa
+#     `terraform.tfvars` (mật khẩu RDS + 4 secret ứng dụng) và
+#     `terraform.tfstate` (mọi giá trị sensitive ở dạng ĐỌC ĐƯỢC — state không
+#     mã hoá gì cả). Image API rồi được đẩy lên ECR ⇒ bất kỳ ai `docker pull`
+#     được là đọc được toàn bộ bí mật production. `.dockerignore` cũ chỉ chặn
+#     `**/.env`, không chạm tới `infra/`.
+#
+#  2. `infra/.terraform/` chứa binary của AWS provider ≈ **1.4GB**. Nó làm bước
+#     "transferring context" mất hàng phút mỗi lần build, và cùng ngần ấy dung
+#     lượng nằm lại trong image.
+#
+# ⚠️ Không có gì trong `infra/` cần thiết để build API hay Web. Chặn cả thư mục.
+infra
+
 # ── VCS / IDE / tài liệu — không cần để build ────────────────────────────────
 .git
 .gitignore
