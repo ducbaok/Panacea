@@ -52,6 +52,22 @@ resource "aws_db_instance" "main" {
   skip_final_snapshot = true
   deletion_protection = false
 
+  # 🔴 27/08/2026 — BẮT BUỘC cho việc xoay mật khẩu, không phải tuỳ chọn tiện tay.
+  #
+  # Mặc định của `apply_immediately` là FALSE, và khi đó `ModifyDBInstance` hoãn
+  # đổi mật khẩu tới **cửa sổ bảo trì** (`maintenance_window` ở trên = tối thứ
+  # Hai UTC). Nhưng Terraform cập nhật SSM parameter NGAY. Hậu quả: SSM mang mật
+  # khẩu mới còn RDS vẫn giữ mật khẩu cũ, và khoảng lệch đó kéo dài NHIỀU NGÀY.
+  # Không có gì báo lỗi cho tới lần deploy kế tiếp — lúc đó task mới đọc mật khẩu
+  # mới từ SSM, RDS từ chối, và app chết vì một thay đổi đã làm từ đầu tuần.
+  #
+  # ⚠️ Đánh đổi: cờ này áp cho MỌI thay đổi sau này, không riêng mật khẩu. Đổi
+  # `instance_class` hay `allocated_storage` sẽ thi hành ngay thay vì chờ cửa sổ
+  # bảo trì — với những thay đổi đó thì có gián đoạn. Ở quy mô này (1 task, chưa
+  # có người dùng thật) thi hành ngay là thứ mình muốn; khi có tải thật thì cân
+  # nhắc lại và hạ về false cho các thay đổi nặng.
+  apply_immediately = true
+
   # Không bật Performance Insights / Enhanced Monitoring ở nấc này — tốn thêm
   # mà chưa có traffic để nhìn.
 }
